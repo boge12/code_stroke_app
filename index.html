@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Code Stroke">
+  <meta name="theme-color" content="#0a1520">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>Code Stroke</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="app-header" id="main-header">
+    <button class="back-btn" id="back-btn" style="display:none">‹</button>
+    <h1 id="header-title">Code Stroke</h1>
+    <span class="nihss-score-badge" id="nihss-badge" style="display:none">NIHSS 0</span>
+  </header>
+
+  <!-- ── Progress Bar ───────────────────────────────────── -->
+  <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill" style="width:0%"></div></div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Home
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen active" id="screen-home">
+    <div class="home-logo">
+      <span class="logo-icon">🧠</span>
+      <h1>Code Stroke</h1>
+      <p>Lakeridge Health — CSBPR 2022/2025</p>
+    </div>
+
+    <button class="btn-primary" id="new-case-btn">
+      ＋ New Code Stroke
+    </button>
+
+    <p class="section-title">Recent Cases</p>
+    <div id="sessions-list"></div>
+
+    <hr class="divider">
+    <div class="text-center">
+      <button class="btn-secondary btn-outline" id="clear-data-btn" style="width:auto; padding:8px 20px; font-size:14px">
+        Clear All Saved Cases
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Label
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-label">
+    <div class="card">
+      <div class="card-title">Case Label (Optional)</div>
+      <p class="text-sm" style="margin-bottom:10px">Enter initials, room number, or any label — no full names needed.</p>
+      <label>Case label</label>
+      <input type="text" id="label-input" placeholder="e.g. J.S. · Rm 4 · ER1" autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+
+    <div class="card">
+      <div class="card-title">Session Started</div>
+      <p id="session-timestamp" class="text-sm">Loading…</p>
+    </div>
+
+    <script>
+      document.getElementById('session-timestamp').textContent = new Date().toLocaleString('en-CA', { dateStyle: 'medium', timeStyle: 'short', hour12: false });
+    </script>
+
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-next" id="label-next">Continue →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Timing
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-timing">
+    <div class="card">
+      <div class="card-title">Onset Time</div>
+      <p class="text-sm" style="margin-bottom:14px">Is the exact onset time known?</p>
+
+      <div style="display:flex; gap:10px; margin-bottom:16px">
+        <button class="score-btn onset-btn" data-onset="yes" style="flex:1; grid-template-columns:1fr; text-align:center; min-height:56px">
+          <div style="grid-column:1/-1; font-size:16px; font-weight:700">Yes — I know onset time</div>
+        </button>
+        <button class="score-btn onset-btn" data-onset="no" style="flex:1; grid-template-columns:1fr; text-align:center; min-height:56px">
+          <div style="grid-column:1/-1; font-size:16px; font-weight:700">Unknown onset</div>
+        </button>
+        <button class="score-btn onset-btn" data-onset="wakeup" style="flex:1; grid-template-columns:1fr; text-align:center; min-height:56px">
+          <div style="grid-column:1/-1; font-size:16px; font-weight:700">Wake-up stroke</div>
+        </button>
+      </div>
+
+      <div id="onset-time-section">
+        <label>Last Known Normal (LKN)</label>
+        <p class="text-sm" style="margin-bottom:6px; color:var(--text-dim)">When was the patient last known to be at their baseline / symptom-free?</p>
+        <input type="time" id="onset-time-input">
+        <p class="text-sm mt-8">LKN: <span id="elapsed-lsn">–</span></p>
+      </div>
+    </div>
+
+    <div id="timing-window-badge" class="time-window-badge window-close">
+      Enter time above to calculate window
+    </div>
+
+    <div class="card">
+      <div class="card-title">Window Summary</div>
+      <div style="font-size:14px; line-height:1.8; color:var(--text-dim)">
+        <div>✅ <strong>&lt;4.5h from LKN</strong> → TNK window <span style="color:#81c784">OPEN</span></div>
+        <div>⚠️ <strong>4.5–24h from LKN</strong> → TNK closed, EVT may be possible</div>
+        <div>🚫 <strong>&gt;24h</strong> → Outside standard treatment windows</div>
+        <div style="margin-top:8px">Unknown/wake-up onset: LKN = last time confirmed normal. For EVT eligibility, imaging selection may extend window up to 24h.</div>
+      </div>
+    </div>
+
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-next" id="timing-next">Next: Contraindications →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Absolute Contraindications
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-abs-contra">
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">Absolute Contraindications to TNK</div>
+      <p class="text-sm">Answer YES to any that apply. Any YES = absolute contraindication to TNK (can still assess for EVT).</p>
+    </div>
+
+    <div id="abs-summary"></div>
+    <div id="abs-contra-list"></div>
+
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-next" id="abs-next">Next: History →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Relative Contraindications
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-rel-contra">
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">History / Relative Contraindications</div>
+      <p class="text-sm">Relative CIs require clinical judgment. YES items will be flagged but do not automatically prevent TNK. Tap each item to expand and see why it matters.</p>
+    </div>
+
+    <div id="rel-summary"></div>
+    <div id="rel-contra-list"></div>
+
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-next" id="rel-next">Next: NIHSS →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: NIHSS
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-nihss">
+    <div class="step-tabs" id="nihss-tabs"></div>
+    <div id="nihss-item-container"></div>
+
+    <button class="btn-primary btn-green" id="nihss-done-btn" style="display:none; margin-top:16px; margin-bottom:70px">
+      ✓ All Items Scored — Continue to Syndrome →
+    </button>
+
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-back" id="nihss-prev">‹ Prev</button>
+      <button class="btn-nav btn-nav-next" id="nihss-next" disabled>Next ›</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Syndrome
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-syndrome">
+    <div id="syndrome-nihss-total"></div>
+
+    <p class="section-title">Suggested Stroke Syndrome(s)</p>
+    <p class="text-sm" style="margin-bottom:14px; color:var(--text-dim)">Based on NIHSS pattern. These are clinical suggestions — always use your full clinical judgment.</p>
+
+    <div id="syndrome-list"></div>
+
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-next" id="syndrome-next">Next: CT Results →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: CT
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-ct">
+    <div class="card">
+      <div class="card-title">CT Head</div>
+      <p class="text-sm" style="margin-bottom:12px">Is the CT head clear of hemorrhage?</p>
+      <div style="display:flex; gap:10px; margin-bottom:12px">
+        <button class="score-btn ct-clear-btn" data-val="yes" style="flex:1; grid-template-columns:1fr; min-height:56px">
+          <div style="grid-column:1/-1; font-size:16px; font-weight:700; color:#81c784">✅ Clear</div>
+        </button>
+        <button class="score-btn ct-clear-btn" data-val="no" style="flex:1; grid-template-columns:1fr; min-height:56px">
+          <div style="grid-column:1/-1; font-size:16px; font-weight:700; color:#ef9a9a">🚫 Hemorrhage</div>
+        </button>
+        <button class="score-btn ct-clear-btn" data-val="pending" style="flex:1; grid-template-columns:1fr; min-height:56px">
+          <div style="grid-column:1/-1; font-size:16px; font-weight:700; color:var(--text-dim)">⏳ Pending</div>
+        </button>
+      </div>
+
+      <div id="ct-hemorrhage-section" style="display:none">
+        <div class="status-banner status-red">
+          <span class="status-icon">🚫</span>
+          <div class="status-body">
+            <div class="status-title">HEMORRHAGE ON CT — TNK CONTRAINDICATED</div>
+            <div class="status-detail">Assess for EVT if clinical picture warrants. Neurosurgery / ICH pathway.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">ASPECTS Score</div>
+      <p class="text-sm" style="margin-bottom:8px">Alberta Stroke Program Early CT Score (0–10). Score ≥6 required for TNK eligibility.</p>
+      <label>ASPECTS (0–10)</label>
+      <input type="number" id="aspects-input" placeholder="Enter 0–10" min="0" max="10">
+      <p id="aspects-msg" class="text-sm mt-8"></p>
+      <p class="text-sm" style="margin-top:8px; color:var(--text-dim)">10 = normal. Each of 10 MCA territory regions scores 1 point. Score of 0 = complete MCA infarct.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">CTA — Vessel Imaging</div>
+      <p class="text-sm" style="margin-bottom:12px">Was CTA performed?</p>
+      <div style="display:flex; gap:10px; margin-bottom:14px">
+        <button class="score-btn cta-done-btn" data-val="yes" style="flex:1; grid-template-columns:1fr; min-height:48px">
+          <div style="grid-column:1/-1; font-weight:700">Yes</div>
+        </button>
+        <button class="score-btn cta-done-btn" data-val="no" style="flex:1; grid-template-columns:1fr; min-height:48px">
+          <div style="grid-column:1/-1; font-weight:700">No / Pending</div>
+        </button>
+      </div>
+
+      <div id="lvo-section" style="display:none">
+        <p class="text-sm" style="margin-bottom:8px">Large vessel occlusion (LVO) present?</p>
+        <div style="display:flex; gap:10px; margin-bottom:14px">
+          <button class="score-btn lvo-btn" data-val="yes" style="flex:1; grid-template-columns:1fr; min-height:48px">
+            <div style="grid-column:1/-1; font-weight:700; color:#ef9a9a">Yes — LVO</div>
+          </button>
+          <button class="score-btn lvo-btn" data-val="no" style="flex:1; grid-template-columns:1fr; min-height:48px">
+            <div style="grid-column:1/-1; font-weight:700; color:#81c784">No LVO</div>
+          </button>
+        </div>
+
+        <div id="lvo-vessel-section" style="display:none">
+          <p class="text-sm" style="margin-bottom:8px">Affected vessel:</p>
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px">
+            <button class="score-btn vessel-btn" data-vessel="ICA-T" style="flex:none; grid-template-columns:1fr; min-height:44px; padding:8px 12px">
+              <div style="grid-column:1/-1; font-size:14px; font-weight:700">ICA-T</div>
+            </button>
+            <button class="score-btn vessel-btn" data-vessel="M1" style="flex:none; grid-template-columns:1fr; min-height:44px; padding:8px 12px">
+              <div style="grid-column:1/-1; font-size:14px; font-weight:700">M1</div>
+            </button>
+            <button class="score-btn vessel-btn" data-vessel="M2" style="flex:none; grid-template-columns:1fr; min-height:44px; padding:8px 12px">
+              <div style="grid-column:1/-1; font-size:14px; font-weight:700">M2</div>
+            </button>
+            <button class="score-btn vessel-btn" data-vessel="ACA/A1" style="flex:none; grid-template-columns:1fr; min-height:44px; padding:8px 12px">
+              <div style="grid-column:1/-1; font-size:14px; font-weight:700">ACA/A1</div>
+            </button>
+            <button class="score-btn vessel-btn" data-vessel="A2" style="flex:none; grid-template-columns:1fr; min-height:44px; padding:8px 12px">
+              <div style="grid-column:1/-1; font-size:14px; font-weight:700">A2</div>
+            </button>
+            <button class="score-btn vessel-btn" data-vessel="P1" style="flex:none; grid-template-columns:1fr; min-height:44px; padding:8px 12px">
+              <div style="grid-column:1/-1; font-size:14px; font-weight:700">P1</div>
+            </button>
+            <button class="score-btn vessel-btn" data-vessel="P2" style="flex:none; grid-template-columns:1fr; min-height:44px; padding:8px 12px">
+              <div style="grid-column:1/-1; font-size:14px; font-weight:700">P2</div>
+            </button>
+            <button class="score-btn vessel-btn" data-vessel="Basilar" style="flex:none; grid-template-columns:1fr; min-height:44px; padding:8px 12px">
+              <div style="grid-column:1/-1; font-size:14px; font-weight:700">Basilar</div>
+            </button>
+          </div>
+
+          <p class="text-sm" style="margin-bottom:8px">Collaterals:</p>
+          <div style="display:flex; gap:10px; margin-bottom:10px">
+            <button class="score-btn collateral-btn" data-val="good" style="flex:1; grid-template-columns:1fr; min-height:44px">
+              <div style="grid-column:1/-1; font-size:13px; font-weight:700; color:#81c784">Good</div>
+            </button>
+            <button class="score-btn collateral-btn" data-val="moderate" style="flex:1; grid-template-columns:1fr; min-height:44px">
+              <div style="grid-column:1/-1; font-size:13px; font-weight:700; color:var(--yellow)">Moderate</div>
+            </button>
+            <button class="score-btn collateral-btn" data-val="poor" style="flex:1; grid-template-columns:1fr; min-height:44px">
+              <div style="grid-column:1/-1; font-size:13px; font-weight:700; color:#ef9a9a">Poor</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-next" id="ct-next">Next: Decision →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Decision
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-decision">
+    <div id="decision-content"></div>
+
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-next" id="decision-next">Next: Consent →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Consent
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-consent">
+    <div class="card">
+      <div class="card-title">Consent Documentation</div>
+      <div id="consent-summary"></div>
+
+      <label>Consent obtained with</label>
+      <div style="display:flex; gap:10px; margin-top:8px; margin-bottom:16px">
+        <button class="score-btn consent-person-btn" data-person="patient" style="flex:1; grid-template-columns:1fr; min-height:48px">
+          <div style="grid-column:1/-1; font-weight:700">Patient</div>
+        </button>
+        <button class="score-btn consent-person-btn" data-person="sdm" style="flex:1; grid-template-columns:1fr; min-height:48px">
+          <div style="grid-column:1/-1; font-weight:700">SDM</div>
+        </button>
+      </div>
+
+      <label>SDM Name (if applicable)</label>
+      <input type="text" id="sdm-name" placeholder="SDM name" autocomplete="off">
+    </div>
+
+    <div class="card">
+      <div class="card-title">TNK Administration</div>
+      <p class="text-sm" style="margin-bottom:10px">Was TNK given?</p>
+      <div style="display:flex; gap:10px; margin-bottom:14px">
+        <button class="score-btn tnk-given-btn" data-given="yes" style="flex:1; grid-template-columns:1fr; min-height:56px">
+          <div style="grid-column:1/-1; font-size:16px; font-weight:700; color:#81c784">✅ YES — TNK Given</div>
+        </button>
+        <button class="score-btn tnk-given-btn" data-given="no" style="flex:1; grid-template-columns:1fr; min-height:56px">
+          <div style="grid-column:1/-1; font-size:16px; font-weight:700; color:#ef9a9a">🚫 NO — Not Given</div>
+        </button>
+      </div>
+
+      <label>Time TNK administered</label>
+      <input type="time" id="tnk-time">
+    </div>
+
+
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-next" id="consent-next">Generate EMR Note →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Note
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-note">
+    <div class="status-banner status-green">
+      <span class="status-icon">📋</span>
+      <div class="status-body">
+        <div class="status-title">Code Stroke Note — Ready to Copy</div>
+        <div class="status-detail">Tap "Copy Note" then paste into EPIC</div>
+      </div>
+    </div>
+
+    <div class="note-output" id="note-output"></div>
+
+    <button class="btn-copy" id="copy-note-btn">📋 Copy Note to Clipboard</button>
+    <button class="btn-secondary" id="regen-note-btn" style="margin-top:10px">↺ Regenerate Note</button>
+
+    <hr class="divider">
+    <button class="btn-secondary" id="home-btn" style="margin-bottom:80px">← Return to Home</button>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       OVERLAY: Cookie Theft Picture (fullscreen for patient)
+  ══════════════════════════════════════════════════════ -->
+  <div id="cookie-overlay" class="fullscreen-overlay" style="display:none">
+    <div class="overlay-header">
+      <span style="font-size:14px; color:var(--text-dim)">Show to patient — "Tell me everything you see."</span>
+      <button class="overlay-close-btn" id="cookie-overlay-close">✕ Close</button>
+    </div>
+    <div class="overlay-content" id="cookie-overlay-content"></div>
+  </div>
+
+</div><!-- #app -->
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+<script>
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // Expose renderHome for inline onclick
+  function renderHome() {
+    if (typeof window.renderHomeGlobal === 'function') window.renderHomeGlobal();
+  }
+</script>
+</body>
+</html>

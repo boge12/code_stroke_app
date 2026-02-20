@@ -1,0 +1,1046 @@
+// ============================================================
+// data.js — All clinical content for Code Stroke Triage App
+// Lakeridge Health — CSBPR 2022/2025
+// ============================================================
+
+// ── NIHSS ITEMS ─────────────────────────────────────────────
+window.NIHSS_ITEMS = [
+  {
+    id: '1a',
+    name: 'Level of Consciousness',
+    shortName: '1a — Alertness',
+    examInstructions: [
+      'Observe the patient as you enter the room.',
+      'Do they open their eyes spontaneously and look at you?',
+      'If not: call their name or speak loudly. Do they respond?',
+      'If still no response: apply a sternal rub or nail-bed pressure.',
+    ],
+    lookFor: 'Are they awake and tracking you? Do they need stimulation to respond? Or are they unresponsive?',
+    svg: `<svg viewBox="0 0 320 140" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <!-- Score 0: Open eyes -->
+  <g transform="translate(0,0)">
+    <circle cx="53" cy="55" r="28" fill="#1a2e44" stroke="#4fc3f7" stroke-width="2"/>
+    <ellipse cx="53" cy="55" rx="16" ry="10" fill="#4fc3f7" opacity="0.3"/>
+    <circle cx="53" cy="55" r="7" fill="#1a2e44"/>
+    <circle cx="53" cy="55" r="3" fill="#4fc3f7"/>
+    <path d="M25,55 Q53,25 81,55 Q53,85 25,55" fill="none" stroke="#4fc3f7" stroke-width="2"/>
+    <text x="53" y="105" text-anchor="middle" fill="#4fc3f7" font-size="12" font-weight="bold">Score 0</text>
+    <text x="53" y="120" text-anchor="middle" fill="#aaa" font-size="10">Eyes open, alert</text>
+  </g>
+  <!-- Score 1: Half closed, voice stimulus -->
+  <g transform="translate(110,0)">
+    <circle cx="53" cy="55" r="28" fill="#1a2e44" stroke="#ffd54f" stroke-width="2"/>
+    <path d="M25,55 Q53,42 81,55" fill="none" stroke="#ffd54f" stroke-width="2"/>
+    <path d="M25,55 Q53,68 81,55" fill="none" stroke="#ffd54f" stroke-width="2"/>
+    <text x="53" y="40" fill="#ffd54f" font-size="18" text-anchor="middle">🔊</text>
+    <text x="53" y="105" text-anchor="middle" fill="#ffd54f" font-size="12" font-weight="bold">Score 1</text>
+    <text x="53" y="120" text-anchor="middle" fill="#aaa" font-size="10">Arousable by voice</text>
+  </g>
+  <!-- Score 2-3: Sternal rub -->
+  <g transform="translate(220,0)">
+    <circle cx="53" cy="55" r="28" fill="#1a2e44" stroke="#ef5350" stroke-width="2"/>
+    <line x1="40" y1="55" x2="66" y2="55" stroke="#ef5350" stroke-width="3"/>
+    <line x1="53" y1="42" x2="53" y2="68" stroke="#ef5350" stroke-width="3"/>
+    <text x="53" y="105" text-anchor="middle" fill="#ef5350" font-size="12" font-weight="bold">Score 2-3</text>
+    <text x="53" y="120" text-anchor="middle" fill="#aaa" font-size="10">Pain only / none</text>
+  </g>
+</svg>`,
+    scores: [
+      { value: 0, label: 'Alert', description: 'Alert, keenly responsive. Eyes open spontaneously. Follows you with gaze. Answers questions normally.' },
+      { value: 1, label: 'Drowsy', description: 'Not alert but arousable by minor stimulation (voice, light touch) to obey, answer, or respond. ⚠️ If they become drowsier during the assessment and need repeated stimulation — upgrade to score 2.' },
+      { value: 2, label: 'Obtunded', description: 'Requires repeated, strong, or painful stimulation (sternal rub) to respond. Or so obtunded they need stimulation to make non-stereotyped movements.' },
+      { value: 3, label: 'Unresponsive', description: 'Responds only with reflex motor/autonomic effects, or completely unresponsive, flaccid, with no responses.' },
+    ],
+    note: 'This is the ONLY item you can go back and change after completing it — if the patient deteriorates.',
+  },
+  {
+    id: '1b',
+    name: 'LOC Questions',
+    shortName: '1b — Month & Age',
+    examInstructions: [
+      'Ask: "What month is it right now?"',
+      'Ask: "How old are you?"',
+      'Verbal answer only — no partial credit for being close.',
+      'Do NOT accept non-verbal or written answers (except for aphasic patients — see note).',
+    ],
+    lookFor: 'This tests ORIENTATION, not aphasia. A patient who cannot speak due to aphasia but can write or gesture the correct answer still scores 2 (unable to respond in any modality = 2).',
+    svg: `<svg viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <rect x="10" y="10" width="140" height="110" rx="12" fill="#0d1f2d" stroke="#4fc3f7" stroke-width="1.5"/>
+  <text x="80" y="38" text-anchor="middle" fill="#4fc3f7" font-size="13" font-weight="bold">Ask aloud:</text>
+  <text x="80" y="60" text-anchor="middle" fill="#fff" font-size="11">"What month is it?"</text>
+  <text x="80" y="82" text-anchor="middle" fill="#fff" font-size="11">"How old are you?"</text>
+  <text x="80" y="108" text-anchor="middle" fill="#aaa" font-size="10">Verbal only · No partial credit</text>
+  <rect x="170" y="10" width="140" height="110" rx="12" fill="#0d1f2d" stroke="#ffd54f" stroke-width="1.5"/>
+  <text x="240" y="35" text-anchor="middle" fill="#ffd54f" font-size="12" font-weight="bold">Aphasic patient:</text>
+  <text x="240" y="55" text-anchor="middle" fill="#aaa" font-size="10">Cannot say, write,</text>
+  <text x="240" y="70" text-anchor="middle" fill="#aaa" font-size="10">or demonstrate?</text>
+  <text x="240" y="92" text-anchor="middle" fill="#ef5350" font-size="24" font-weight="bold">→ Score 2</text>
+  <text x="240" y="112" text-anchor="middle" fill="#aaa" font-size="10">(All modalities failed)</text>
+</svg>`,
+    scores: [
+      { value: 0, label: 'Both correct', description: 'Answers BOTH month and age correctly.' },
+      { value: 1, label: 'One correct', description: 'Answers one correctly. Also score 1 if patient is intubated or has severe dysarthria preventing speech.' },
+      { value: 2, label: 'Neither correct', description: 'Neither answer correct — OR — patient is aphasic and cannot communicate either answer by any means (speech, writing, gesture).' },
+    ],
+  },
+  {
+    id: '1c',
+    name: 'LOC Commands',
+    shortName: '1c — Open/Close Eyes + Fist',
+    examInstructions: [
+      'Command 1: "Close your eyes… now open them."',
+      'Command 2: "Make a fist with your [non-paretic] hand… now open it."',
+      'If no response: demonstrate the task once (pantomime).',
+      'Test the NON-paretic hand for the fist command if possible.',
+      'If one-step commands needed (too confused for 2-step): substitute "Stick out your tongue" or "Blink your eyes."',
+    ],
+    lookFor: 'Did they perform each task? Partial credit if they clearly attempt but cannot complete due to weakness.',
+    svg: `<svg viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <!-- Eye command -->
+  <g transform="translate(10,10)">
+    <rect width="140" height="110" rx="12" fill="#0d1f2d" stroke="#4fc3f7" stroke-width="1.5"/>
+    <text x="70" y="30" text-anchor="middle" fill="#4fc3f7" font-size="12" font-weight="bold">Command 1</text>
+    <ellipse cx="45" cy="65" rx="20" ry="12" fill="none" stroke="#4fc3f7" stroke-width="2"/>
+    <circle cx="45" cy="65" r="5" fill="#4fc3f7"/>
+    <ellipse cx="95" cy="65" rx="20" ry="12" fill="none" stroke="#4fc3f7" stroke-width="2"/>
+    <circle cx="95" cy="65" r="5" fill="#4fc3f7"/>
+    <text x="70" y="100" text-anchor="middle" fill="#aaa" font-size="10">"Close eyes / Open eyes"</text>
+  </g>
+  <!-- Fist command -->
+  <g transform="translate(170,10)">
+    <rect width="140" height="110" rx="12" fill="#0d1f2d" stroke="#4fc3f7" stroke-width="1.5"/>
+    <text x="70" y="30" text-anchor="middle" fill="#4fc3f7" font-size="12" font-weight="bold">Command 2</text>
+    <text x="70" y="70" text-anchor="middle" font-size="38">✊</text>
+    <text x="70" y="100" text-anchor="middle" fill="#aaa" font-size="10">"Fist / Open hand"</text>
+  </g>
+</svg>`,
+    scores: [
+      { value: 0, label: 'Both correct', description: 'Performs both commands correctly.' },
+      { value: 1, label: 'One correct', description: 'Performs only one correctly. Also score 1 if there is an unequivocal attempt but cannot complete due to weakness.' },
+      { value: 2, label: 'Neither correct', description: 'Performs neither task.' },
+    ],
+  },
+  {
+    id: '2',
+    name: 'Best Gaze',
+    shortName: '2 — Horizontal Eye Movements',
+    examInstructions: [
+      'Lightly hold patient\'s chin still to prevent head turning.',
+      'Hold your index finger at arm\'s length in front of their face.',
+      'Ask: "Follow my finger with your eyes."',
+      'Move your finger slowly to the FAR LEFT — does the left iris reach the medial canthus (inner corner)?',
+      'Then move slowly to the FAR RIGHT — does the right iris reach the medial canthus?',
+      'For APHASIC patients: Use your face. Establish eye contact, then walk slowly around the bed — do they track you?',
+    ],
+    lookFor: 'Full gaze = iris touches the inner corner of the eye in both directions. Partial gaze palsy = movement incomplete but no forced deviation. Full palsy = eyes stuck to one side.',
+    svg: `<svg viewBox="0 0 320 150" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <!-- Normal gaze left -->
+  <g transform="translate(5,10)">
+    <text x="50" y="20" text-anchor="middle" fill="#4fc3f7" font-size="11" font-weight="bold">Normal — Left</text>
+    <rect x="5" y="30" width="90" height="40" rx="8" fill="#0d1f2d" stroke="#4fc3f7" stroke-width="1.5"/>
+    <ellipse cx="35" cy="50" rx="14" ry="9" fill="none" stroke="#aaa" stroke-width="1.5"/>
+    <circle cx="23" cy="50" r="6" fill="#4fc3f7"/>
+    <ellipse cx="65" cy="50" rx="14" ry="9" fill="none" stroke="#aaa" stroke-width="1.5"/>
+    <circle cx="57" cy="50" r="6" fill="#4fc3f7"/>
+    <text x="50" y="88" text-anchor="middle" fill="#4fc3f7" font-size="10">Iris touches canthus</text>
+    <text x="50" y="100" text-anchor="middle" fill="#4fc3f7" font-size="10">→ Score 0</text>
+  </g>
+  <!-- Partial palsy -->
+  <g transform="translate(110,10)">
+    <text x="50" y="20" text-anchor="middle" fill="#ffd54f" font-size="11" font-weight="bold">Partial Palsy</text>
+    <rect x="5" y="30" width="90" height="40" rx="8" fill="#0d1f2d" stroke="#ffd54f" stroke-width="1.5"/>
+    <ellipse cx="35" cy="50" rx="14" ry="9" fill="none" stroke="#aaa" stroke-width="1.5"/>
+    <circle cx="28" cy="50" r="6" fill="#ffd54f"/>
+    <ellipse cx="65" cy="50" rx="14" ry="9" fill="none" stroke="#aaa" stroke-width="1.5"/>
+    <circle cx="60" cy="50" r="6" fill="#ffd54f"/>
+    <text x="50" y="88" text-anchor="middle" fill="#ffd54f" font-size="10">Incomplete, no</text>
+    <text x="50" y="100" text-anchor="middle" fill="#ffd54f" font-size="10">forced deviation → 1</text>
+  </g>
+  <!-- Forced deviation -->
+  <g transform="translate(215,10)">
+    <text x="50" y="20" text-anchor="middle" fill="#ef5350" font-size="11" font-weight="bold">Forced Deviation</text>
+    <rect x="5" y="30" width="90" height="40" rx="8" fill="#0d1f2d" stroke="#ef5350" stroke-width="1.5"/>
+    <ellipse cx="35" cy="50" rx="14" ry="9" fill="none" stroke="#aaa" stroke-width="1.5"/>
+    <circle cx="47" cy="50" r="6" fill="#ef5350"/>
+    <ellipse cx="65" cy="50" rx="14" ry="9" fill="none" stroke="#aaa" stroke-width="1.5"/>
+    <circle cx="77" cy="50" r="6" fill="#ef5350"/>
+    <text x="50" y="88" text-anchor="middle" fill="#ef5350" font-size="10">Stuck right, cannot</text>
+    <text x="50" y="100" text-anchor="middle" fill="#ef5350" font-size="10">overcome → Score 2</text>
+  </g>
+</svg>`,
+    scores: [
+      { value: 0, label: 'Normal', description: 'Eyes move fully and equally in both directions. Iris reaches the medial canthus (inner corner of eye) on each side.' },
+      { value: 1, label: 'Partial gaze palsy', description: 'Horizontal movement is incomplete in one or both eyes — but there is NO forced deviation to one side that the patient cannot overcome.' },
+      { value: 2, label: 'Forced deviation', description: 'Eyes are deviated to one side and CANNOT be overcome by voluntary tracking or oculocephalic (doll\'s eyes) reflex.' },
+    ],
+  },
+  {
+    id: '3',
+    name: 'Visual Fields',
+    shortName: '3 — Visual Fields',
+    examInstructions: [
+      'Cover ONE eye at a time with your hand.',
+      'Hold your face directly in front of the patient and ask them to look at your nose.',
+      'Test UPPER-outer quadrant: wiggle fingers in upper-left or upper-right — "Which side? Right, left, or both?"',
+      'Test LOWER-outer quadrant: same in lower fields.',
+      'Test BOTH eyes.',
+      'If patient doesn\'t understand: do "blink to threat" — bring your hand quickly toward each quadrant. Do they blink?',
+      'If pre-existing blindness in one eye: only score the remaining eye.',
+    ],
+    lookFor: 'Can they detect movement in all four quadrants of both eyes? Is one half of their visual field completely absent (hemianopia)?',
+    svg: `<svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <!-- Left eye field -->
+  <g transform="translate(10,10)">
+    <text x="70" y="18" text-anchor="middle" fill="#aaa" font-size="11">LEFT EYE view</text>
+    <circle cx="70" cy="90" r="65" fill="#0d1f2d" stroke="#4fc3f7" stroke-width="1.5"/>
+    <line x1="70" y1="25" x2="70" y2="155" stroke="#4fc3f7" stroke-width="1" stroke-dasharray="4,4"/>
+    <line x1="5" y1="90" x2="135" y2="90" stroke="#4fc3f7" stroke-width="1" stroke-dasharray="4,4"/>
+    <text x="38" y="65" fill="#4fc3f7" font-size="10">UL</text>
+    <text x="90" y="65" fill="#4fc3f7" font-size="10">UR</text>
+    <text x="38" y="120" fill="#4fc3f7" font-size="10">LL</text>
+    <text x="90" y="120" fill="#4fc3f7" font-size="10">LR</text>
+    <!-- Hemianopia example — right half shaded -->
+    <path d="M70,25 A65,65 0 0,1 70,155 Z" fill="#ef5350" opacity="0.3"/>
+    <text x="95" y="95" fill="#ef5350" font-size="9" font-weight="bold">LOSS</text>
+  </g>
+  <!-- Score guide -->
+  <g transform="translate(155,20)">
+    <rect x="0" y="0" width="155" height="130" rx="10" fill="#0d1f2d" stroke="#333" stroke-width="1"/>
+    <text x="78" y="20" text-anchor="middle" fill="#aaa" font-size="11" font-weight="bold">Scoring</text>
+    <circle cx="15" cy="40" r="6" fill="#4fc3f7"/>
+    <text x="28" y="45" fill="#4fc3f7" font-size="11">0 — No loss</text>
+    <circle cx="15" cy="65" r="6" fill="#ffd54f"/>
+    <text x="28" y="70" fill="#ffd54f" font-size="11">1 — Partial</text>
+    <text x="28" y="82" fill="#aaa" font-size="9">(one quadrant)</text>
+    <circle cx="15" cy="100" r="6" fill="#ef5350"/>
+    <text x="28" y="105" fill="#ef5350" font-size="11">2 — Complete</text>
+    <text x="28" y="117" fill="#aaa" font-size="9">(full half field)</text>
+    <text x="78" y="132" text-anchor="middle" fill="#e040fb" font-size="10">3 — Both eyes blind</text>
+  </g>
+</svg>`,
+    scores: [
+      { value: 0, label: 'No loss', description: 'Normal visual fields. Patient detects movement/fingers in all four quadrants of both eyes.' },
+      { value: 1, label: 'Partial hemianopia', description: 'Loss of one quadrant. Patient misses some but not all of one side (e.g. upper-right only). Also: patient looks appropriately toward the side of the moving fingers = score 0.' },
+      { value: 2, label: 'Complete hemianopia', description: 'Full half of the visual field is absent in one or both eyes on the same side.' },
+      { value: 3, label: 'Bilateral hemianopia', description: 'Cortical blindness — both eyes have lost vision from any cause. Patient may be unaware.' },
+    ],
+    note: 'If pre-existing unilateral blindness: score only the remaining eye.',
+  },
+  {
+    id: '4',
+    name: 'Facial Palsy',
+    shortName: '4 — Facial Palsy',
+    examInstructions: [
+      'Ask patient to: (1) "Show me your teeth," (2) "Raise your eyebrows," (3) "Close your eyes tightly."',
+      'Demonstrate each command yourself — patients often respond better to imitation.',
+      'Look at nasolabial folds (the crease from nose to corner of mouth) — are they symmetric?',
+      'Compare smile symmetry: does one corner of the mouth move less?',
+      'For APHASIC patients: Tickle nares (nostrils) with a tissue. Score based on the grimace response.',
+    ],
+    lookFor: 'Is the lower face (smile, nasolabial fold) symmetric? Is the upper face (eyebrows, eye closure) also involved? Remember: central (cortical) strokes cause lower face weakness. Peripheral (Bell\'s palsy) causes BOTH upper and lower face weakness.',
+    svg: `<svg viewBox="0 0 320 145" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <!-- Score 0 Normal -->
+  <g transform="translate(5,5)">
+    <circle cx="35" cy="45" r="30" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+    <ellipse cx="24" cy="36" rx="6" ry="4" fill="#4fc3f7" opacity="0.7"/>
+    <ellipse cx="46" cy="36" rx="6" ry="4" fill="#4fc3f7" opacity="0.7"/>
+    <path d="M24,55 Q35,66 46,55" fill="none" stroke="#4fc3f7" stroke-width="2.5"/>
+    <line x1="22" y1="50" x2="22" y2="56" stroke="#4fc3f7" stroke-width="1.5"/>
+    <line x1="48" y1="50" x2="48" y2="56" stroke="#4fc3f7" stroke-width="1.5"/>
+    <text x="35" y="92" text-anchor="middle" fill="#4fc3f7" font-size="11" font-weight="bold">Score 0</text>
+    <text x="35" y="106" text-anchor="middle" fill="#aaa" font-size="9">Symmetric</text>
+  </g>
+  <!-- Score 1 Minor lower -->
+  <g transform="translate(82,5)">
+    <circle cx="35" cy="45" r="30" fill="#1a2e44" stroke="#ffd54f" stroke-width="1.5"/>
+    <ellipse cx="24" cy="36" rx="6" ry="4" fill="#4fc3f7" opacity="0.7"/>
+    <ellipse cx="46" cy="36" rx="6" ry="4" fill="#4fc3f7" opacity="0.7"/>
+    <path d="M24,55 Q32,63 40,55" fill="none" stroke="#4fc3f7" stroke-width="2.5"/>
+    <line x1="22" y1="50" x2="22" y2="58" stroke="#4fc3f7" stroke-width="1.5"/>
+    <line x1="48" y1="50" x2="48" y2="52" stroke="#ffd54f" stroke-width="1.5"/>
+    <text x="35" y="92" text-anchor="middle" fill="#ffd54f" font-size="11" font-weight="bold">Score 1</text>
+    <text x="35" y="105" text-anchor="middle" fill="#aaa" font-size="9">Minor — lower</text>
+    <text x="35" y="117" text-anchor="middle" fill="#aaa" font-size="9">face asymmetry</text>
+  </g>
+  <!-- Score 2 Partial -->
+  <g transform="translate(159,5)">
+    <circle cx="35" cy="45" r="30" fill="#1a2e44" stroke="#ef5350" stroke-width="1.5"/>
+    <ellipse cx="24" cy="36" rx="6" ry="4" fill="#4fc3f7" opacity="0.7"/>
+    <ellipse cx="46" cy="36" rx="6" ry="4" fill="#4fc3f7" opacity="0.7"/>
+    <path d="M24,55 Q28,58 33,55" fill="none" stroke="#4fc3f7" stroke-width="2.5"/>
+    <line x1="22" y1="50" x2="22" y2="58" stroke="#4fc3f7" stroke-width="1.5"/>
+    <line x1="48" y1="50" x2="48" y2="51" stroke="#ef5350" stroke-width="1.5"/>
+    <text x="35" y="92" text-anchor="middle" fill="#ef5350" font-size="11" font-weight="bold">Score 2</text>
+    <text x="35" y="105" text-anchor="middle" fill="#aaa" font-size="9">Complete lower</text>
+    <text x="35" y="117" text-anchor="middle" fill="#aaa" font-size="9">face paresis</text>
+  </g>
+  <!-- Score 3 Complete -->
+  <g transform="translate(236,5)">
+    <circle cx="35" cy="45" r="30" fill="#1a2e44" stroke="#b71c1c" stroke-width="2"/>
+    <line x1="24" y1="33" x2="24" y2="39" stroke="#aaa" stroke-width="1.5"/>
+    <line x1="46" y1="33" x2="46" y2="39" stroke="#aaa" stroke-width="1.5"/>
+    <line x1="35" y1="55" x2="35" y2="61" stroke="#b71c1c" stroke-width="2.5"/>
+    <text x="35" y="92" text-anchor="middle" fill="#b71c1c" font-size="11" font-weight="bold">Score 3</text>
+    <text x="35" y="105" text-anchor="middle" fill="#aaa" font-size="9">Complete — upper</text>
+    <text x="35" y="117" text-anchor="middle" fill="#aaa" font-size="9">+ lower face</text>
+  </g>
+  <text x="160" y="138" text-anchor="middle" fill="#aaa" font-size="9">Check: nasolabial fold · smile · eyebrow raise · eye closure</text>
+</svg>`,
+    scores: [
+      { value: 0, label: 'Normal', description: 'Normal symmetric facial movements. Eyebrows raise symmetrically, smile symmetric, nasolabial folds equal.' },
+      { value: 1, label: 'Minor paralysis', description: 'Flattened nasolabial fold on one side. Asymmetric smile — more teeth visible on one side. UPPER face (forehead, eye closure) normal.' },
+      { value: 2, label: 'Partial paralysis', description: 'Complete paralysis of LOWER face on one side — when asked to smile, one side doesn\'t move at all. Upper face still moves.' },
+      { value: 3, label: 'Complete paralysis', description: 'Both upper and lower face affected. Cannot close eye on weak side. No wrinkling of forehead. Found in peripheral (Bell\'s palsy pattern) or very severe stroke.' },
+    ],
+    note: 'Central stroke = lower face weakness only (upper face spared). Peripheral lesion = BOTH upper and lower face.',
+  },
+  {
+    id: '5a',
+    name: 'Motor Arm — Right',
+    shortName: '5a — Right Arm Motor',
+    examInstructions: [
+      'If SITTING: Extend right arm out, palm down, at 90°. Count aloud 1… 2… 3… up to 10 seconds.',
+      'If LYING (supine/semi-Fowler): Hold arm at 45°, palm down. Count aloud for 10 seconds.',
+      'Tell the patient: "Hold your arm up. Don\'t let it drop."',
+      'Watch carefully — does it drift? Does it touch the bed?',
+    ],
+    lookFor: 'Holds for 10s = 0. Drifts but doesn\'t touch = 1. Drifts to bed with anti-gravity effort = 2. Falls immediately with movement = 3. No movement = 4.',
+    svg: `<svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <!-- 90 degrees seated -->
+  <g transform="translate(10,10)">
+    <text x="70" y="15" text-anchor="middle" fill="#aaa" font-size="11" font-weight="bold">Seated: 90°</text>
+    <line x1="70" y1="30" x2="70" y2="120" stroke="#4fc3f7" stroke-width="3" stroke-linecap="round"/>
+    <line x1="70" y1="75" x2="135" y2="75" stroke="#4fc3f7" stroke-width="3" stroke-linecap="round"/>
+    <text x="100" y="60" fill="#aaa" font-size="10">palm</text>
+    <text x="100" y="72" fill="#aaa" font-size="10">down</text>
+    <path d="M70,75 A20,20 0 0,1 90,55" fill="none" stroke="#ffd54f" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="88" y="50" fill="#ffd54f" font-size="12" font-weight="bold">90°</text>
+    <text x="70" y="145" text-anchor="middle" fill="#aaa" font-size="10">Count 10 sec</text>
+  </g>
+  <!-- 45 degrees supine -->
+  <g transform="translate(165,10)">
+    <text x="70" y="15" text-anchor="middle" fill="#aaa" font-size="11" font-weight="bold">Supine: 45°</text>
+    <rect x="20" y="100" width="100" height="12" rx="4" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+    <line x1="70" y1="100" x2="70" y2="60" stroke="#aaa" stroke-width="2" stroke-linecap="round"/>
+    <line x1="70" y1="100" x2="125" y2="57" stroke="#4fc3f7" stroke-width="3" stroke-linecap="round"/>
+    <path d="M70,100 A30,30 0 0,1 97,74" fill="none" stroke="#ffd54f" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="88" y="72" fill="#ffd54f" font-size="12" font-weight="bold">45°</text>
+    <text x="70" y="145" text-anchor="middle" fill="#aaa" font-size="10">Count 10 sec</text>
+  </g>
+</svg>`,
+    scores: [
+      { value: 0, label: 'No drift', description: 'Holds arm at full 90° (or 45°) for the full 10 seconds without drifting.' },
+      { value: 1, label: 'Drift', description: 'Arm drifts down BEFORE 10 seconds but does NOT touch the bed or support surface.' },
+      { value: 2, label: 'Effort against gravity', description: 'Some anti-gravity movement present but arm DOES touch the bed within 10 seconds.' },
+      { value: 3, label: 'No anti-gravity', description: 'Arm falls immediately when placed. If the limb MOVES on the surface after falling → score 3. (No movement at all → score 4).' },
+      { value: 4, label: 'No movement', description: 'No movement whatsoever.' },
+      { value: 'UN', label: 'Untestable', description: 'Amputation, joint fusion, or other physical reason the test cannot be done. Document the reason.' },
+    ],
+    note: 'Test right arm here. Left arm is item 5b.',
+  },
+  {
+    id: '5b',
+    name: 'Motor Arm — Left',
+    shortName: '5b — Left Arm Motor',
+    examInstructions: [
+      'If SITTING: Extend left arm out, palm down, at 90°. Count aloud 1… 2… 3… up to 10 seconds.',
+      'If LYING (supine/semi-Fowler): Hold arm at 45°, palm down. Count aloud for 10 seconds.',
+      'Same procedure as right arm.',
+    ],
+    lookFor: 'Same as right arm — hold for 10s, drift without touching, drift to bed, falls with movement, no movement.',
+    svg: `<svg viewBox="0 0 320 160" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <g transform="translate(10,10)">
+    <text x="70" y="15" text-anchor="middle" fill="#aaa" font-size="11" font-weight="bold">Seated: 90°</text>
+    <line x1="70" y1="30" x2="70" y2="120" stroke="#4fc3f7" stroke-width="3" stroke-linecap="round"/>
+    <line x1="5" y1="75" x2="70" y2="75" stroke="#4fc3f7" stroke-width="3" stroke-linecap="round"/>
+    <text x="30" y="60" fill="#aaa" font-size="10">palm down</text>
+    <path d="M70,75 A20,20 0 0,0 50,55" fill="none" stroke="#ffd54f" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <text x="22" y="50" fill="#ffd54f" font-size="12" font-weight="bold">90°</text>
+    <text x="70" y="145" text-anchor="middle" fill="#aaa" font-size="10">Count 10 sec</text>
+  </g>
+  <g transform="translate(165,60)">
+    <text x="70" y="0" text-anchor="middle" fill="#4fc3f7" font-size="20">←</text>
+    <text x="70" y="22" text-anchor="middle" fill="#aaa" font-size="12" font-weight="bold">LEFT arm</text>
+    <text x="70" y="42" text-anchor="middle" fill="#aaa" font-size="10">Same procedure</text>
+    <text x="70" y="56" text-anchor="middle" fill="#aaa" font-size="10">as right arm</text>
+  </g>
+</svg>`,
+    scores: [
+      { value: 0, label: 'No drift', description: 'Holds arm at full 90° (or 45°) for the full 10 seconds without drifting.' },
+      { value: 1, label: 'Drift', description: 'Arm drifts down BEFORE 10 seconds but does NOT touch the bed or support surface.' },
+      { value: 2, label: 'Effort against gravity', description: 'Some anti-gravity movement present but arm DOES touch the bed within 10 seconds.' },
+      { value: 3, label: 'No anti-gravity', description: 'Arm falls immediately. Movement present on surface = 3. No movement at all = 4.' },
+      { value: 4, label: 'No movement', description: 'No movement whatsoever.' },
+      { value: 'UN', label: 'Untestable', description: 'Amputation, joint fusion, or other physical reason. Document the reason.' },
+    ],
+    note: 'Test left arm here.',
+  },
+  {
+    id: '6a',
+    name: 'Motor Leg — Right',
+    shortName: '6a — Right Leg Motor',
+    examInstructions: [
+      'Patient must be SUPINE (lying flat on back).',
+      'Raise the right leg to 30°.',
+      'Tell patient: "Hold your leg up. Don\'t let it drop."',
+      'Count aloud 1… 2… 3… up to 5 seconds.',
+      'Watch carefully — does it drift? Touch the bed?',
+    ],
+    lookFor: 'Holds 5s = 0. Drifts before 5s but no bed contact = 1. Touches bed within 5s with effort = 2. Falls immediately = 3. No movement = 4.',
+    svg: `<svg viewBox="0 0 320 170" xmlns="http://www.w3.org/2000/svg" class="nihss-svg" style="max-height:170px">
+  <text x="160" y="18" text-anchor="middle" fill="#aaa" font-size="12" font-weight="bold">Right Leg at 30° — Patient Supine</text>
+  <!-- Bed -->
+  <rect x="15" y="130" width="290" height="12" rx="5" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+  <!-- Pillow -->
+  <rect x="20" y="118" width="50" height="14" rx="7" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1"/>
+  <!-- Body on bed - torso -->
+  <ellipse cx="65" cy="115" rx="35" ry="16" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+  <!-- Head -->
+  <circle cx="40" cy="110" r="14" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+  <!-- Right leg RAISED at 30 degrees -->
+  <line x1="100" y1="118" x2="230" y2="72" stroke="#4fc3f7" stroke-width="6" stroke-linecap="round"/>
+  <!-- Foot -->
+  <rect x="226" y="63" width="18" height="12" rx="4" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+  <!-- Left leg flat on bed -->
+  <line x1="100" y1="125" x2="230" y2="125" stroke="#aaa" stroke-width="4" stroke-linecap="round" stroke-dasharray="2,0" opacity="0.4"/>
+  <!-- 30 degree angle arc -->
+  <path d="M130,118 A35,35 0 0,1 155,100" fill="none" stroke="#ffd54f" stroke-width="2" stroke-dasharray="4,3"/>
+  <text x="162" y="98" fill="#ffd54f" font-size="14" font-weight="bold">30°</text>
+  <!-- Timer -->
+  <rect x="230" y="100" width="75" height="28" rx="8" fill="#0d1f2d" stroke="#ffd54f" stroke-width="1.5"/>
+  <text x="267" y="119" text-anchor="middle" fill="#ffd54f" font-size="12" font-weight="bold">5 sec</text>
+  <text x="160" y="158" text-anchor="middle" fill="#aaa" font-size="10">Count aloud: "1... 2... 3... 4... 5"</text>
+</svg>`,
+    scores: [
+      { value: 0, label: 'No drift', description: 'Holds leg at 30° for the full 5 seconds without drifting.' },
+      { value: 1, label: 'Drift', description: 'Leg drifts down BEFORE 5 seconds but does NOT touch the bed.' },
+      { value: 2, label: 'Effort against gravity', description: 'Some movement against gravity but leg DOES touch the bed within 5 seconds.' },
+      { value: 3, label: 'No anti-gravity', description: 'Falls immediately when placed. Movement present on surface = 3. No movement at all = 4.' },
+      { value: 4, label: 'No movement', description: 'No movement whatsoever.' },
+      { value: 'UN', label: 'Untestable', description: 'Amputation, joint fusion, other. Document reason.' },
+    ],
+  },
+  {
+    id: '6b',
+    name: 'Motor Leg — Left',
+    shortName: '6b — Left Leg Motor',
+    examInstructions: [
+      'Patient SUPINE.',
+      'Raise the left leg to 30°.',
+      'Count aloud for 5 seconds.',
+      'Same procedure as right leg.',
+    ],
+    lookFor: 'Same as right leg.',
+    svg: `<svg viewBox="0 0 320 170" xmlns="http://www.w3.org/2000/svg" class="nihss-svg" style="max-height:170px">
+  <text x="160" y="18" text-anchor="middle" fill="#aaa" font-size="12" font-weight="bold">Left Leg at 30° — Patient Supine</text>
+  <!-- Bed -->
+  <rect x="15" y="130" width="290" height="12" rx="5" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+  <!-- Pillow -->
+  <rect x="245" y="118" width="50" height="14" rx="7" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1"/>
+  <!-- Body on bed - torso -->
+  <ellipse cx="255" cy="115" rx="35" ry="16" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+  <!-- Head -->
+  <circle cx="280" cy="110" r="14" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+  <!-- Left leg RAISED at 30 degrees -->
+  <line x1="220" y1="118" x2="90" y2="72" stroke="#4fc3f7" stroke-width="6" stroke-linecap="round"/>
+  <!-- Foot -->
+  <rect x="76" y="63" width="18" height="12" rx="4" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+  <!-- Right leg flat on bed -->
+  <line x1="220" y1="125" x2="90" y2="125" stroke="#aaa" stroke-width="4" stroke-linecap="round" opacity="0.4"/>
+  <!-- 30 degree angle arc -->
+  <path d="M190,118 A35,35 0 0,0 165,100" fill="none" stroke="#ffd54f" stroke-width="2" stroke-dasharray="4,3"/>
+  <text x="145" y="98" fill="#ffd54f" font-size="14" font-weight="bold">30°</text>
+  <!-- Timer -->
+  <rect x="15" y="100" width="75" height="28" rx="8" fill="#0d1f2d" stroke="#ffd54f" stroke-width="1.5"/>
+  <text x="52" y="119" text-anchor="middle" fill="#ffd54f" font-size="12" font-weight="bold">5 sec</text>
+  <text x="160" y="158" text-anchor="middle" fill="#aaa" font-size="10">Same procedure as right leg</text>
+</svg>`,
+    scores: [
+      { value: 0, label: 'No drift', description: 'Holds leg at 30° for the full 5 seconds without drifting.' },
+      { value: 1, label: 'Drift', description: 'Leg drifts down BEFORE 5 seconds but does NOT touch the bed.' },
+      { value: 2, label: 'Effort against gravity', description: 'Some movement against gravity but leg DOES touch the bed within 5 seconds.' },
+      { value: 3, label: 'No anti-gravity', description: 'Falls immediately. Movement on surface = 3. No movement at all = 4.' },
+      { value: 4, label: 'No movement', description: 'No movement whatsoever.' },
+      { value: 'UN', label: 'Untestable', description: 'Amputation, joint fusion, other. Document reason.' },
+    ],
+  },
+  {
+    id: '7',
+    name: 'Limb Ataxia',
+    shortName: '7 — Limb Ataxia',
+    examInstructions: [
+      'FINGER-TO-NOSE: Hold your index finger at arm\'s length in the patient\'s intact visual field.',
+      'Ask: "Touch your nose, then touch my finger, back and forth." Repeat 3–4 times each arm.',
+      'Keep your finger still (or move it slightly to vary the target).',
+      'HEEL-TO-SHIN: Ask patient to: "Put your heel on your knee, then slide it down your shin to your ankle." Repeat both legs.',
+      'For APHASIC patients: Passively move the limb to show what is expected, then let them try.',
+    ],
+    lookFor: 'Ataxia = movement is tremulous, dysmetric (over/undershoots), or uncoordinated — out of proportion to any weakness present. If weakness alone stops them from doing the test → score 0 (not ataxia).',
+    svg: `<svg viewBox="0 0 320 155" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <!-- Finger to nose -->
+  <g transform="translate(10,10)">
+    <rect x="0" y="0" width="145" height="140" rx="10" fill="#0d1f2d" stroke="#4fc3f7" stroke-width="1.5"/>
+    <text x="72" y="20" text-anchor="middle" fill="#4fc3f7" font-size="11" font-weight="bold">Finger to Nose</text>
+    <circle cx="115" cy="70" r="8" fill="#4fc3f7" opacity="0.8"/>
+    <text x="115" y="74" text-anchor="middle" fill="#0d1f2d" font-size="10" font-weight="bold">F</text>
+    <circle cx="30" cy="70" r="8" fill="#ffd54f" opacity="0.8"/>
+    <text x="30" y="74" text-anchor="middle" fill="#0d1f2d" font-size="10" font-weight="bold">N</text>
+    <path d="M38,70 L107,70" stroke="#aaa" stroke-width="2" stroke-dasharray="5,5"/>
+    <path d="M60,70 Q72,50 85,70 Q97,90 110,70" fill="none" stroke="#ef5350" stroke-width="1.5"/>
+    <text x="72" y="105" text-anchor="middle" fill="#aaa" font-size="10">N=Nose, F=Finger</text>
+    <text x="72" y="120" text-anchor="middle" fill="#ef5350" font-size="9">Red = dysmetric path</text>
+    <text x="72" y="132" text-anchor="middle" fill="#aaa" font-size="9">Examiner's finger = arm's length</text>
+  </g>
+  <!-- Heel to shin -->
+  <g transform="translate(165,10)">
+    <rect x="0" y="0" width="145" height="140" rx="10" fill="#0d1f2d" stroke="#4fc3f7" stroke-width="1.5"/>
+    <text x="72" y="20" text-anchor="middle" fill="#4fc3f7" font-size="11" font-weight="bold">Heel to Shin</text>
+    <path d="M40,45 Q72,60 105,45" fill="none" stroke="#aaa" stroke-width="2"/>
+    <line x1="72" y1="55" x2="72" y2="120" stroke="#4fc3f7" stroke-width="3" stroke-linecap="round"/>
+    <circle cx="72" cy="50" r="8" fill="#ffd54f" opacity="0.8"/>
+    <text x="72" y="54" text-anchor="middle" fill="#0d1f2d" font-size="8" font-weight="bold">heel</text>
+    <circle cx="72" cy="120" r="6" fill="#4fc3f7" opacity="0.5"/>
+    <text x="72" y="124" text-anchor="middle" fill="#0d1f2d" font-size="8">ankle</text>
+    <text x="72" y="138" text-anchor="middle" fill="#aaa" font-size="9">Slide heel down shin</text>
+  </g>
+</svg>`,
+    scores: [
+      { value: 0, label: 'No ataxia', description: 'No ataxia present — OR — limb weakness makes the test impossible to perform (score 0 when weakness prevents testing). OR patient doesn\'t understand despite demonstration.' },
+      { value: 1, label: 'Ataxia in one limb', description: 'Ataxia present in ONE limb (arm OR leg). Movement is tremulous, overshoots/undershoots the target, or slides off the shin.' },
+      { value: 2, label: 'Ataxia in two limbs', description: 'Ataxia present in TWO or more limbs.' },
+    ],
+    note: 'Key distinction: If weakness alone limits the test → score 0. Only score ataxia if coordination problem exceeds what weakness would explain.',
+  },
+  {
+    id: '8',
+    name: 'Sensory',
+    shortName: '8 — Sensory',
+    examInstructions: [
+      'Use a broken tongue depressor (sharp point) or a safety pin.',
+      'Test: face, upper arm, lower arm, thigh, lower leg — on BOTH sides.',
+      'Ask: "Can you feel this? Is it sharp? Is it the SAME on both sides, or different?"',
+      'Apply equal light pressure on each side.',
+      'For patients who cannot communicate: watch for grimace or withdrawal from sharp touch.',
+      'DO NOT test hands or feet (to avoid confounding by peripheral neuropathy).',
+    ],
+    lookFor: 'Only score sensory loss if clearly demonstrated. If in doubt → score 0. Only score loss attributable to the stroke, not pre-existing neuropathy.',
+    svg: `<svg viewBox="0 0 320 155" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <g transform="translate(10,10)">
+    <text x="150" y="18" text-anchor="middle" fill="#4fc3f7" font-size="13" font-weight="bold">Test areas (NOT hands/feet)</text>
+    <!-- Simple body outline -->
+    <ellipse cx="100" cy="50" rx="20" ry="22" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+    <rect x="75" y="72" width="50" height="55" rx="8" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1.5"/>
+    <rect x="48" y="75" width="22" height="45" rx="6" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1"/>
+    <rect x="130" y="75" width="22" height="45" rx="6" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1"/>
+    <rect x="75" y="127" width="20" height="40" rx="6" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1"/>
+    <rect x="105" y="127" width="20" height="40" rx="6" fill="#1a2e44" stroke="#4fc3f7" stroke-width="1"/>
+    <!-- Test dots -->
+    <circle cx="60" cy="90" r="5" fill="#ffd54f"/>
+    <circle cx="140" cy="90" r="5" fill="#4fc3f7"/>
+    <circle cx="80" cy="135" r="5" fill="#ffd54f"/>
+    <circle cx="120" cy="135" r="5" fill="#4fc3f7"/>
+    <circle cx="88" cy="45" r="5" fill="#ffd54f"/>
+    <circle cx="112" cy="45" r="5" fill="#4fc3f7"/>
+    <text x="55" y="88" fill="#ffd54f" font-size="8" text-anchor="middle">L</text>
+    <text x="145" y="88" fill="#4fc3f7" font-size="8" text-anchor="middle">R</text>
+    <text x="200" y="60" fill="#aaa" font-size="10">Compare</text>
+    <text x="200" y="74" fill="#aaa" font-size="10">left vs right:</text>
+    <text x="200" y="95" fill="#aaa" font-size="10">• Face</text>
+    <text x="200" y="110" fill="#aaa" font-size="10">• Upper arm</text>
+    <text x="200" y="125" fill="#aaa" font-size="10">• Lower arm</text>
+    <text x="200" y="140" fill="#aaa" font-size="10">• Thigh/leg</text>
+  </g>
+</svg>`,
+    scores: [
+      { value: 0, label: 'Normal', description: 'No sensory loss. Feels sharp touch equally on both sides.' },
+      { value: 1, label: 'Mild-moderate loss', description: 'Patient feels less sharp on the affected side — they are AWARE of being touched, but it feels different/duller. Or: loss only in one extremity.' },
+      { value: 2, label: 'Severe loss', description: 'Patient does NOT feel touch on the affected side at all. Or: bilateral sensory loss.' },
+    ],
+    note: 'Do NOT test hands/feet. If uncertain, score 0. Only score loss clearly attributable to stroke, not pre-existing neuropathy.',
+  },
+  {
+    id: '9',
+    name: 'Best Language',
+    shortName: '9 — Language / Aphasia',
+    examInstructions: [
+      '1. FLUENCY — Show the cookie jar picture. "Tell me everything you see happening in this picture."',
+      '2. NAMING — Show common objects (pen, watch, glasses, key). "What is this called?"',
+      '3. READING — Show printed sentences: "The sky is blue." "He lived nearby." Ask to read aloud.',
+      'If visually impaired: (1) assess fluency in conversation, (2) place objects in hand for naming, (3) ask to write a sentence.',
+      'Observations from earlier NIHSS items (alertness, commands) also count toward this score.',
+    ],
+    lookFor: 'Is speech fluent or halting? Can they name objects? Can they understand your commands? Can they read? Compare output to comprehension.',
+    svg: `<div style="text-align:center">
+  <div class="show-picture-link" id="open-cookie-picture" style="margin-bottom:12px; display:inline-flex">
+    🖼️ Tap to Show Picture to Patient
+  </div>
+</div>
+<div style="background:#0d1f2d; border-radius:10px; border:1px solid #333; padding:14px 12px; margin-top:8px;">
+  <div style="text-align:center; color:#aaa; font-size:12px; font-weight:bold; margin-bottom:10px;">Aphasia Scoring Guide</div>
+  <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px;">
+    <span style="min-width:18px; height:18px; border-radius:50%; background:#4fc3f7; display:inline-block; margin-top:2px;"></span>
+    <span style="color:#4fc3f7; font-size:13px; line-height:1.3;"><b>0</b> — Normal speech, naming, reading</span>
+  </div>
+  <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px;">
+    <span style="min-width:18px; height:18px; border-radius:50%; background:#ffd54f; display:inline-block; margin-top:2px;"></span>
+    <div>
+      <span style="color:#ffd54f; font-size:13px; line-height:1.3;"><b>1</b> — Mild/Mod: word-finding pauses, gets ideas across</span>
+      <div style="color:#aaa; font-size:11px; margin-top:2px;">Examiner can identify picture from patient's description</div>
+    </div>
+  </div>
+  <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px;">
+    <span style="min-width:18px; height:18px; border-radius:50%; background:#ef5350; display:inline-block; margin-top:2px;"></span>
+    <span style="color:#ef5350; font-size:13px; line-height:1.3;"><b>2</b> — Severe: fragmented, examiner must guess meaning</span>
+  </div>
+  <div style="display:flex; align-items:flex-start; gap:8px;">
+    <span style="min-width:18px; height:18px; border-radius:50%; background:#b71c1c; display:inline-block; margin-top:2px;"></span>
+    <span style="color:#b71c1c; font-size:13px; line-height:1.3;"><b>3</b> — Mute / Global: no usable speech + no comprehension</span>
+  </div>
+</div>`,
+    scores: [
+      { value: 0, label: 'No aphasia', description: 'Normal. Fluent speech, correct naming, reads and understands normally.' },
+      { value: 1, label: 'Mild-moderate aphasia', description: 'Some obvious loss of fluency OR comprehension — word-finding pauses, some paraphasias — but patient can get ideas across. Examiner can identify the picture or sentences from the response.' },
+      { value: 2, label: 'Severe aphasia', description: 'Very fragmented communication. Examiner must guess what the patient is trying to say. Or patient is mute with severe expressive aphasia.' },
+      { value: 3, label: 'Mute / global aphasia', description: 'Reserved for patient with NO usable speech AND unable to follow any one-step command. Global aphasia.' },
+    ],
+  },
+  {
+    id: '10',
+    name: 'Dysarthria',
+    shortName: '10 — Dysarthria',
+    examInstructions: [
+      'Ask patient to repeat these words after you:',
+      '"Mama" — "Tip-top" — "Fifty-fifty" — "Huckleberry" — "Baseball player"',
+      'Listen for slurring, distortion, or loss of intelligibility.',
+      'This tests MOTOR speech — NOT word finding (that is aphasia, item 9).',
+      'If patient is intubated → mark as UN (untestable).',
+    ],
+    lookFor: 'Is speech slurred but still understandable? Or completely unintelligible? Dysarthria = slurred motor output. Aphasia = wrong words or no words.',
+    svg: `<svg viewBox="0 0 320 130" xmlns="http://www.w3.org/2000/svg" class="nihss-svg">
+  <rect x="10" y="10" width="300" height="110" rx="12" fill="#0d1f2d" stroke="#4fc3f7" stroke-width="1.5"/>
+  <text x="160" y="35" text-anchor="middle" fill="#4fc3f7" font-size="13" font-weight="bold">Words to repeat:</text>
+  <text x="160" y="58" text-anchor="middle" fill="#fff" font-size="12">"Mama" · "Tip-top" · "Fifty-fifty"</text>
+  <text x="160" y="78" text-anchor="middle" fill="#fff" font-size="12">"Huckleberry" · "Baseball player"</text>
+  <text x="80" y="105" text-anchor="middle" fill="#ffd54f" font-size="10">Score 1: "tipsh, topf"</text>
+  <text x="240" y="105" text-anchor="middle" fill="#ef5350" font-size="10">Score 2: Unintelligible</text>
+</svg>`,
+    scores: [
+      { value: 0, label: 'Normal', description: 'Normal articulation. Words are clearly formed.' },
+      { value: 1, label: 'Mild-moderate', description: 'Slurred speech — some distortion (e.g. "tipsh, topf") — but still intelligible. Listener can identify the words.' },
+      { value: 2, label: 'Severe / unintelligible', description: 'So severely slurred as to be unintelligible — or patient is mute/anarthric. Includes severe expressive aphasia causing mutism (score 2 for either).' },
+      { value: 'UN', label: 'Untestable', description: 'Patient is intubated. Document reason.' },
+    ],
+  },
+  {
+    id: '11',
+    name: 'Extinction and Inattention',
+    shortName: '11 — Neglect / Inattention',
+    examInstructions: [
+      'VISUAL: With patient looking at your nose, wiggle fingers in two quadrants simultaneously.',
+      '"Which side am I wiggling — right, left, or BOTH?" Test upper and lower fields.',
+      'SENSORY: Eyes closed. Simultaneously touch patient on right and left (face, arms, legs).',
+      '"Am I touching you on the right, left, or BOTH?"',
+      'If aphasia: observe which side the patient attends to and responds to.',
+    ],
+    lookFor: 'Does the patient consistently miss one side when both sides are stimulated simultaneously? They may detect each side normally when tested alone — extinction = only missing when presented together.',
+    svg: `<svg viewBox="0 0 320 200" xmlns="http://www.w3.org/2000/svg" class="nihss-svg" style="max-height:200px">
+  <text x="160" y="18" text-anchor="middle" fill="#4fc3f7" font-size="13" font-weight="bold">Stroke Side → Contralateral Deficits</text>
+  <!-- Left brain -->
+  <rect x="10" y="30" width="130" height="80" rx="12" fill="#1a2e44" stroke="#4fc3f7" stroke-width="2"/>
+  <text x="75" y="52" text-anchor="middle" fill="#4fc3f7" font-size="12" font-weight="bold">LEFT BRAIN</text>
+  <text x="75" y="68" text-anchor="middle" fill="#4fc3f7" font-size="10">Language centre</text>
+  <text x="75" y="82" text-anchor="middle" fill="#4fc3f7" font-size="10">Aphasia dominant</text>
+  <text x="75" y="98" text-anchor="middle" fill="#aaa" font-size="9">Damage here causes:</text>
+  <!-- Arrow right: line + triangle arrowhead -->
+  <line x1="145" y1="70" x2="172" y2="70" stroke="#ef5350" stroke-width="2.5"/>
+  <polygon points="172,64 182,70 172,76" fill="#ef5350"/>
+  <!-- Right side deficits -->
+  <rect x="180" y="30" width="130" height="80" rx="12" fill="#0d1f2d" stroke="#ef5350" stroke-width="1.5"/>
+  <text x="245" y="50" text-anchor="middle" fill="#ef5350" font-size="11" font-weight="bold">RIGHT SIDE</text>
+  <text x="245" y="64" text-anchor="middle" fill="#ef5350" font-size="10">Weakness</text>
+  <text x="245" y="78" text-anchor="middle" fill="#ef5350" font-size="10">Sensory loss</text>
+  <text x="245" y="92" text-anchor="middle" fill="#ef5350" font-size="10">Visual field loss</text>
+  <text x="245" y="104" text-anchor="middle" fill="#aaa" font-size="9">+ Aphasia</text>
+  <!-- Right brain -->
+  <rect x="180" y="120" width="130" height="80" rx="12" fill="#1a2e44" stroke="#ffd54f" stroke-width="2"/>
+  <text x="245" y="142" text-anchor="middle" fill="#ffd54f" font-size="12" font-weight="bold">RIGHT BRAIN</text>
+  <text x="245" y="158" text-anchor="middle" fill="#ffd54f" font-size="10">Spatial awareness</text>
+  <text x="245" y="172" text-anchor="middle" fill="#ffd54f" font-size="10">Neglect dominant</text>
+  <text x="245" y="188" text-anchor="middle" fill="#aaa" font-size="9">Damage here causes:</text>
+  <!-- Arrow left: line + triangle arrowhead pointing left -->
+  <line x1="175" y1="160" x2="148" y2="160" stroke="#ef5350" stroke-width="2.5"/>
+  <polygon points="148,154 138,160 148,166" fill="#ef5350"/>
+  <!-- Left side deficits -->
+  <rect x="10" y="120" width="130" height="80" rx="12" fill="#0d1f2d" stroke="#ef5350" stroke-width="1.5"/>
+  <text x="75" y="140" text-anchor="middle" fill="#ef5350" font-size="11" font-weight="bold">LEFT SIDE</text>
+  <text x="75" y="154" text-anchor="middle" fill="#ef5350" font-size="10">Weakness</text>
+  <text x="75" y="168" text-anchor="middle" fill="#ef5350" font-size="10">Sensory loss</text>
+  <text x="75" y="182" text-anchor="middle" fill="#ef5350" font-size="10">LEFT NEGLECT</text>
+  <text x="75" y="196" text-anchor="middle" fill="#aaa" font-size="9">May not recognise own hand</text>
+</svg>`,
+    scores: [
+      { value: 0, label: 'No inattention', description: 'No abnormality. Also score 0 if: severe visual loss but normal cutaneous response attending to both sides; OR aphasia but appears to attend to both sides.' },
+      { value: 1, label: 'Inattention (1 modality)', description: 'Inattention or extinction to one modality only (visual OR sensory). Misses one side when both are stimulated together, but detects each alone.' },
+      { value: 2, label: 'Profound neglect', description: 'Profound hemi-inattention or extinction in more than one modality. Patient does not recognize their own left hand when brought into the right visual field.' },
+    ],
+    note: 'Score 0 for aphasia if patient appears to attend to both sides. Inattention is scored only when clearly present.',
+  },
+];
+
+// ── ABSOLUTE CONTRAINDICATIONS ───────────────────────────────
+window.ABS_CONTRA = [
+  {
+    id: 'hemorrhage',
+    label: 'Active hemorrhage or high bleeding risk',
+    detail: 'Any condition that substantially increases risk of major hemorrhage after thrombolysis.',
+  },
+  {
+    id: 'bp_refractory',
+    label: 'BP refractory — cannot maintain <185/110 mmHg',
+    detail: 'Despite IV antihypertensives (labetalol, hydralazine, nicardipine). If BP cannot be brought to <185/110 and maintained, TNK is contraindicated.',
+  },
+  {
+    id: 'glucose_low',
+    label: 'Blood glucose <2.7 mmol/L',
+    detail: 'Hypoglycemia can mimic stroke. Treat hypoglycemia first and reassess.',
+  },
+  {
+    id: 'glucose_high',
+    label: 'Blood glucose >22.2 mmol/L',
+    detail: 'Severe hyperglycemia is an absolute contraindication.',
+  },
+  {
+    id: 'platelets',
+    label: 'Platelet count <100,000/mm³',
+    detail: 'Thrombocytopenia significantly increases hemorrhagic risk.',
+  },
+  {
+    id: 'inr',
+    label: 'INR >1.7',
+    detail: 'Coagulopathy from warfarin or other causes.',
+  },
+  {
+    id: 'aptt',
+    label: 'Elevated aPTT (above normal)',
+    detail: 'Elevated aPTT suggests active anticoagulation or coagulopathy.',
+  },
+  {
+    id: 'doac',
+    label: 'DOAC within 48 hours',
+    detail: 'Direct thrombin inhibitor (dabigatran) or factor Xa inhibitor (rivaroxaban, apixaban, edoxaban) taken within 48 hours. Does NOT apply to VTE prophylaxis doses of LMWH.',
+  },
+  {
+    id: 'lmwh',
+    label: 'Therapeutic LMWH in past 24 hours',
+    detail: 'Therapeutic (treatment) dose LMWH within 24h. VTE prophylaxis dose (e.g. enoxaparin 40mg/day) is OKAY.',
+  },
+  {
+    id: 'ich_on_ct',
+    label: 'Hemorrhage on CT / brain imaging',
+    detail: 'Any intracranial hemorrhage on imaging is an absolute contraindication.',
+  },
+];
+
+// ── RELATIVE CONTRAINDICATIONS ───────────────────────────────
+window.REL_CONTRA = [
+  {
+    id: 'hist_ich',
+    label: 'History of intracranial hemorrhage',
+    detail: 'Prior ICH significantly increases the risk of re-bleeding. Discuss risk:benefit with stroke specialist.',
+  },
+  {
+    id: 'stroke_trauma_3mo',
+    label: 'Stroke or serious head/spinal trauma in past 3 months',
+    detail: 'Recent stroke or trauma increases hemorrhagic risk into the affected area. Risk varies with severity.',
+  },
+  {
+    id: 'mi_3mo',
+    label: 'MI or pericarditis in past 3 months',
+    detail: 'Recent MI (especially STEMI) increases risk of cardiac rupture or pericardial hemorrhage. Discuss with cardiology if time allows.',
+  },
+  {
+    id: 'surgery_14d',
+    label: 'Major surgery in past 14 days',
+    detail: 'Risk varies by procedure. Cardiac, thoracic, abdominal, and orthopedic surgery are most relevant. Recent wounds may bleed. Discuss risk:benefit.',
+  },
+  {
+    id: 'arterial_7d',
+    label: 'Arterial puncture at non-compressible site in past 7 days',
+    detail: 'E.g. subclavian or femoral arterial line. Compression is not possible — serious hematoma risk.',
+  },
+  {
+    id: 'gi_gu_21d',
+    label: 'GI or GU bleed in past 21 days',
+    detail: 'Active or recent GI/GU bleeding significantly increases re-bleeding risk.',
+  },
+  {
+    id: 'seizure',
+    label: 'Seizure at onset of stroke',
+    detail: 'Seizure at onset raises concern for Todd\'s paralysis (post-ictal weakness) mimicking stroke. Consider if deficit is truly due to ischemia. If strong clinical evidence of stroke, still consider TNK.',
+  },
+  {
+    id: 'dec_loc',
+    label: 'Decreased level of consciousness at onset',
+    detail: 'Decreased LOC at onset may suggest a larger/more severe stroke or hemorrhagic transformation. Document clearly.',
+  },
+  {
+    id: 'pregnant',
+    label: 'Pregnant',
+    detail: 'Limited safety data. Case-by-case decision. Consult OB and neurology. TNK not absolutely contraindicated but extreme caution required.',
+  },
+  {
+    id: 'warfarin',
+    label: 'Currently on non-DOAC oral anticoagulant (e.g. warfarin)',
+    detail: 'Even with INR <1.7, warfarin therapy is a relative contraindication. INR must be <1.7 to proceed.',
+  },
+  {
+    id: 'disability',
+    label: 'Severe pre-existing disability',
+    detail: 'If the patient is severely disabled at baseline, the potential benefit of TNK may not outweigh the risk. Consider patient goals and functional status.',
+  },
+  {
+    id: 'age80_dm_stroke',
+    label: 'Age >80 + prior stroke + diabetes (3–4.5h window)',
+    detail: 'In the 3–4.5h window, combination of: age >80, prior stroke/TIA, diabetes, AND on oral anticoagulant. Benefit less clear. OTN Telestroke recommended for these borderline cases.',
+  },
+  {
+    id: 'window_3to4_5',
+    label: 'Onset 3–4.5 hours ago (increased risk in this window)',
+    detail: 'TNK is approved in this window but risk of sICH is somewhat higher than the 0–3h window. Still generally recommended when benefits outweigh risks.',
+  },
+];
+
+// ── STROKE SYNDROME RULES ────────────────────────────────────
+window.STROKE_SYNDROMES = [
+  {
+    id: 'left_mca',
+    name: 'Left MCA Territory Stroke',
+    subtitle: 'Dominant hemisphere (most right-handed patients)',
+    territory: 'Left MCA — M1/M2/ACA',
+    lvoRisk: true,
+    features: ['Right arm/leg weakness', 'Aphasia (expressive or receptive)', 'Right visual field loss', 'Right facial droop'],
+    ctaExpect: 'Look for left M1 or ICA-T occlusion on CTA. ASPECTS score on left hemisphere.',
+    match: (s) => {
+      const rightMotor = (s['5a'] > 0) || (s['6a'] > 0);
+      const aphasia = s['9'] >= 1;
+      const rightVisual = s['3'] > 0;
+      return (rightMotor && aphasia) ? 3 : (rightMotor && rightVisual) ? 2 : (aphasia && rightMotor) ? 2 : 0;
+    },
+  },
+  {
+    id: 'right_mca',
+    name: 'Right MCA Territory Stroke',
+    subtitle: 'Non-dominant hemisphere',
+    territory: 'Right MCA — M1/M2',
+    lvoRisk: true,
+    features: ['Left arm/leg weakness', 'Left neglect / inattention', 'Left visual field loss', 'Left facial droop', 'Dysarthria'],
+    ctaExpect: 'Look for right M1 or ICA-T occlusion on CTA.',
+    match: (s) => {
+      const leftMotor = (s['5b'] > 0) || (s['6b'] > 0);
+      const neglect = s['11'] >= 1;
+      const leftVisual = s['3'] > 0;
+      return (leftMotor && neglect) ? 3 : (leftMotor && leftVisual) ? 2 : (neglect && leftMotor) ? 2 : 0;
+    },
+  },
+  {
+    id: 'aca',
+    name: 'ACA Territory Stroke',
+    subtitle: 'Anterior cerebral artery',
+    territory: 'ACA — A1/A2',
+    lvoRisk: false,
+    features: ['Leg weakness > arm weakness (contralateral)', 'Abulia, executive dysfunction', 'Akinetic mutism (bilateral)'],
+    ctaExpect: 'Look for ACA (A1/A2) occlusion. Less common as isolated LVO.',
+    match: (s) => {
+      const legWeak = Math.max(s['6a'] || 0, s['6b'] || 0);
+      const armWeak = Math.max(s['5a'] || 0, s['5b'] || 0);
+      return (legWeak > armWeak && legWeak >= 2) ? 2 : (legWeak > armWeak && legWeak >= 1) ? 1 : 0;
+    },
+  },
+  {
+    id: 'pca',
+    name: 'PCA Territory Stroke',
+    subtitle: 'Posterior cerebral artery',
+    territory: 'PCA — P1/P2',
+    lvoRisk: false,
+    features: ['Contralateral homonymous hemianopia', 'Cortical blindness (bilateral PCA)', 'Memory loss (medial temporal)', 'Sensory loss (thalamus)', 'No motor weakness (usually)'],
+    ctaExpect: 'Look for PCA occlusion on CTA. May need MRI if CT negative.',
+    match: (s) => {
+      const visualLoss = s['3'] >= 1;
+      const noMotor = (s['5a'] || 0) === 0 && (s['5b'] || 0) === 0 && (s['6a'] || 0) === 0 && (s['6b'] || 0) === 0;
+      const sensory = s['8'] >= 1;
+      return (visualLoss && noMotor) ? 3 : (visualLoss && sensory && noMotor) ? 3 : 0;
+    },
+  },
+  {
+    id: 'thalamic',
+    name: 'Thalamic Stroke',
+    subtitle: 'Thalamic infarct (PCA territory)',
+    territory: 'PCA thalamic branches',
+    lvoRisk: false,
+    features: ['Pure or predominant sensory loss (face + arm + leg)', '± Decreased LOC', '± Memory impairment', '± Aphasia (dominant side)'],
+    ctaExpect: 'Small vessel or PCA branch. MRI DWI most sensitive.',
+    match: (s) => {
+      const pureSensory = (s['8'] >= 1) && (s['5a'] || 0) === 0 && (s['5b'] || 0) === 0 && (s['6a'] || 0) === 0 && (s['6b'] || 0) === 0;
+      const decLOC = (s['1a'] || 0) >= 1;
+      return (pureSensory) ? 2 : (pureSensory && decLOC) ? 3 : 0;
+    },
+  },
+  {
+    id: 'brainstem',
+    name: 'Brainstem Stroke',
+    subtitle: 'Midbrain / Pons / Medulla',
+    territory: 'Basilar artery / perforators',
+    lvoRisk: true,
+    features: ['Gaze palsy or nystagmus', 'Diplopia', 'Ataxia (often bilateral)', 'Crossed findings: ipsilateral face + contralateral body', 'Dysarthria, dysphagia', 'Horner\'s syndrome (miosis, ptosis)'],
+    ctaExpect: 'Look for basilar artery occlusion — URGENT. EVT-eligible even in posterior circulation.',
+    match: (s) => {
+      const gazeAbn = (s['2'] || 0) >= 1;
+      const ataxia = (s['7'] || 0) >= 1;
+      const dysarthria = (s['10'] || 0) >= 1;
+      const bothSidesMotor = ((s['5a'] || 0) > 0) && ((s['5b'] || 0) > 0);
+      return (gazeAbn && ataxia) ? 3 : (gazeAbn && dysarthria) ? 2 : (ataxia && bothSidesMotor) ? 2 : 0;
+    },
+  },
+  {
+    id: 'cerebellar',
+    name: 'Cerebellar Stroke',
+    subtitle: 'SCA / AICA / PICA',
+    territory: 'SCA, AICA, PICA branches',
+    lvoRisk: false,
+    features: ['Prominent ataxia (limb + gait)', 'Nystagmus, vertigo, nausea', 'Dysarthria', 'Headache', '⚠️ Can rapidly deteriorate — edema/herniation risk'],
+    ctaExpect: 'CT often normal early. MRI DWI needed. Watch for mass effect and fourth ventricle compression.',
+    match: (s) => {
+      const ataxia = (s['7'] || 0) >= 1;
+      const noHemiparesis = (s['5a'] || 0) === 0 || (s['5b'] || 0) === 0;
+      const dysarthria = (s['10'] || 0) >= 1;
+      const gaze = (s['2'] || 0) >= 1;
+      return (ataxia && noHemiparesis) ? 2 : (ataxia && dysarthria) ? 1 : 0;
+    },
+  },
+  {
+    id: 'lacunar_motor',
+    name: 'Lacunar — Pure Motor Stroke',
+    subtitle: 'Internal capsule / pons',
+    territory: 'Lenticulostriate arteries / pontine perforators',
+    lvoRisk: false,
+    features: ['Contralateral hemiparesis — face + arm + leg (same side)', 'NO aphasia, NO visual field loss, NO neglect', 'Often stuttering onset over hours'],
+    ctaExpect: 'CTA likely normal (small vessel). MRI DWI most sensitive.',
+    match: (s) => {
+      const rightSide = (s['5a'] || 0) > 0 || (s['6a'] || 0) > 0;
+      const leftSide = (s['5b'] || 0) > 0 || (s['6b'] || 0) > 0;
+      const noAphasia = (s['9'] || 0) === 0;
+      const noVisual = (s['3'] || 0) === 0;
+      const noNeglect = (s['11'] || 0) === 0;
+      const noSensory = (s['8'] || 0) === 0;
+      const motor = rightSide || leftSide;
+      return (motor && noAphasia && noVisual && noNeglect && noSensory) ? 2 : 0;
+    },
+  },
+  {
+    id: 'lacunar_sensory',
+    name: 'Lacunar — Pure Sensory Stroke',
+    subtitle: 'Thalamus',
+    territory: 'Thalamic perforators',
+    lvoRisk: false,
+    features: ['Unilateral sensory loss — face, arm, leg on same side', 'NO motor weakness, NO visual field loss, NO aphasia'],
+    ctaExpect: 'CTA likely normal. MRI DWI needed.',
+    match: (s) => {
+      const sensory = (s['8'] || 0) >= 1;
+      const noMotor = (s['5a'] || 0) === 0 && (s['5b'] || 0) === 0 && (s['6a'] || 0) === 0 && (s['6b'] || 0) === 0;
+      const noAphasia = (s['9'] || 0) === 0;
+      const noVisual = (s['3'] || 0) === 0;
+      return (sensory && noMotor && noAphasia && noVisual) ? 2 : 0;
+    },
+  },
+  {
+    id: 'lacunar_sensorimotor',
+    name: 'Lacunar — Sensorimotor Stroke',
+    subtitle: 'Thalamus + internal capsule junction',
+    territory: 'Thalamocapsular',
+    lvoRisk: false,
+    features: ['Motor + sensory loss on same side', 'NO aphasia, NO visual field loss, NO neglect'],
+    ctaExpect: 'Small vessel. MRI DWI most sensitive.',
+    match: (s) => {
+      const motor = (s['5a'] || 0) > 0 || (s['5b'] || 0) > 0 || (s['6a'] || 0) > 0 || (s['6b'] || 0) > 0;
+      const sensory = (s['8'] || 0) >= 1;
+      const noAphasia = (s['9'] || 0) === 0;
+      const noVisual = (s['3'] || 0) === 0;
+      const noNeglect = (s['11'] || 0) === 0;
+      return (motor && sensory && noAphasia && noVisual && noNeglect) ? 2 : 0;
+    },
+  },
+  {
+    id: 'lacunar_ataxic',
+    name: 'Lacunar — Ataxic Hemiparesis',
+    subtitle: 'Corona radiata / internal capsule',
+    territory: 'Deep perforators',
+    lvoRisk: false,
+    features: ['Unilateral weakness + ataxia in EXCESS of weakness', 'NO aphasia, NO sensory loss, NO visual field loss'],
+    ctaExpect: 'Small vessel. CTA often normal.',
+    match: (s) => {
+      const motor = (s['5a'] || 0) > 0 || (s['5b'] || 0) > 0 || (s['6a'] || 0) > 0 || (s['6b'] || 0) > 0;
+      const ataxia = (s['7'] || 0) >= 1;
+      return (motor && ataxia) ? 1 : 0;
+    },
+  },
+  {
+    id: 'lacunar_clumsy',
+    name: 'Lacunar — Clumsy Hand Dysarthria',
+    subtitle: 'Pons / corona radiata',
+    territory: 'Pontine/deep perforators',
+    lvoRisk: false,
+    features: ['Dysarthria + mild contralateral hand weakness/clumsiness', 'Sometimes facial weakness or dysphagia'],
+    ctaExpect: 'Small vessel. CTA often normal.',
+    match: (s) => {
+      const dysarthria = (s['10'] || 0) >= 1;
+      const mildArm = (s['5a'] === 1) || (s['5b'] === 1);
+      return (dysarthria && mildArm) ? 1 : 0;
+    },
+  },
+];
+
+// ── TNK DOSING ───────────────────────────────────────────────
+window.TNK_DOSE_MG_PER_KG = 0.25;
+window.TNK_MAX_DOSE_MG = 25;
+
+// ── BP MEDICATIONS ───────────────────────────────────────────
+window.BP_MEDS = [
+  { drug: 'Labetalol', dose: '10 mg IV bolus over 1–2 min', notes: 'May repeat once. Max 20 mg total pre-TNK.' },
+  { drug: 'Hydralazine', dose: '10 mg IV', notes: 'Slower onset (5–15 min).' },
+  { drug: 'Nicardipine', dose: '5 mg/h IV infusion', notes: 'Titrate up. Max 15 mg/h. Good for precise control.' },
+];
+
+// ── NIHSS SEVERITY LABELS ────────────────────────────────────
+window.NIHSS_SEVERITY = [
+  { min: 0, max: 0, label: 'No stroke symptoms', color: '#4fc3f7' },
+  { min: 1, max: 4, label: 'Minor stroke', color: '#4fc3f7' },
+  { min: 5, max: 15, label: 'Moderate stroke', color: '#ffd54f' },
+  { min: 16, max: 20, label: 'Moderate–severe stroke', color: '#ff8c00' },
+  { min: 21, max: 42, label: 'Severe stroke', color: '#ef5350' },
+];
+
+window.getNIHSSSeverity = function(total) {
+  for (const s of window.NIHSS_SEVERITY) {
+    if (total >= s.min && total <= s.max) return s;
+  }
+  return { label: 'Unknown', color: '#aaa' };
+};
+
+window.getTNKDose = function(weightKg) {
+  if (!weightKg || weightKg <= 0) return null;
+  const dose = Math.min(weightKg * window.TNK_DOSE_MG_PER_KG, window.TNK_MAX_DOSE_MG);
+  return Math.round(dose * 10) / 10;
+};
+
+// ── STROKE SYNDROME MATCHER ──────────────────────────────────
+window.getSyndromeSuggestions = function(nihssScores) {
+  const results = [];
+  for (const syn of window.STROKE_SYNDROMES) {
+    const score = syn.match(nihssScores);
+    if (score > 0) {
+      results.push({ ...syn, confidence: score });
+    }
+  }
+  results.sort((a, b) => b.confidence - a.confidence);
+  return results;
+};
