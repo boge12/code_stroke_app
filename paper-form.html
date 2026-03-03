@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Stroke — Paper Backup Form</title>
+<style>
+/* ── Base ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10pt;
+  color: #000;
+  background: #ddd;
+  margin: 0;
+  padding: 16px;
+}
+.page {
+  background: #fff;
+  width: 216mm;
+  min-height: 279mm;
+  margin: 0 auto 20px;
+  padding: 12mm 14mm 10mm;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+}
+
+/* ── Print ──────────────────────────────────────── */
+@media print {
+  body { background: #fff; padding: 0; }
+  .page { box-shadow: none; margin: 0; padding: 8mm 12mm; page-break-after: always; width: 100%; min-height: 0; }
+  .page:last-child { page-break-after: auto; }
+  .no-print { display: none !important; }
+  h2 { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+/* ── Print button ───────────────────────────────── */
+.print-bar {
+  max-width: 216mm;
+  margin: 0 auto 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.print-bar button {
+  padding: 8px 18px;
+  font-size: 13px;
+  cursor: pointer;
+  border: none;
+  background: #1a3a5c;
+  color: #fff;
+  border-radius: 5px;
+  font-weight: bold;
+}
+.print-bar a { font-size: 12px; color: #1a3a5c; }
+
+/* ── Headings ───────────────────────────────────── */
+.form-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2.5px solid #000;
+  padding-bottom: 5px;
+  margin-bottom: 8px;
+}
+.form-title h1 { font-size: 16pt; margin: 0; line-height: 1.1; }
+.form-title .sub { font-size: 8pt; color: #444; margin-top: 3px; }
+.form-title .logo { font-size: 22pt; line-height: 1; }
+h2 {
+  font-size: 9.5pt;
+  background: #000;
+  color: #fff;
+  padding: 3px 7px;
+  margin: 9px 0 5px;
+  letter-spacing: 0.5px;
+}
+h3 { font-size: 9.5pt; margin: 6px 0 3px; }
+
+/* ── Layout helpers ─────────────────────────────── */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+.three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0 8px; }
+.row { display: flex; gap: 10px; align-items: baseline; margin: 3px 0; flex-wrap: wrap; }
+.label-sm { font-size: 8.5pt; color: #333; white-space: nowrap; }
+
+/* ── Fill lines ─────────────────────────────────── */
+.fill { display: inline-block; border-bottom: 1px solid #000; min-width: 70px; vertical-align: bottom; }
+.fill-wide { min-width: 140px; }
+.fill-lg { min-width: 200px; }
+
+/* ── Checkboxes ─────────────────────────────────── */
+.chk-item {
+  display: grid;
+  grid-template-columns: auto auto auto 1fr;
+  gap: 0 6px;
+  align-items: baseline;
+  margin: 3px 0;
+  font-size: 9pt;
+  line-height: 1.3;
+}
+.chk-item .yn { display: flex; gap: 4px; white-space: nowrap; }
+.box {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid #000;
+  vertical-align: middle;
+}
+.chk-label { font-size: 8.5pt; }
+.yn-label { font-size: 7.5pt; color: #555; }
+
+/* ── NIHSS Table ─────────────────────────────────── */
+table.nihss {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8pt;
+  margin-top: 4px;
+}
+table.nihss th {
+  background: #000;
+  color: #fff;
+  padding: 3px 5px;
+  text-align: left;
+  font-size: 8pt;
+}
+table.nihss td {
+  border: 1px solid #888;
+  padding: 3px 5px;
+  vertical-align: top;
+  line-height: 1.3;
+}
+table.nihss .col-num   { width: 5%;  text-align: center; font-weight: bold; }
+table.nihss .col-name  { width: 18%; font-weight: bold; }
+table.nihss .col-scores{ width: 62%; }
+table.nihss .col-score { width: 15%; text-align: center; }
+.score-entry {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.score-entry .circle-hint { font-size: 7pt; color: #555; }
+.score-entry .score-box {
+  display: inline-block;
+  width: 26px;
+  height: 18px;
+  border: 1.5px solid #000;
+  text-align: center;
+  line-height: 18px;
+}
+.score-pills { display: flex; flex-wrap: wrap; gap: 3px; }
+.pill {
+  border: 1px solid #666;
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-size: 7.5pt;
+  white-space: nowrap;
+}
+.pill b { font-size: 8pt; }
+
+/* ── CT / Decision boxes ─────────────────────────── */
+.check-row-inline { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; margin: 3px 0; font-size: 9pt; }
+.check-row-inline .item { display: flex; align-items: center; gap: 4px; }
+
+.decision-box {
+  border: 2.5px solid #000;
+  padding: 7px 10px;
+  margin: 6px 0;
+  border-radius: 3px;
+}
+.decision-box h3 { margin: 0 0 4px; font-size: 9.5pt; }
+.decision-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+  font-size: 9pt;
+}
+
+/* ── TNK dose table ──────────────────────────────── */
+table.tnk {
+  border-collapse: collapse;
+  font-size: 8.5pt;
+  margin: 4px 0;
+}
+table.tnk th, table.tnk td {
+  border: 1px solid #888;
+  padding: 2px 7px;
+  text-align: center;
+}
+table.tnk th { background: #000; color: #fff; }
+table.tnk tr:nth-child(even) td { background: #f5f5f5; }
+
+/* ── Notes lines ─────────────────────────────────── */
+.note-lines { margin: 5px 0; }
+.note-line { border-bottom: 1px solid #aaa; margin: 7px 0; height: 1px; }
+
+/* ── Disclaimer ──────────────────────────────────── */
+.disclaimer {
+  font-size: 7pt;
+  color: #555;
+  border-top: 1px solid #888;
+  margin-top: 10px;
+  padding-top: 4px;
+  line-height: 1.4;
+}
+
+/* ── Onset window badge ──────────────────────────── */
+.window-table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin: 4px 0; }
+.window-table td { border: 1px solid #aaa; padding: 2px 6px; }
+.window-table .col-l { width: 38%; font-weight: bold; }
+
+/* ── Section group ───────────────────────────────── */
+.section-note { font-size: 8pt; color: #444; margin: 2px 0 4px; font-style: italic; }
+</style>
+</head>
+<body>
+
+<!-- ── Print bar ──────────────────────────────────── -->
+<div class="print-bar no-print">
+  <button onclick="window.print()">🖨 Print / Save as PDF</button>
+  <a href="index.html">← Back to App</a>
+</div>
+
+<!-- ════════════════════════════════════════════════
+     PAGE 1 — Patient Info · Onset · Contraindications
+     ════════════════════════════════════════════════ -->
+<div class="page">
+
+  <!-- Title -->
+  <div class="form-title">
+    <div>
+      <h1>🧠 Code Stroke Triage</h1>
+      <div class="sub">Lakeridge Health &nbsp;·&nbsp; CSBPR 2022/2025 &nbsp;·&nbsp; PAPER BACKUP FORM</div>
+    </div>
+    <div style="text-align:right; font-size:8pt; color:#555">
+      <div>Page 1 of 2</div>
+    </div>
+  </div>
+
+  <!-- ── Section 1: Patient Info ───────────────── -->
+  <h2>1 — PATIENT INFORMATION</h2>
+  <div class="two-col">
+    <div>
+      <div class="row"><span class="label-sm">Case label / initials:</span> <span class="fill fill-wide"></span></div>
+      <div class="row"><span class="label-sm">MRP / Attending:</span> <span class="fill fill-wide"></span></div>
+      <div class="row"><span class="label-sm">Nurse:</span> <span class="fill fill-wide"></span></div>
+    </div>
+    <div>
+      <div class="row"><span class="label-sm">Date:</span> <span class="fill" style="min-width:90px"></span></div>
+      <div class="row"><span class="label-sm">Time code called:</span> <span class="fill" style="min-width:60px"></span></div>
+      <div class="row"><span class="label-sm">Pt weight (kg):</span> <span class="fill" style="min-width:50px"></span></div>
+    </div>
+  </div>
+
+  <!-- ── Section 2: Onset Time ─────────────────── -->
+  <h2>2 — ONSET TIME</h2>
+  <div class="check-row-inline" style="margin-bottom:5px">
+    <div class="item"><span class="box"></span> <strong>Known onset</strong> — time: <span class="fill" style="min-width:60px"></span></div>
+    <div class="item"><span class="box"></span> <strong>Unknown onset</strong></div>
+    <div class="item"><span class="box"></span> <strong>Wake-up stroke</strong></div>
+  </div>
+  <div class="row">
+    <span class="label-sm">Last Known Normal (LKN):</span>
+    <span class="fill" style="min-width:60px"></span>
+    <span class="label-sm">&nbsp;→&nbsp; Hours from LKN to now:</span>
+    <span class="fill" style="min-width:45px"></span>
+    <span class="label-sm">h</span>
+  </div>
+  <table class="window-table" style="margin-top:5px">
+    <tr>
+      <td class="col-l">✅ &lt;4.5 h from LKN</td>
+      <td>TNK window <strong>OPEN</strong></td>
+    </tr>
+    <tr>
+      <td class="col-l">⚠️ 4.5 – 24 h from LKN</td>
+      <td>TNK closed &nbsp;·&nbsp; EVT may be possible if LVO present</td>
+    </tr>
+    <tr>
+      <td class="col-l">🚫 &gt;24 h</td>
+      <td>Outside standard treatment windows</td>
+    </tr>
+  </table>
+
+  <!-- ── Section 3: Absolute Contraindications ─── -->
+  <h2>3 — ABSOLUTE CONTRAINDICATIONS TO TNK</h2>
+  <p class="section-note">Any YES = absolute contraindication to TNK (can still assess for EVT)</p>
+  <div class="two-col">
+    <div>
+      <div class="chk-item">
+        <span class="yn-label">Y</span><span class="yn-label">N</span><span class="yn-label">?</span>
+        <span class="chk-label" style="font-weight:bold;font-size:7.5pt;color:#555">Item</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Active hemorrhage / high bleeding risk</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">BP refractory — cannot maintain &lt;185/110 despite IV antihypertensives</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Blood glucose &lt;2.7 mmol/L (treat hypoglycemia first)</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Blood glucose &gt;22.2 mmol/L</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Platelet count &lt;100,000/mm³</span>
+      </div>
+    </div>
+    <div>
+      <div class="chk-item">
+        <span class="yn-label">Y</span><span class="yn-label">N</span><span class="yn-label">?</span>
+        <span class="chk-label" style="font-weight:bold;font-size:7.5pt;color:#555">Item</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">INR &gt;1.7</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">aPTT elevated (above normal)</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">DOAC within 48 hours (dabigatran, rivaroxaban, apixaban, edoxaban)</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Therapeutic LMWH in past 24 h (VTE prophylaxis dose is OK)</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Hemorrhage on CT / brain imaging</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 4: Relative Contraindications ─── -->
+  <h2>4 — RELATIVE CONTRAINDICATIONS / HISTORY</h2>
+  <p class="section-note">Require clinical judgment — YES items do not automatically prevent TNK but must be discussed</p>
+  <div class="two-col">
+    <div>
+      <div class="chk-item">
+        <span class="yn-label">Y</span><span class="yn-label">N</span><span class="yn-label">?</span>
+        <span class="chk-label" style="font-weight:bold;font-size:7.5pt;color:#555">Item</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">History of intracranial hemorrhage</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Stroke or serious head/spinal trauma in past 3 months</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">MI or pericarditis in past 3 months</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Major surgery in past 14 days</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Arterial puncture at non-compressible site in past 7 days</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">GI or GU bleed in past 21 days</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Seizure at onset of stroke</span>
+      </div>
+    </div>
+    <div>
+      <div class="chk-item">
+        <span class="yn-label">Y</span><span class="yn-label">N</span><span class="yn-label">?</span>
+        <span class="chk-label" style="font-weight:bold;font-size:7.5pt;color:#555">Item</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Decreased LOC at onset</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Pregnant</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Currently on warfarin (non-DOAC) — INR must be &lt;1.7</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Severe pre-existing disability</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Age &gt;80 + prior stroke + diabetes (in 3–4.5 h window)</span>
+      </div>
+      <div class="chk-item">
+        <span class="box"></span><span class="box"></span><span class="box"></span>
+        <span class="chk-label">Onset 3–4.5 hours ago (increased risk in this window)</span>
+      </div>
+      <div style="margin-top:6px">
+        <div class="label-sm">Clinical notes:</div>
+        <div class="note-lines">
+          <div class="note-line"></div>
+          <div class="note-line"></div>
+          <div class="note-line"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    This form is a backup tool only. All clinical decisions require physician judgment. This tool does not replace the clinical assessment. Lakeridge Health Code Stroke protocol — CSBPR 2022/2025.
+  </div>
+
+</div><!-- end page 1 -->
+
+
+<!-- ════════════════════════════════════════════════
+     PAGE 2 — NIHSS · CT · Decision · Consent
+     ════════════════════════════════════════════════ -->
+<div class="page">
+
+  <div class="form-title">
+    <div>
+      <h1>🧠 Code Stroke Triage</h1>
+      <div class="sub">Lakeridge Health &nbsp;·&nbsp; CSBPR 2022/2025 &nbsp;·&nbsp; PAPER BACKUP FORM</div>
+    </div>
+    <div style="text-align:right; font-size:8pt; color:#555">
+      <div>Page 2 of 2</div>
+      <div>Case label: <span class="fill" style="min-width:80px"></span></div>
+    </div>
+  </div>
+
+  <!-- ── Section 5: NIHSS ────────────────────────── -->
+  <h2>5 — NIHSS SCORE SHEET &nbsp;<span style="font-weight:normal; font-size:8pt">(circle or write score in the Score box)</span></h2>
+
+  <table class="nihss">
+    <thead>
+      <tr>
+        <th class="col-num">#</th>
+        <th class="col-name">Item</th>
+        <th class="col-scores">Score Descriptors — circle the best fit</th>
+        <th class="col-score">Score<br><span style="font-weight:normal;font-size:7pt">(write here)</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="col-num">1a</td>
+        <td class="col-name">Level of Consciousness</td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Alert, responsive</span>
+            <span class="pill"><b>1</b> Drowsy, arousable by voice</span>
+            <span class="pill"><b>2</b> Obtunded, needs repeated stimulation</span>
+            <span class="pill"><b>3</b> Unresponsive/reflex only</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 3</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">1b</td>
+        <td class="col-name">LOC Questions<br><span style="font-weight:normal;font-size:7pt">"Month?" "Age?"</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Both correct</span>
+            <span class="pill"><b>1</b> One correct (or intubated/severe dysarthria)</span>
+            <span class="pill"><b>2</b> Neither correct / unable by any means</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 2</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">1c</td>
+        <td class="col-name">LOC Commands<br><span style="font-weight:normal;font-size:7pt">Close eyes / Fist</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Both correct</span>
+            <span class="pill"><b>1</b> One correct</span>
+            <span class="pill"><b>2</b> Neither</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 2</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">2</td>
+        <td class="col-name">Best Gaze<br><span style="font-weight:normal;font-size:7pt">Horizontal eye mvt</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Normal — iris reaches medial canthus both sides</span>
+            <span class="pill"><b>1</b> Partial gaze palsy — incomplete, no forced deviation</span>
+            <span class="pill"><b>2</b> Forced deviation — cannot overcome</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 2</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">3</td>
+        <td class="col-name">Visual Fields<br><span style="font-weight:normal;font-size:7pt">Confrontation / blink to threat</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> No loss</span>
+            <span class="pill"><b>1</b> Partial hemianopia (1 quadrant)</span>
+            <span class="pill"><b>2</b> Complete hemianopia</span>
+            <span class="pill"><b>3</b> Bilateral (cortical blindness)</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 3</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">4</td>
+        <td class="col-name">Facial Palsy<br><span style="font-weight:normal;font-size:7pt">Show teeth / eyebrows / close eyes</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Normal — symmetric</span>
+            <span class="pill"><b>1</b> Minor lower face asymmetry</span>
+            <span class="pill"><b>2</b> Complete lower face paralysis (upper spared)</span>
+            <span class="pill"><b>3</b> Complete — upper + lower face (peripheral pattern)</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 3</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">5a</td>
+        <td class="col-name">Right Arm Motor<br><span style="font-weight:normal;font-size:7pt">Seated 90° or supine 45° — 10 sec</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Holds 10 s — no drift</span>
+            <span class="pill"><b>1</b> Drifts, no bed contact</span>
+            <span class="pill"><b>2</b> Effort vs gravity, touches bed</span>
+            <span class="pill"><b>3</b> Falls immediately, moves on surface</span>
+            <span class="pill"><b>4</b> No movement</span>
+            <span class="pill"><b>UN</b> Untestable</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 4</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">5b</td>
+        <td class="col-name">Left Arm Motor<br><span style="font-weight:normal;font-size:7pt">Same as 5a</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Holds 10 s</span>
+            <span class="pill"><b>1</b> Drifts, no bed contact</span>
+            <span class="pill"><b>2</b> Effort vs gravity, touches bed</span>
+            <span class="pill"><b>3</b> Falls, moves on surface</span>
+            <span class="pill"><b>4</b> No movement</span>
+            <span class="pill"><b>UN</b> Untestable</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 4</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">6a</td>
+        <td class="col-name">Right Leg Motor<br><span style="font-weight:normal;font-size:7pt">Supine 30° — 5 sec</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Holds 5 s — no drift</span>
+            <span class="pill"><b>1</b> Drifts, no bed contact</span>
+            <span class="pill"><b>2</b> Effort vs gravity, touches bed</span>
+            <span class="pill"><b>3</b> Falls immediately, moves on surface</span>
+            <span class="pill"><b>4</b> No movement</span>
+            <span class="pill"><b>UN</b> Untestable</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 4</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">6b</td>
+        <td class="col-name">Left Leg Motor<br><span style="font-weight:normal;font-size:7pt">Same as 6a</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Holds 5 s</span>
+            <span class="pill"><b>1</b> Drifts, no bed contact</span>
+            <span class="pill"><b>2</b> Effort vs gravity, touches bed</span>
+            <span class="pill"><b>3</b> Falls, moves on surface</span>
+            <span class="pill"><b>4</b> No movement</span>
+            <span class="pill"><b>UN</b> Untestable</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 4</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">7</td>
+        <td class="col-name">Limb Ataxia<br><span style="font-weight:normal;font-size:7pt">Finger-to-nose / Heel-to-shin</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Absent (score 0 if weakness prevents testing)</span>
+            <span class="pill"><b>1</b> Ataxia in one limb</span>
+            <span class="pill"><b>2</b> Ataxia in two or more limbs</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 2</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">8</td>
+        <td class="col-name">Sensory<br><span style="font-weight:normal;font-size:7pt">Pin prick — face, arms, legs (not hands/feet)</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Normal — equal bilaterally</span>
+            <span class="pill"><b>1</b> Mild–mod loss — aware of touch, feels different</span>
+            <span class="pill"><b>2</b> Severe loss — does not feel touch on affected side</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 2</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">9</td>
+        <td class="col-name">Best Language<br><span style="font-weight:normal;font-size:7pt">Cookie jar picture / naming / reading</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> No aphasia — normal fluency, naming, comprehension</span>
+            <span class="pill"><b>1</b> Mild–mod — word-finding pauses, gets ideas across</span>
+            <span class="pill"><b>2</b> Severe — fragmented, examiner must guess meaning</span>
+            <span class="pill"><b>3</b> Mute / global — no usable speech, no comprehension</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 3</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">10</td>
+        <td class="col-name">Dysarthria<br><span style="font-weight:normal;font-size:7pt">"Mama" "Tip-top" "Huckleberry"</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> Normal articulation</span>
+            <span class="pill"><b>1</b> Mild–mod slurring — still intelligible</span>
+            <span class="pill"><b>2</b> Severe — unintelligible or mute</span>
+            <span class="pill"><b>UN</b> Intubated</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 2</div></div></td>
+      </tr>
+      <tr>
+        <td class="col-num">11</td>
+        <td class="col-name">Extinction &amp; Inattention<br><span style="font-weight:normal;font-size:7pt">Bilateral simultaneous stimulation</span></td>
+        <td>
+          <div class="score-pills">
+            <span class="pill"><b>0</b> No abnormality</span>
+            <span class="pill"><b>1</b> Inattention in 1 modality (visual OR sensory)</span>
+            <span class="pill"><b>2</b> Profound neglect — &gt;1 modality, may not recognize own hand</span>
+          </div>
+        </td>
+        <td class="col-score"><div class="score-entry"><div class="score-box"></div><div class="circle-hint">max 2</div></div></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- NIHSS Total -->
+  <div style="display:flex; gap:20px; align-items:center; margin:6px 0 2px; font-size:10pt;">
+    <div><strong>NIHSS TOTAL:</strong> <span class="fill" style="min-width:40px; font-size:14pt; font-weight:bold;"></span> <span style="font-size:8pt; color:#555">/ 42</span></div>
+    <div>
+      <span style="font-size:8.5pt; color:#555">
+        0 = no symptoms &nbsp;·&nbsp; 1–4 = minor &nbsp;·&nbsp; 5–15 = moderate &nbsp;·&nbsp; 16–20 = moderate–severe &nbsp;·&nbsp; ≥21 = severe
+      </span>
+    </div>
+  </div>
+
+  <!-- ── Section 6: CT Results ──────────────────── -->
+  <h2>6 — CT / IMAGING RESULTS</h2>
+  <div class="two-col">
+    <div>
+      <div style="font-size:9pt; font-weight:bold; margin-bottom:3px;">CT Head:</div>
+      <div class="check-row-inline">
+        <div class="item"><span class="box"></span> Clear of hemorrhage</div>
+        <div class="item"><span class="box"></span> Hemorrhage present <span style="color:#c00; font-size:8pt;">(→ TNK contraindicated)</span></div>
+        <div class="item"><span class="box"></span> Pending</div>
+      </div>
+      <div class="row" style="margin-top:5px">
+        <span class="label-sm">ASPECTS (0–10, ≥6 needed for TNK):</span>
+        <span class="fill" style="min-width:35px; font-weight:bold;"></span>
+      </div>
+    </div>
+    <div>
+      <div style="font-size:9pt; font-weight:bold; margin-bottom:3px;">CTA — Vessel Imaging:</div>
+      <div class="check-row-inline">
+        <div class="item"><span class="box"></span> Done</div>
+        <div class="item"><span class="box"></span> Pending / Not done</div>
+      </div>
+      <div class="row" style="margin-top:4px">
+        <span class="label-sm">LVO:</span>
+        <span class="box"></span><span style="font-size:8.5pt; margin-right:6px"> Yes</span>
+        <span class="box"></span><span style="font-size:8.5pt;"> No</span>
+      </div>
+      <div class="row">
+        <span class="label-sm">Vessel: </span>
+        <span style="font-size:8.5pt;">□ ICA-T &nbsp; □ M1 &nbsp; □ M2 &nbsp; □ ACA &nbsp; □ Basilar &nbsp; □ Other: <span class="fill" style="min-width:50px"></span></span>
+      </div>
+      <div class="row">
+        <span class="label-sm">Collaterals:</span>
+        <span style="font-size:8.5pt;">□ Good &nbsp; □ Moderate &nbsp; □ Poor</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 7: Decision ────────────────────── -->
+  <h2>7 — TNK DECISION</h2>
+  <div class="two-col">
+    <div class="decision-box">
+      <h3>TNK Eligibility:</h3>
+      <div class="decision-option"><span class="box"></span> <strong>✅ TNK INDICATED</strong> — No absolute CIs, CT clear, within window</div>
+      <div class="decision-option"><span class="box"></span> <strong>🚫 TNK CONTRAINDICATED</strong> — Absolute CI present (specify):
+        <span class="fill" style="min-width:80px"></span>
+      </div>
+      <div class="decision-option"><span class="box"></span> <strong>⚠️ Clinical discussion required</strong> — Relative CIs / borderline case</div>
+    </div>
+    <div class="decision-box">
+      <h3>EVT (Endovascular Therapy):</h3>
+      <div class="decision-option"><span class="box"></span> EVT referral made — Time: <span class="fill" style="min-width:55px"></span></div>
+      <div class="decision-option"><span class="box"></span> Not indicated / pending discussion</div>
+      <div class="row" style="margin-top:4px"><span class="label-sm">Transfer destination:</span> <span class="fill" style="min-width:80px"></span></div>
+    </div>
+  </div>
+
+  <!-- ── Section 8: TNK Dosing ──────────────────── -->
+  <h2>8 — TNK DOSING &nbsp;<span style="font-weight:normal;font-size:8pt">0.25 mg/kg IV bolus — Maximum 25 mg</span></h2>
+  <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+    <table class="tnk">
+      <tr>
+        <th>Weight (kg)</th><th>Dose (mg)</th>
+        <th>Weight (kg)</th><th>Dose (mg)</th>
+        <th>Weight (kg)</th><th>Dose (mg)</th>
+      </tr>
+      <tr><td>40</td><td>10.0</td><td>62</td><td>15.5</td><td>84</td><td>21.0</td></tr>
+      <tr><td>44</td><td>11.0</td><td>66</td><td>16.5</td><td>88</td><td>22.0</td></tr>
+      <tr><td>48</td><td>12.0</td><td>70</td><td>17.5</td><td>92</td><td>23.0</td></tr>
+      <tr><td>52</td><td>13.0</td><td>74</td><td>18.5</td><td>96</td><td>24.0</td></tr>
+      <tr><td>56</td><td>14.0</td><td>78</td><td>19.5</td><td>100</td><td>25.0 ★</td></tr>
+      <tr><td>60</td><td>15.0</td><td>82</td><td>20.5</td><td colspan="2" style="font-size:7.5pt;color:#555">★ Max dose 25 mg</td></tr>
+    </table>
+    <div style="flex:1; min-width:150px;">
+      <div class="row"><span class="label-sm">Patient weight:</span> <span class="fill" style="min-width:50px"></span> <span class="label-sm">kg</span></div>
+      <div class="row"><span class="label-sm">Calculated dose:</span> <span class="fill" style="min-width:50px; font-weight:bold;"></span> <span class="label-sm">mg</span></div>
+      <div style="font-size:7.5pt; color:#555; margin-top:4px">Formula: weight × 0.25, capped at 25 mg</div>
+    </div>
+  </div>
+
+  <!-- ── Section 9: Consent & Administration ────── -->
+  <h2>9 — CONSENT &amp; ADMINISTRATION</h2>
+  <div class="two-col">
+    <div>
+      <div class="row">
+        <span class="label-sm">Consent obtained with:</span>
+        <span class="box"></span><span style="font-size:8.5pt; margin-right:8px"> Patient</span>
+        <span class="box"></span><span style="font-size:8.5pt;"> SDM</span>
+      </div>
+      <div class="row"><span class="label-sm">SDM name (if applicable):</span> <span class="fill" style="min-width:110px"></span></div>
+      <div style="margin-top:6px;">
+        <div class="decision-option"><span class="box"></span> <strong>✅ TNK Given</strong> — Time: <span class="fill" style="min-width:60px"></span></div>
+        <div class="decision-option"><span class="box"></span> <strong>🚫 TNK Not Given</strong></div>
+        <div class="row"><span class="label-sm">Reason not given:</span> <span class="fill fill-wide"></span></div>
+      </div>
+    </div>
+    <div>
+      <div class="label-sm" style="font-weight:bold; margin-bottom:2px;">BP Pre-TNK (target &lt;185/110 mmHg):</div>
+      <div class="row"><span class="label-sm">BP:</span> <span class="fill" style="min-width:60px"></span> <span class="label-sm">Time:</span> <span class="fill" style="min-width:50px"></span></div>
+      <div class="row"><span class="label-sm">BP med used:</span>
+        <span style="font-size:8pt;">□ Labetalol 10 mg IV &nbsp; □ Hydralazine 10 mg IV &nbsp; □ Nicardipine infusion</span>
+      </div>
+      <div style="margin-top:5px;">
+        <div class="label-sm" style="font-weight:bold;">Post-TNK monitoring:</div>
+        <div style="font-size:8pt; line-height:1.5;">
+          BP q15 min × 2 h → q30 min × 6 h → q1 h × 16 h<br>
+          Target BP &lt;180/105 for 24 h post-TNK<br>
+          Watch for: headache, neuro deterioration, BP spike, bleeding
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <h2>NOTES</h2>
+  <div class="note-lines">
+    <div class="note-line"></div>
+    <div class="note-line"></div>
+    <div class="note-line"></div>
+    <div class="note-line"></div>
+  </div>
+
+  <div class="disclaimer">
+    This form is a backup tool only. All clinical decisions require physician judgment. This tool does not replace the full clinical assessment or institutional protocols.
+    Lakeridge Health Code Stroke — CSBPR 2022/2025. &nbsp;|&nbsp; <strong>Digital app:</strong> open index.html or scan QR code if available.
+  </div>
+
+</div><!-- end page 2 -->
+
+</body>
+</html>
