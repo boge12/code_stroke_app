@@ -43,6 +43,43 @@ html = html.replace(
   `window.COOKIE_THEFT_IMG = '${imgUri}';`
 );
 
+// ── Embed paper form as a full-screen iframe overlay ──────────
+const paperFormHtml = read('paper-form.html');
+
+// Replace the "Back to App" link in the paper form so it closes the overlay
+const paperFormPatched = paperFormHtml.replace(
+  '<a href="index.html">← Back to App</a>',
+  '<a href="#" onclick="window.parent.__closePaperForm(); return false;">← Back to App</a>'
+);
+
+const paperModal = `
+<div id="paper-modal" style="display:none; position:fixed; inset:0; z-index:9999; background:#fff; flex-direction:column;">
+  <div style="padding:8px 12px; background:#1a3a5c; color:#fff; display:flex; gap:10px; align-items:center; flex-shrink:0;" class="no-print">
+    <button onclick="__closePaperForm()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:14px;">← Back to App</button>
+    <button onclick="document.getElementById('paper-iframe').contentWindow.print()" style="background:rgba(255,255,255,0.15); border:none; color:#fff; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:14px;">🖨 Print</button>
+  </div>
+  <iframe id="paper-iframe" style="flex:1; border:none; width:100%; height:100%;"></iframe>
+</div>
+<script>
+  function __openPaperForm() {
+    var modal = document.getElementById('paper-modal');
+    var iframe = document.getElementById('paper-iframe');
+    modal.style.display = 'flex';
+    iframe.srcdoc = ${JSON.stringify(paperFormPatched)};
+  }
+  function __closePaperForm() {
+    document.getElementById('paper-modal').style.display = 'none';
+  }
+</script>`;
+
+html = html.replace('</body>', paperModal + '\n</body>');
+
+// Wire up the Paper Backup Form button to open the overlay
+html = html.replace(
+  'href="paper-form.html"',
+  'href="#" onclick="__openPaperForm(); return false;"'
+);
+
 // ── Remove PWA-only bits (not needed for a single file) ───────
 // manifest
 html = html.replace(/\n\s*<link rel="manifest" href="manifest\.json">/, '');
