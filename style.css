@@ -27,13 +27,16 @@
   --radius-sm: 8px;
 }
 
-html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
   min-height: 100vh;
   min-height: -webkit-fill-available;
   min-height: 100dvh;
@@ -549,6 +552,7 @@ label {
   display: flex;
   gap: 10px;
   z-index: 200;
+  transform: translateZ(0);
 }
 
 .nav-footer .btn-nav {
@@ -637,8 +641,8 @@ label {
 .checklist-action:last-child { border-bottom: none; }
 
 .action-checkbox {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: 2px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
@@ -846,8 +850,8 @@ label {
 
 .step-tab {
   flex-shrink: 0;
-  min-width: 36px;
-  height: 36px;
+  min-width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 2px solid var(--border);
   background: var(--surface2);
@@ -871,6 +875,7 @@ label {
   left: 0;
   width: 100%;
   height: 100%;
+  height: 100dvh;
   background: #fff;
   z-index: 999;
   display: flex;
@@ -949,4 +954,13 @@ label {
 /* ── Safe area support ────────────────────────────────────── */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .screen { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+}
+
+/* ── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
