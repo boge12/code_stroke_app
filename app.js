@@ -1270,8 +1270,8 @@ function init() {
     goTo('step-label');
   });
 
-  // Back button
-  document.getElementById('back-btn').addEventListener('click', () => {
+  // Back button (header) + bottom nav back buttons
+  function handleBack() {
     const currentStep = STATE.current ? STATE.current.currentStep : 'home';
     const idx = STEPS.indexOf(currentStep);
     if (idx <= 0) { goTo('home'); renderHome(); }
@@ -1280,7 +1280,9 @@ function init() {
       if (prev === 'home') { goTo('home'); renderHome(); return; }
       goToStep(prev);
     }
-  });
+  }
+  document.getElementById('back-btn').addEventListener('click', handleBack);
+  document.querySelectorAll('.nav-back-btn').forEach(btn => btn.addEventListener('click', handleBack));
 
   // Step navigation buttons
   document.getElementById('label-next').addEventListener('click', () => {
