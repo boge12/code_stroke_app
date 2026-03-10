@@ -5,6 +5,7 @@
 
 /* ── Reset & Base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+* { -webkit-tap-highlight-color: transparent; }
 
 :root {
   --bg: #0a1520;
@@ -27,15 +28,21 @@
   --radius-sm: 8px;
 }
 
-html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+button, [role="button"], .check-header, .score-btn, .case-item, .show-picture-link { touch-action: manipulation; }
 
 body {
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
   line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-synthesis: none;
   min-height: 100vh;
   min-height: -webkit-fill-available;
+  min-height: 100dvh;
   overflow-x: hidden;
 }
 
@@ -45,6 +52,7 @@ body {
   margin: 0 auto;
   min-height: 100vh;
   min-height: -webkit-fill-available;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -54,12 +62,13 @@ body {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   padding: 0 16px;
+  padding-top: env(safe-area-inset-top, 0px);
   position: sticky;
   top: 0;
   z-index: 100;
   display: flex;
   align-items: center;
-  min-height: 56px;
+  min-height: calc(56px + env(safe-area-inset-top, 0px));
   gap: 12px;
 }
 
@@ -102,7 +111,7 @@ body {
   height: 4px;
   background: var(--border);
   position: sticky;
-  top: 56px;
+  top: calc(56px + env(safe-area-inset-top, 0px));
   z-index: 99;
 }
 .progress-bar-fill {
@@ -347,7 +356,7 @@ label {
 
 .yn-btn {
   min-width: 44px;
-  min-height: 36px;
+  min-height: 44px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface2);
@@ -536,7 +545,7 @@ label {
   position: fixed;
   bottom: 0;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateZ(0);
   width: 100%;
   max-width: 480px;
   background: var(--surface);
@@ -634,8 +643,8 @@ label {
 .checklist-action:last-child { border-bottom: none; }
 
 .action-checkbox {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: 2px solid var(--border);
   border-radius: 6px;
   cursor: pointer;
@@ -730,7 +739,7 @@ label {
   word-break: break-word;
   max-height: 60vh;
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .btn-copy {
@@ -835,7 +844,7 @@ label {
   gap: 6px;
   padding: 8px 16px;
   margin: 0 -16px 16px -16px;
-  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
   scroll-behavior: smooth;
 }
@@ -843,8 +852,8 @@ label {
 
 .step-tab {
   flex-shrink: 0;
-  min-width: 36px;
-  height: 36px;
+  min-width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 2px solid var(--border);
   background: var(--surface2);
@@ -868,6 +877,7 @@ label {
   left: 0;
   width: 100%;
   height: 100%;
+  height: 100dvh;
   background: #fff;
   z-index: 999;
   display: flex;
@@ -895,7 +905,7 @@ label {
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  min-height: 40px;
+  min-height: 44px;
 }
 
 .overlay-content {
@@ -905,7 +915,7 @@ label {
   justify-content: center;
   padding: 12px;
   overflow: auto;
-  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
 }
 
 .overlay-content svg {
@@ -946,4 +956,21 @@ label {
 /* ── Safe area support ────────────────────────────────────── */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .screen { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+}
+
+/* ── iPhone 16 Pro (402pt wide) ───────────────────────────── */
+@media only screen and (device-width: 402px) and (-webkit-device-pixel-ratio: 3) {
+  :root { --tap-min: 52px; }
+  .score-btn { min-height: 68px; }
+  .app-header { min-height: calc(60px + env(safe-area-inset-top, 0px)); }
+  .progress-bar { top: calc(60px + env(safe-area-inset-top, 0px)); }
+}
+
+/* ── Reduced motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
