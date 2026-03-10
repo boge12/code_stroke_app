@@ -5,6 +5,7 @@
 
 /* ── Reset & Base ─────────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+* { -webkit-tap-highlight-color: transparent; }
 
 :root {
   --bg: #0a1520;
@@ -28,6 +29,8 @@
 }
 
 html { font-size: 16px; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+button, [role="button"], .check-header, .score-btn, .case-item, .show-picture-link { touch-action: manipulation; }
 
 body {
   background: var(--bg);
@@ -542,7 +545,7 @@ label {
   position: fixed;
   bottom: 0;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translateX(-50%) translateZ(0);
   width: 100%;
   max-width: 480px;
   background: var(--surface);
@@ -552,7 +555,6 @@ label {
   display: flex;
   gap: 10px;
   z-index: 200;
-  transform: translateZ(0);
 }
 
 .nav-footer .btn-nav {
@@ -954,6 +956,14 @@ label {
 /* ── Safe area support ────────────────────────────────────── */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   .screen { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+}
+
+/* ── iPhone 16 Pro (402pt wide) ───────────────────────────── */
+@media only screen and (device-width: 402px) and (-webkit-device-pixel-ratio: 3) {
+  :root { --tap-min: 52px; }
+  .score-btn { min-height: 68px; }
+  .app-header { min-height: calc(60px + env(safe-area-inset-top, 0px)); }
+  .progress-bar { top: calc(60px + env(safe-area-inset-top, 0px)); }
 }
 
 /* ── Reduced motion ───────────────────────────────────────── */
