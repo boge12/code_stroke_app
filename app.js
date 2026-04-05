@@ -34,8 +34,9 @@ function newSession() {
     label: '',
     onsetKnown: null, // 'yes' | 'no' | 'wakeup'
     onsetTime: null,
-    lsn: null, // last seen normal ISO string
+    lsn: null, // last seen normal ISO string (bedtime for wakeup)
     lsw: null, // last seen well ISO string
+    wakeTime: null, // time found/woke up (wakeup strokes only)
     absContra: {}, // id -> true/false
     relContra: {}, // id -> 'yes'|'no'|'unknown'
     relNotes: {},  // id -> string note
@@ -251,33 +252,77 @@ function renderLabel() {
 function renderTiming() {
   const onsetBtns = document.querySelectorAll('.onset-btn');
   const onsetInp = document.getElementById('onset-time-input');
+  const wakeInp = document.getElementById('wake-time-input');
 
   function refresh() {
+    const isWakeup = STATE.current.onsetKnown === 'wakeup';
+
     onsetBtns.forEach(b => {
       b.classList.toggle('selected', b.dataset.onset === STATE.current.onsetKnown);
     });
 
-    const lsnMin = elapsedMin(STATE.current.lsn);
+    // Show/hide wake time section and update LKN label
+    document.getElementById('wake-time-section').style.display = isWakeup ? '' : 'none';
+    document.getElementById('wakeup-guidance').style.display = isWakeup ? '' : 'none';
+    document.getElementById('lkn-label').textContent = isWakeup ? 'Bedtime / Last Seen Well' : 'Last Known Normal (LKN)';
+    document.getElementById('lkn-hint').textContent = isWakeup
+      ? 'When did the patient fall asleep (last confirmed symptom-free)?'
+      : 'When was the patient last known to be at their baseline / symptom-free?';
 
-    // Window status
+    const lsnMin = elapsedMin(STATE.current.lsn);
+    const wakeMin = elapsedMin(STATE.current.wakeTime);
+
+    // For wakeup strokes, TNK window is based on wake time; EVT based on LKN
+    const windowMin = isWakeup ? wakeMin : lsnMin;
     const badge = document.getElementById('timing-window-badge');
-    if (lsnMin === null) {
+
+    if (windowMin === null) {
       badge.className = 'time-window-badge window-close';
-      badge.innerHTML = 'Enter LKN time above to calculate window';
-    } else if (lsnMin <= 270) {
+      badge.innerHTML = isWakeup ? 'Enter wake/found time above to calculate window' : 'Enter LKN time above to calculate window';
+    } else if (windowMin <= 270) {
       badge.className = 'time-window-badge window-open';
-      badge.innerHTML = `✅ TNK WINDOW OPEN — ${elapsedLabel(lsnMin)} from LKN`;
-    } else if (lsnMin <= 1440) {
+      badge.innerHTML = isWakeup
+        ? `✅ TNK WINDOW OPEN — ${elapsedLabel(wakeMin)} since found/woke`
+        : `✅ TNK WINDOW OPEN — ${elapsedLabel(lsnMin)} from LKN`;
+    } else if (windowMin <= 1440) {
       badge.className = 'time-window-badge window-close';
-      badge.innerHTML = `⚠️ TNK WINDOW CLOSED (${elapsedLabel(lsnMin)}) — EVT may still be possible`;
+      badge.innerHTML = isWakeup
+        ? `⚠️ >4.5h since found (${elapsedLabel(wakeMin)}) — standard TNK closed`
+        : `⚠️ TNK WINDOW CLOSED (${elapsedLabel(lsnMin)}) — EVT may still be possible`;
     } else {
       badge.className = 'time-window-badge window-expired';
       badge.innerHTML = `🚫 >24 hours — likely outside treatment windows`;
     }
 
     document.getElementById('elapsed-lsn').textContent = lsnMin !== null ? elapsedLabel(lsnMin) : '–';
+    if (document.getElementById('elapsed-wake')) {
+      document.getElementById('elapsed-wake').textContent = wakeMin !== null ? elapsedLabel(wakeMin) : '–';
+    }
+
+    // Wake-up stroke guidance card
+    if (isWakeup) {
+      const guidanceBody = document.getElementById('wakeup-guidance-body');
+      if (wakeMin === null) {
+        guidanceBody.innerHTML = '<em>Enter wake/found time to see treatment guidance.</em>';
+      } else if (wakeMin <= 270) {
+        guidanceBody.innerHTML = `
+          <div style="color:#81c784; font-weight:700; margin-bottom:6px">✅ Found &lt;4.5h ago — treat as known onset</div>
+          <div>TNK window is open based on wake/found time. Proceed as standard ischaemic stroke if no contraindications.</div>`;
+      } else if (wakeMin <= 1440) {
+        guidanceBody.innerHTML = `
+          <div style="color:#ffd54f; font-weight:700; margin-bottom:6px">⚠️ Found &gt;4.5h ago — imaging-guided selection required</div>
+          <ul style="padding-left:16px; margin:0">
+            <li><strong>MRI DWI-FLAIR mismatch:</strong> DWI lesion visible but FLAIR negative → infarct &lt;4.5h old → TNK may be appropriate (WAKE-UP trial)</li>
+            <li><strong>CT Perfusion:</strong> Significant penumbra with small core → discuss with OTN/EVT centre</li>
+            <li><strong>EVT:</strong> If LVO present, EVT window uses LKN (bedtime) — may be within 24h</li>
+          </ul>`;
+      } else {
+        guidanceBody.innerHTML = `<div style="color:#ef5350; font-weight:700">🚫 >24h since found — outside standard treatment windows</div>`;
+      }
+    }
 
     if (STATE.current.lsn) onsetInp.value = formatTimeValue(STATE.current.lsn);
+    if (STATE.current.wakeTime && wakeInp) wakeInp.value = formatTimeValue(STATE.current.wakeTime);
   }
 
   onsetBtns.forEach(b => {
@@ -293,6 +338,14 @@ function renderTiming() {
     saveCurrentSession();
     refresh();
   });
+
+  if (wakeInp) {
+    wakeInp.addEventListener('change', () => {
+      STATE.current.wakeTime = timePickerToISO(wakeInp.value);
+      saveCurrentSession();
+      refresh();
+    });
+  }
 
   refresh();
 
@@ -497,35 +550,27 @@ function renderNIHSSItem() {
     </button>
   `).join('');
 
+  // Exam instructions collapsed into a single tap-to-expand details element
+  const instrHtml = item.examInstructions.map(i => `<li>${i}</li>`).join('');
+  const lookForHtml = item.lookFor ? `<p class="nihss-look-for" style="margin-top:8px">${item.lookFor}</p>` : '';
+
   container.innerHTML = `
     <div class="nihss-item-header">
       <div class="nihss-item-number">Item ${nihssCurrentIdx + 1} of ${NIHSS_ORDER.length}</div>
       <div class="nihss-item-name">${item.shortName}</div>
     </div>
 
-    <div class="nihss-section">
-      <div class="nihss-section-title">How to Examine</div>
-      <ul class="nihss-instructions">
-        ${item.examInstructions.map(i => `<li>${i}</li>`).join('')}
-      </ul>
-    </div>
-
-    ${item.lookFor ? `
-    <div class="nihss-section">
-      <div class="nihss-section-title">What to Look For</div>
-      <div class="nihss-look-for">${item.lookFor}</div>
-    </div>` : ''}
-
-    ${item.svg ? `
-    <div class="nihss-section">
-      <div class="nihss-section-title">Visual Aid</div>
-      ${item.svg}
-    </div>` : ''}
+    <details class="nihss-exam-details">
+      <summary>How to examine</summary>
+      <ul class="nihss-instructions">${instrHtml}</ul>
+      ${lookForHtml}
+    </details>
 
     ${item.note ? `<div class="nihss-note">⚠️ ${item.note}</div>` : ''}
 
     <div class="nihss-section mt-16">
       <div class="nihss-section-title">Select Score</div>
+      ${item.svg ? `<div class="nihss-svg-strip" aria-hidden="true">${item.svg}</div>` : ''}
       <div class="score-options">${scoresHtml}</div>
     </div>
   `;
@@ -613,24 +658,20 @@ function renderSyndrome() {
   const total = getNIHSSTotal(STATE.current.nihss);
   const severity = window.getNIHSSSeverity(total);
 
+  const minorNote = total < 5
+    ? `<div class="status-detail" style="margin-top:4px; font-size:13px">Consider TNK if deficit is disabling: hand weakness, aphasia, hemianopia, or functionally significant to the patient.</div>`
+    : '';
+  const severeNote = total >= 22
+    ? `<div class="status-detail" style="margin-top:4px; font-size:13px; color:#ef9a9a">🚨 Severe — confirm no extensive early infarct on CT. EVT critical.</div>`
+    : '';
+
   document.getElementById('syndrome-nihss-total').innerHTML = `
     <div class="status-banner status-blue">
       <span class="status-icon">🧠</span>
       <div class="status-body">
         <div class="status-title">NIHSS ${total} — ${severity.label}</div>
-        <div class="status-detail" style="color: ${severity.color}">
-          ${total < 5 ? '⚠️ Below typical TNK threshold (NIHSS >4). Consider if deficits are disabling.' : ''}
-          ${total >= 22 ? '🚨 Severe — confirm no early extensive infarct on CT. EVT critical.' : ''}
-        </div>
-        ${total < 5 ? `<div class="status-detail" style="margin-top:8px; color: var(--text-dim); font-size:13px">
-          <strong>Examples of disabling deficits even at low NIHSS:</strong><br>
-          • Isolated hand weakness preventing writing/typing<br>
-          • Language deficit affecting communication<br>
-          • Hemianopia affecting ability to drive or work<br>
-          • Dominant hand motor deficit in a surgeon/musician<br>
-          • Aphasia of any severity in a person who relies on verbal communication<br>
-          • Any deficit the patient/SDM considers functionally significant
-        </div>` : ''}
+        ${total < 5 ? '<div class="status-detail">⚠️ Below typical TNK threshold — consider if disabling</div>' : ''}
+        ${severeNote}${minorNote}
       </div>
     </div>
   `;
@@ -638,21 +679,27 @@ function renderSyndrome() {
   const container = document.getElementById('syndrome-list');
   container.innerHTML = '';
 
-  if (STATE.current.syndromes.length === 0) {
-    container.innerHTML = `<div class="card"><p class="text-sm">Pattern does not clearly match a specific syndrome. Review NIHSS scores or consider atypical/mixed presentation.</p></div>`;
+  // Only show syndromes with confidence ≥ 2
+  const matches = STATE.current.syndromes.filter(s => s.confidence >= 2);
+
+  if (matches.length === 0) {
+    container.innerHTML = `<div class="card"><p class="text-sm">Pattern doesn't clearly fit one territory — may be atypical, mixed, or scores incomplete. Use clinical judgment.</p></div>`;
     return;
   }
 
-  STATE.current.syndromes.forEach((syn, i) => {
+  matches.forEach((syn, i) => {
     const card = document.createElement('div');
     card.className = 'syndrome-card';
+    const rankLabel = i === 0
+      ? `<span class="syndrome-rank">Most likely</span>`
+      : `<span class="syndrome-rank syndrome-rank-alt">Also consider</span>`;
     card.innerHTML = `
-      <span class="syndrome-rank">${i === 0 ? 'Most Likely' : `Also Consider #${i+1}`}</span>
+      ${rankLabel}
       <div class="syndrome-name">${syn.name}</div>
       <div class="syndrome-sub">${syn.subtitle} · ${syn.territory}</div>
+      ${syn.lvoRisk ? `<div class="lvo-flag">🚨 LVO risk — urgent CTA</div>` : ''}
       <ul class="syndrome-features">${syn.features.map(f => `<li>${f}</li>`).join('')}</ul>
-      ${syn.lvoRisk ? `<div class="lvo-flag">🚨 LVO Possible — Urgent CTA</div>` : ''}
-      <div class="text-sm mt-8">CTA: ${syn.ctaExpect}</div>
+      <div class="text-sm mt-8" style="color:var(--text-dim)">Imaging: ${syn.ctaExpect}</div>
     `;
     container.appendChild(card);
   });
@@ -896,12 +943,22 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
 function renderDecision() {
   const s = STATE.current;
   const lsnMin = elapsedMin(s.lsn);
+  const isWakeup = s.onsetKnown === 'wakeup';
+  // For wakeup strokes: TNK window from wake/found time; EVT window from LKN (bedtime)
+  const wakeMin = elapsedMin(s.wakeTime);
+  const tnkWindowMin = isWakeup ? wakeMin : lsnMin;
+  // EVT window always uses earliest known time (LKN or wake time, whichever is less)
+  const evtWindowMin = isWakeup
+    ? (lsnMin !== null ? lsnMin : wakeMin)
+    : lsnMin;
   const total = getNIHSSTotal(s.nihss);
   const anyAbsCI = Object.values(s.absContra).some(v => v === true);
   const aspectsOk = s.aspects === null || s.aspects >= 6;
   const ctClear = s.ctClear === 'yes';
   const relCIs = window.REL_CONTRA.filter(r => s.relContra[r.id] === 'yes');
-  const withinWindow = lsnMin !== null && lsnMin <= 270;
+  const withinWindow = tnkWindowMin !== null && tnkWindowMin <= 270;
+  // Wake-up with no wake time entered: cannot confirm TNK window
+  const wakeupNeedsImaging = isWakeup && (wakeMin === null || wakeMin > 270);
   const nihssAboveThreshold = total >= 5;
 
   // TNK decision
@@ -910,6 +967,11 @@ function renderDecision() {
     tnkStatus = 'ineligible';
     tnkBannerClass = 'status-red';
     tnkIcon = '🚫';
+  } else if (wakeupNeedsImaging) {
+    // Wake-up stroke with no wake time or >4.5h — needs imaging selection
+    tnkStatus = 'relative';
+    tnkBannerClass = 'status-yellow';
+    tnkIcon = '🌙';
   } else if (!withinWindow) {
     tnkStatus = 'ineligible';
     tnkBannerClass = 'status-red';
@@ -930,16 +992,23 @@ function renderDecision() {
   // TNK reasons
   const reasons = [];
   if (anyAbsCI) reasons.push('Absolute contraindication present');
-  if (!withinWindow && lsnMin !== null) reasons.push(`Outside 4.5h window (${elapsedLabel(lsnMin)} from LKN)`);
+  if (wakeupNeedsImaging) {
+    if (wakeMin === null) reasons.push('Wake-up stroke — enter wake/found time to assess TNK window');
+    else reasons.push(`Wake-up stroke found ${elapsedLabel(wakeMin)} ago — requires imaging selection (MRI DWI-FLAIR mismatch or CT perfusion)`);
+  } else if (!withinWindow && tnkWindowMin !== null) {
+    reasons.push(`Outside 4.5h window (${elapsedLabel(tnkWindowMin)} from ${isWakeup ? 'found/wake time' : 'LKN'})`);
+  }
   if (!ctClear) reasons.push('CT not clear / hemorrhage on imaging');
   if (!aspectsOk) reasons.push(`ASPECTS ${s.aspects} < 6`);
   if (relCIs.length > 0) reasons.push(...relCIs.map(r => r.label));
-  if (!nihssAboveThreshold) reasons.push(`NIHSS ${total} — below typical threshold (consider if disabling: e.g. isolated hand weakness, language deficit, hemianopia, or any deficit functionally significant to the patient)`);
+  if (!nihssAboveThreshold) reasons.push(`NIHSS ${total} — below typical threshold (consider if deficits are disabling)`);
 
-  const tnkLabel = tnkStatus === 'eligible' ? 'ELIGIBLE FOR TNK' : tnkStatus === 'relative' ? 'RELATIVE CONTRAINDICATIONS' : 'NOT ELIGIBLE FOR TNK';
+  const tnkLabel = tnkStatus === 'eligible' ? 'ELIGIBLE FOR TNK'
+    : tnkStatus === 'relative' ? (wakeupNeedsImaging ? 'WAKE-UP STROKE — IMAGING SELECTION REQUIRED' : 'RELATIVE CONTRAINDICATIONS')
+    : 'NOT ELIGIBLE FOR TNK';
 
-  // EVT decision
-  const evtWindow = lsnMin !== null && lsnMin <= 1440;
+  // EVT decision — use EVT window (LKN for wakeup, LKN for known)
+  const evtWindow = evtWindowMin !== null && evtWindowMin <= 1440;
   const lvoPresent = s.lvo === 'yes';
   let evtStatus = 'none';
   let evtBanner = '';

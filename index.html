@@ -97,10 +97,17 @@
       </div>
 
       <div id="onset-time-section">
-        <label>Last Known Normal (LKN)</label>
-        <p class="text-sm" style="margin-bottom:6px; color:var(--text-dim)">When was the patient last known to be at their baseline / symptom-free?</p>
+        <label id="lkn-label">Last Known Normal (LKN)</label>
+        <p class="text-sm" id="lkn-hint" style="margin-bottom:6px; color:var(--text-dim)">When was the patient last known to be at their baseline / symptom-free?</p>
         <input type="time" id="onset-time-input">
         <p class="text-sm mt-8">LKN: <span id="elapsed-lsn">–</span></p>
+      </div>
+
+      <div id="wake-time-section" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border)">
+        <label>Time Found / Woke Up</label>
+        <p class="text-sm" style="margin-bottom:6px; color:var(--text-dim)">When did the patient wake up or when were they found with symptoms?</p>
+        <input type="time" id="wake-time-input">
+        <p class="text-sm mt-8">Found: <span id="elapsed-wake">–</span></p>
       </div>
     </div>
 
@@ -108,13 +115,18 @@
       Enter time above to calculate window
     </div>
 
+    <div id="wakeup-guidance" style="display:none" class="card">
+      <div class="card-title">Wake-Up Stroke — Treatment Guidance</div>
+      <div id="wakeup-guidance-body" style="font-size:14px; line-height:1.8; color:var(--text-dim)"></div>
+    </div>
+
     <div class="card">
       <div class="card-title">Window Summary</div>
       <div style="font-size:14px; line-height:1.8; color:var(--text-dim)">
-        <div>✅ <strong>&lt;4.5h from LKN</strong> → TNK window <span style="color:#81c784">OPEN</span></div>
-        <div>⚠️ <strong>4.5–24h from LKN</strong> → TNK closed, EVT may be possible</div>
+        <div>✅ <strong>&lt;4.5h from onset/found</strong> → TNK window <span style="color:#81c784">OPEN</span></div>
+        <div>⚠️ <strong>4.5–24h</strong> → TNK closed, EVT may be possible</div>
         <div>🚫 <strong>&gt;24h</strong> → Outside standard treatment windows</div>
-        <div style="margin-top:8px">Unknown/wake-up onset: LKN = last time confirmed normal. For EVT eligibility, imaging selection may extend window up to 24h.</div>
+        <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border)"><strong>Wake-up stroke:</strong> TNK window = time from waking/found. MRI DWI-FLAIR mismatch may allow treatment even if &gt;4.5h.</div>
       </div>
     </div>
 
@@ -130,7 +142,7 @@
   <div class="screen" id="screen-step-abs-contra">
     <div class="card" style="margin-bottom:14px">
       <div class="card-title">Absolute Contraindications to TNK</div>
-      <p class="text-sm">Answer YES to any that apply. Any YES = absolute contraindication to TNK (can still assess for EVT).</p>
+      <p class="text-sm">Active internal bleeding or hemorrhage on imaging — these are the only absolute contraindications. All other concerns are relative CIs (next screen).</p>
     </div>
 
     <div id="abs-summary"></div>
