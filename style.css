@@ -458,9 +458,48 @@ label {
 
 .nihss-svg {
   width: 100%;
-  max-height: 200px;
+  max-height: 160px;
   display: block;
   margin: 0 auto;
+}
+
+/* SVG strip embedded above score buttons — non-interactive */
+.nihss-svg-strip {
+  pointer-events: none;
+  user-select: none;
+  margin-bottom: 10px;
+  opacity: 0.9;
+}
+
+/* Collapsible exam instructions */
+.nihss-exam-details {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+.nihss-exam-details summary {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.nihss-exam-details summary::before {
+  content: '▶';
+  font-size: 10px;
+  color: var(--blue);
+}
+
+.nihss-exam-details[open] summary::before {
+  content: '▼';
 }
 
 /* ── Score Buttons ────────────────────────────────────────── */
@@ -677,6 +716,11 @@ label {
   padding: 2px 8px;
   border-radius: 12px;
   margin-bottom: 8px;
+}
+
+.syndrome-rank-alt {
+  background: var(--surface2);
+  color: var(--text-dim);
 }
 
 .syndrome-name {

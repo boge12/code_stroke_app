@@ -688,313 +688,252 @@ window.NIHSS_ITEMS = [
 ];
 
 // ── ABSOLUTE CONTRAINDICATIONS ───────────────────────────────
+// Per Australian/Canadian guidelines: only active bleeding and ICH on imaging
 window.ABS_CONTRA = [
   {
     id: 'hemorrhage',
-    label: 'Active hemorrhage or high bleeding risk',
-    detail: 'Any condition that substantially increases risk of major hemorrhage after thrombolysis.',
-  },
-  {
-    id: 'bp_refractory',
-    label: 'BP refractory — cannot maintain <185/110 mmHg',
-    detail: 'Despite IV antihypertensives (labetalol, hydralazine, nicardipine). If BP cannot be brought to <185/110 and maintained, TNK is contraindicated.',
-  },
-  {
-    id: 'glucose_low',
-    label: 'Blood glucose <2.7 mmol/L',
-    detail: 'Hypoglycemia can mimic stroke. Treat hypoglycemia first and reassess.',
-  },
-  {
-    id: 'glucose_high',
-    label: 'Blood glucose >22.2 mmol/L',
-    detail: 'Severe hyperglycemia is an absolute contraindication.',
-  },
-  {
-    id: 'platelets',
-    label: 'Platelet count <100,000/mm³',
-    detail: 'Thrombocytopenia significantly increases hemorrhagic risk.',
-  },
-  {
-    id: 'inr',
-    label: 'INR >1.7',
-    detail: 'Coagulopathy from warfarin or other causes.',
-  },
-  {
-    id: 'aptt',
-    label: 'Elevated aPTT (above normal)',
-    detail: 'Elevated aPTT suggests active anticoagulation or coagulopathy.',
-  },
-  {
-    id: 'doac',
-    label: 'DOAC within 48 hours',
-    detail: 'Direct thrombin inhibitor (dabigatran) or factor Xa inhibitor (rivaroxaban, apixaban, edoxaban) taken within 48 hours. Does NOT apply to VTE prophylaxis doses of LMWH.',
-  },
-  {
-    id: 'lmwh',
-    label: 'Therapeutic LMWH in past 24 hours',
-    detail: 'Therapeutic (treatment) dose LMWH within 24h. VTE prophylaxis dose (e.g. enoxaparin 40mg/day) is OKAY.',
+    label: 'Active internal bleeding',
+    detail: 'Active major internal bleeding (not including menses). Excludes minor superficial bleeding. If in doubt, weigh risk vs. potential benefit.',
   },
   {
     id: 'ich_on_ct',
-    label: 'Hemorrhage on CT / brain imaging',
-    detail: 'Any intracranial hemorrhage on imaging is an absolute contraindication.',
+    label: 'Intracranial hemorrhage on imaging',
+    detail: 'Any hemorrhage on CT or MRI is an absolute contraindication to TNK.',
   },
 ];
 
 // ── RELATIVE CONTRAINDICATIONS ───────────────────────────────
 window.REL_CONTRA = [
+  // ── Lab / medication concerns ──
+  {
+    id: 'bp_refractory',
+    label: 'BP cannot be controlled below 185/110',
+    detail: 'Try labetalol 10mg IV, hydralazine 10mg IV, or nicardipine 5mg/h. If BP cannot be maintained <185/110 despite treatment, TNK is not safe to give.',
+  },
+  {
+    id: 'glucose_low',
+    label: 'Blood glucose <2.7 mmol/L',
+    detail: 'Hypoglycaemia can mimic stroke — treat first and reassess. If stroke is confirmed after correction, may proceed.',
+  },
+  {
+    id: 'glucose_high',
+    label: 'Blood glucose >22.2 mmol/L',
+    detail: 'Severe hyperglycaemia increases hemorrhagic risk. Weigh risk vs. benefit; discuss with OTN.',
+  },
+  {
+    id: 'platelets',
+    label: 'Platelet count <100,000/mm³',
+    detail: 'Thrombocytopenia increases bleeding risk. Discuss with OTN.',
+  },
+  {
+    id: 'inr',
+    label: 'INR >1.7',
+    detail: 'Coagulopathy from warfarin or other cause. If INR is unknown, may still consider if clinical picture warrants — discuss with OTN.',
+  },
+  {
+    id: 'aptt',
+    label: 'aPTT elevated (above normal)',
+    detail: 'Suggests active anticoagulation or coagulopathy. Discuss with OTN.',
+  },
+  {
+    id: 'doac',
+    label: 'DOAC taken within 48 hours',
+    detail: 'Dabigatran, rivaroxaban, apixaban, edoxaban taken in last 48h. Prophylaxis-dose LMWH does NOT apply. Reversal agents may be an option — discuss with OTN.',
+  },
+  {
+    id: 'lmwh',
+    label: 'Therapeutic LMWH in past 24 hours',
+    detail: 'Treatment-dose LMWH (e.g. enoxaparin 1mg/kg BD). Prophylaxis dose (e.g. enoxaparin 40mg daily) is acceptable.',
+  },
+  // ── Clinical history ──
   {
     id: 'hist_ich',
     label: 'History of intracranial hemorrhage',
-    detail: 'Prior ICH significantly increases the risk of re-bleeding. Discuss risk:benefit with stroke specialist.',
+    detail: 'Prior ICH significantly increases re-bleeding risk. Discuss risk:benefit with OTN.',
   },
   {
     id: 'stroke_trauma_3mo',
-    label: 'Stroke or serious head/spinal trauma in past 3 months',
-    detail: 'Recent stroke or trauma increases hemorrhagic risk into the affected area. Risk varies with severity.',
+    label: 'Stroke or serious head/spinal trauma — past 3 months',
+    detail: 'Risk varies with severity. Discuss with OTN.',
   },
   {
     id: 'mi_3mo',
-    label: 'MI or pericarditis in past 3 months',
-    detail: 'Recent MI (especially STEMI) increases risk of cardiac rupture or pericardial hemorrhage. Discuss with cardiology if time allows.',
+    label: 'MI or pericarditis — past 3 months',
+    detail: 'Recent STEMI increases cardiac rupture/pericardial haemorrhage risk. Discuss with cardiology if time allows.',
   },
   {
     id: 'surgery_14d',
-    label: 'Major surgery in past 14 days',
-    detail: 'Risk varies by procedure. Cardiac, thoracic, abdominal, and orthopedic surgery are most relevant. Recent wounds may bleed. Discuss risk:benefit.',
+    label: 'Major surgery — past 14 days',
+    detail: 'Cardiac, thoracic, abdominal, orthopaedic surgery most relevant. Discuss risk:benefit.',
   },
   {
     id: 'arterial_7d',
-    label: 'Arterial puncture at non-compressible site in past 7 days',
-    detail: 'E.g. subclavian or femoral arterial line. Compression is not possible — serious hematoma risk.',
+    label: 'Arterial puncture at non-compressible site — past 7 days',
+    detail: 'E.g. subclavian or femoral arterial line — haematoma risk.',
   },
   {
     id: 'gi_gu_21d',
-    label: 'GI or GU bleed in past 21 days',
-    detail: 'Active or recent GI/GU bleeding significantly increases re-bleeding risk.',
+    label: 'GI or GU bleed — past 21 days',
+    detail: 'Recent GI/GU bleeding increases re-bleeding risk.',
   },
   {
     id: 'seizure',
-    label: 'Seizure at onset of stroke',
-    detail: 'Seizure at onset raises concern for Todd\'s paralysis (post-ictal weakness) mimicking stroke. Consider if deficit is truly due to ischemia. If strong clinical evidence of stroke, still consider TNK.',
-  },
-  {
-    id: 'dec_loc',
-    label: 'Decreased level of consciousness at onset',
-    detail: 'Decreased LOC at onset may suggest a larger/more severe stroke or hemorrhagic transformation. Document clearly.',
+    label: 'Seizure at stroke onset',
+    detail: 'Consider Todd\'s paralysis. If strong clinical evidence of ischaemic stroke, TNK can still be considered.',
   },
   {
     id: 'pregnant',
     label: 'Pregnant',
-    detail: 'Limited safety data. Case-by-case decision. Consult OB and neurology. TNK not absolutely contraindicated but extreme caution required.',
+    detail: 'Limited data. Case-by-case. Consult OB and OTN. Not absolutely contraindicated.',
   },
   {
     id: 'warfarin',
-    label: 'Currently on non-DOAC oral anticoagulant (e.g. warfarin)',
-    detail: 'Even with INR <1.7, warfarin therapy is a relative contraindication. INR must be <1.7 to proceed.',
+    label: 'On warfarin (even if INR <1.7)',
+    detail: 'INR must be <1.7 to proceed. Warfarin therapy itself is a relative CI even within range.',
   },
   {
     id: 'disability',
     label: 'Severe pre-existing disability',
-    detail: 'If the patient is severely disabled at baseline, the potential benefit of TNK may not outweigh the risk. Consider patient goals and functional status.',
+    detail: 'Consider whether benefit outweighs risk given baseline functional status.',
   },
   {
     id: 'age80_dm_stroke',
     label: 'Age >80 + prior stroke + diabetes (3–4.5h window)',
-    detail: 'In the 3–4.5h window, combination of: age >80, prior stroke/TIA, diabetes, AND on oral anticoagulant. Benefit less clear. OTN Telestroke recommended for these borderline cases.',
+    detail: 'Combined risk factors in the 3–4.5h window — benefit less clear. Recommend OTN Telestroke.',
   },
   {
     id: 'window_3to4_5',
-    label: 'Onset 3–4.5 hours ago (increased risk in this window)',
-    detail: 'TNK is approved in this window but risk of sICH is somewhat higher than the 0–3h window. Still generally recommended when benefits outweigh risks.',
+    label: 'Onset 3–4.5 hours ago',
+    detail: 'TNK approved in this window; sICH risk slightly higher than 0–3h. Generally recommended when benefits outweigh risks.',
   },
 ];
 
 // ── STROKE SYNDROME RULES ────────────────────────────────────
+// Simplified to 6 clinically actionable territories.
+// Confidence: 3 = high, 2 = moderate, 1 = possible.
+// Only syndromes scoring ≥2 are shown.
 window.STROKE_SYNDROMES = [
   {
     id: 'left_mca',
-    name: 'Left MCA Territory Stroke',
-    subtitle: 'Dominant hemisphere (most right-handed patients)',
-    territory: 'Left MCA — M1/M2/ACA',
+    name: 'Left MCA',
+    subtitle: 'Dominant hemisphere',
+    territory: 'Left M1/M2 or ICA-T',
     lvoRisk: true,
-    features: ['Right arm/leg weakness', 'Aphasia (expressive or receptive)', 'Right visual field loss', 'Right facial droop'],
-    ctaExpect: 'Look for left M1 or ICA-T occlusion on CTA. ASPECTS score on left hemisphere.',
+    features: ['Right face/arm/leg weakness', 'Aphasia', 'Right gaze preference', 'Right visual field cut'],
+    ctaExpect: 'Left M1 or ICA-T occlusion. Score ASPECTS on left hemisphere.',
     match: (s) => {
-      const rightMotor = (s['5a'] > 0) || (s['6a'] > 0);
-      const aphasia = s['9'] >= 1;
-      const rightVisual = s['3'] > 0;
-      return (rightMotor && aphasia) ? 3 : (rightMotor && rightVisual) ? 2 : (aphasia && rightMotor) ? 2 : 0;
+      const rightMotor = (s['5a'] || 0) > 0 || (s['6a'] || 0) > 0;
+      const aphasia = (s['9'] || 0) >= 1;
+      const gazeRight = (s['2'] || 0) >= 1;
+      if (rightMotor && aphasia) return 3;
+      if (rightMotor && gazeRight) return 2;
+      if (aphasia && !((s['5b'] || 0) > 0 || (s['6b'] || 0) > 0)) return 2;
+      return 0;
     },
   },
   {
     id: 'right_mca',
-    name: 'Right MCA Territory Stroke',
+    name: 'Right MCA',
     subtitle: 'Non-dominant hemisphere',
-    territory: 'Right MCA — M1/M2',
+    territory: 'Right M1/M2 or ICA-T',
     lvoRisk: true,
-    features: ['Left arm/leg weakness', 'Left neglect / inattention', 'Left visual field loss', 'Left facial droop', 'Dysarthria'],
-    ctaExpect: 'Look for right M1 or ICA-T occlusion on CTA.',
+    features: ['Left face/arm/leg weakness', 'Left neglect / inattention', 'Left gaze preference', 'Left visual field cut'],
+    ctaExpect: 'Right M1 or ICA-T occlusion. Score ASPECTS on right hemisphere.',
     match: (s) => {
-      const leftMotor = (s['5b'] > 0) || (s['6b'] > 0);
-      const neglect = s['11'] >= 1;
-      const leftVisual = s['3'] > 0;
-      return (leftMotor && neglect) ? 3 : (leftMotor && leftVisual) ? 2 : (neglect && leftMotor) ? 2 : 0;
+      const leftMotor = (s['5b'] || 0) > 0 || (s['6b'] || 0) > 0;
+      const neglect = (s['11'] || 0) >= 1;
+      const gazeLeft = (s['2'] || 0) >= 1;
+      if (leftMotor && neglect) return 3;
+      if (leftMotor && gazeLeft) return 2;
+      if (neglect && !((s['5a'] || 0) > 0 || (s['6a'] || 0) > 0)) return 2;
+      return 0;
     },
   },
   {
-    id: 'aca',
-    name: 'ACA Territory Stroke',
-    subtitle: 'Anterior cerebral artery',
-    territory: 'ACA — A1/A2',
-    lvoRisk: false,
-    features: ['Leg weakness > arm weakness (contralateral)', 'Abulia, executive dysfunction', 'Akinetic mutism (bilateral)'],
-    ctaExpect: 'Look for ACA (A1/A2) occlusion. Less common as isolated LVO.',
-    match: (s) => {
-      const legWeak = Math.max(s['6a'] || 0, s['6b'] || 0);
-      const armWeak = Math.max(s['5a'] || 0, s['5b'] || 0);
-      return (legWeak > armWeak && legWeak >= 2) ? 2 : (legWeak > armWeak && legWeak >= 1) ? 1 : 0;
-    },
-  },
-  {
-    id: 'pca',
-    name: 'PCA Territory Stroke',
-    subtitle: 'Posterior cerebral artery',
-    territory: 'PCA — P1/P2',
-    lvoRisk: false,
-    features: ['Contralateral homonymous hemianopia', 'Cortical blindness (bilateral PCA)', 'Memory loss (medial temporal)', 'Sensory loss (thalamus)', 'No motor weakness (usually)'],
-    ctaExpect: 'Look for PCA occlusion on CTA. May need MRI if CT negative.',
-    match: (s) => {
-      const visualLoss = s['3'] >= 1;
-      const noMotor = (s['5a'] || 0) === 0 && (s['5b'] || 0) === 0 && (s['6a'] || 0) === 0 && (s['6b'] || 0) === 0;
-      const sensory = s['8'] >= 1;
-      return (visualLoss && noMotor) ? 3 : (visualLoss && sensory && noMotor) ? 3 : 0;
-    },
-  },
-  {
-    id: 'thalamic',
-    name: 'Thalamic Stroke',
-    subtitle: 'Thalamic infarct (PCA territory)',
-    territory: 'PCA thalamic branches',
-    lvoRisk: false,
-    features: ['Pure or predominant sensory loss (face + arm + leg)', '± Decreased LOC', '± Memory impairment', '± Aphasia (dominant side)'],
-    ctaExpect: 'Small vessel or PCA branch. MRI DWI most sensitive.',
-    match: (s) => {
-      const pureSensory = (s['8'] >= 1) && (s['5a'] || 0) === 0 && (s['5b'] || 0) === 0 && (s['6a'] || 0) === 0 && (s['6b'] || 0) === 0;
-      const decLOC = (s['1a'] || 0) >= 1;
-      return (pureSensory) ? 2 : (pureSensory && decLOC) ? 3 : 0;
-    },
-  },
-  {
-    id: 'brainstem',
-    name: 'Brainstem Stroke',
-    subtitle: 'Midbrain / Pons / Medulla',
-    territory: 'Basilar artery / perforators',
+    id: 'posterior',
+    name: 'Posterior Circulation',
+    subtitle: 'Basilar / brainstem / cerebellum / PCA',
+    territory: 'Basilar artery, PICA, AICA, SCA, PCA',
     lvoRisk: true,
-    features: ['Gaze palsy or nystagmus', 'Diplopia', 'Ataxia (often bilateral)', 'Crossed findings: ipsilateral face + contralateral body', 'Dysarthria, dysphagia', 'Horner\'s syndrome (miosis, ptosis)'],
-    ctaExpect: 'Look for basilar artery occlusion — URGENT. EVT-eligible even in posterior circulation.',
+    features: ['Gaze palsy or nystagmus', 'Ataxia (limb or gait)', 'Diplopia or vertigo', 'Crossed deficits (ipsi face + contra body)', 'Dysarthria or dysphagia', 'Visual field loss without motor deficit'],
+    ctaExpect: '⚠️ Check basilar artery — URGENT if suspected BAO. CT often normal early; MRI DWI most sensitive. EVT eligible in posterior circulation.',
     match: (s) => {
       const gazeAbn = (s['2'] || 0) >= 1;
       const ataxia = (s['7'] || 0) >= 1;
       const dysarthria = (s['10'] || 0) >= 1;
+      const visualOnly = (s['3'] || 0) >= 1 &&
+        (s['5a'] || 0) === 0 && (s['5b'] || 0) === 0 &&
+        (s['6a'] || 0) === 0 && (s['6b'] || 0) === 0 &&
+        (s['9'] || 0) === 0 && (s['11'] || 0) === 0;
       const bothSidesMotor = ((s['5a'] || 0) > 0) && ((s['5b'] || 0) > 0);
-      return (gazeAbn && ataxia) ? 3 : (gazeAbn && dysarthria) ? 2 : (ataxia && bothSidesMotor) ? 2 : 0;
-    },
-  },
-  {
-    id: 'cerebellar',
-    name: 'Cerebellar Stroke',
-    subtitle: 'SCA / AICA / PICA',
-    territory: 'SCA, AICA, PICA branches',
-    lvoRisk: false,
-    features: ['Prominent ataxia (limb + gait)', 'Nystagmus, vertigo, nausea', 'Dysarthria', 'Headache', '⚠️ Can rapidly deteriorate — edema/herniation risk'],
-    ctaExpect: 'CT often normal early. MRI DWI needed. Watch for mass effect and fourth ventricle compression.',
-    match: (s) => {
-      const ataxia = (s['7'] || 0) >= 1;
-      const noHemiparesis = (s['5a'] || 0) === 0 || (s['5b'] || 0) === 0;
-      const dysarthria = (s['10'] || 0) >= 1;
-      const gaze = (s['2'] || 0) >= 1;
-      return (ataxia && noHemiparesis) ? 2 : (ataxia && dysarthria) ? 1 : 0;
+      if (gazeAbn && ataxia) return 3;
+      if (gazeAbn && dysarthria) return 3;
+      if (ataxia && bothSidesMotor) return 3;
+      if (ataxia && dysarthria) return 2;
+      if (ataxia && !((s['5a'] || 0) > 0 || (s['5b'] || 0) > 0)) return 2;
+      if (visualOnly) return 2;
+      return 0;
     },
   },
   {
     id: 'lacunar_motor',
-    name: 'Lacunar — Pure Motor Stroke',
-    subtitle: 'Internal capsule / pons',
-    territory: 'Lenticulostriate arteries / pontine perforators',
+    name: 'Lacunar — Pure Motor',
+    subtitle: 'Internal capsule or pons',
+    territory: 'Lenticulostriate or pontine perforators',
     lvoRisk: false,
-    features: ['Contralateral hemiparesis — face + arm + leg (same side)', 'NO aphasia, NO visual field loss, NO neglect', 'Often stuttering onset over hours'],
-    ctaExpect: 'CTA likely normal (small vessel). MRI DWI most sensitive.',
+    features: ['Hemiparesis: face + arm + leg same side', 'No aphasia, neglect, or visual field cut', 'Often gradual/stuttering onset'],
+    ctaExpect: 'CTA likely normal. MRI DWI most sensitive.',
     match: (s) => {
-      const rightSide = (s['5a'] || 0) > 0 || (s['6a'] || 0) > 0;
-      const leftSide = (s['5b'] || 0) > 0 || (s['6b'] || 0) > 0;
+      const rightMotor = (s['5a'] || 0) > 0 || (s['6a'] || 0) > 0;
+      const leftMotor = (s['5b'] || 0) > 0 || (s['6b'] || 0) > 0;
       const noAphasia = (s['9'] || 0) === 0;
-      const noVisual = (s['3'] || 0) === 0;
       const noNeglect = (s['11'] || 0) === 0;
+      const noVisual = (s['3'] || 0) === 0;
       const noSensory = (s['8'] || 0) === 0;
-      const motor = rightSide || leftSide;
-      return (motor && noAphasia && noVisual && noNeglect && noSensory) ? 2 : 0;
+      const noGaze = (s['2'] || 0) === 0;
+      const oneSide = (rightMotor && !leftMotor) || (leftMotor && !rightMotor);
+      if (oneSide && noAphasia && noNeglect && noVisual && noSensory && noGaze) return 2;
+      return 0;
     },
   },
   {
     id: 'lacunar_sensory',
-    name: 'Lacunar — Pure Sensory Stroke',
-    subtitle: 'Thalamus',
-    territory: 'Thalamic perforators',
+    name: 'Lacunar — Pure Sensory',
+    subtitle: 'Thalamus (VPL nucleus)',
+    territory: 'Thalamic perforators (PCA branch)',
     lvoRisk: false,
-    features: ['Unilateral sensory loss — face, arm, leg on same side', 'NO motor weakness, NO visual field loss, NO aphasia'],
+    features: ['Hemisensory loss: face + arm + leg same side', 'No motor weakness, no aphasia, no visual field cut'],
     ctaExpect: 'CTA likely normal. MRI DWI needed.',
     match: (s) => {
       const sensory = (s['8'] || 0) >= 1;
-      const noMotor = (s['5a'] || 0) === 0 && (s['5b'] || 0) === 0 && (s['6a'] || 0) === 0 && (s['6b'] || 0) === 0;
-      const noAphasia = (s['9'] || 0) === 0;
-      const noVisual = (s['3'] || 0) === 0;
-      return (sensory && noMotor && noAphasia && noVisual) ? 2 : 0;
-    },
-  },
-  {
-    id: 'lacunar_sensorimotor',
-    name: 'Lacunar — Sensorimotor Stroke',
-    subtitle: 'Thalamus + internal capsule junction',
-    territory: 'Thalamocapsular',
-    lvoRisk: false,
-    features: ['Motor + sensory loss on same side', 'NO aphasia, NO visual field loss, NO neglect'],
-    ctaExpect: 'Small vessel. MRI DWI most sensitive.',
-    match: (s) => {
-      const motor = (s['5a'] || 0) > 0 || (s['5b'] || 0) > 0 || (s['6a'] || 0) > 0 || (s['6b'] || 0) > 0;
-      const sensory = (s['8'] || 0) >= 1;
+      const noMotor = (s['5a'] || 0) === 0 && (s['5b'] || 0) === 0 &&
+                      (s['6a'] || 0) === 0 && (s['6b'] || 0) === 0;
       const noAphasia = (s['9'] || 0) === 0;
       const noVisual = (s['3'] || 0) === 0;
       const noNeglect = (s['11'] || 0) === 0;
-      return (motor && sensory && noAphasia && noVisual && noNeglect) ? 2 : 0;
+      if (sensory && noMotor && noAphasia && noVisual && noNeglect) return 2;
+      return 0;
     },
   },
   {
-    id: 'lacunar_ataxic',
-    name: 'Lacunar — Ataxic Hemiparesis',
-    subtitle: 'Corona radiata / internal capsule',
-    territory: 'Deep perforators',
+    id: 'lacunar_mixed',
+    name: 'Lacunar — Sensorimotor / Ataxic',
+    subtitle: 'Thalamocapsular or deep perforators',
+    territory: 'Internal capsule / corona radiata',
     lvoRisk: false,
-    features: ['Unilateral weakness + ataxia in EXCESS of weakness', 'NO aphasia, NO sensory loss, NO visual field loss'],
-    ctaExpect: 'Small vessel. CTA often normal.',
+    features: ['Motor + sensory loss same side', 'OR unilateral weakness + ataxia out of proportion', 'No aphasia, neglect, or visual field cut'],
+    ctaExpect: 'Small vessel disease. CTA often normal. MRI DWI most sensitive.',
     match: (s) => {
       const motor = (s['5a'] || 0) > 0 || (s['5b'] || 0) > 0 || (s['6a'] || 0) > 0 || (s['6b'] || 0) > 0;
+      const sensory = (s['8'] || 0) >= 1;
       const ataxia = (s['7'] || 0) >= 1;
-      return (motor && ataxia) ? 1 : 0;
-    },
-  },
-  {
-    id: 'lacunar_clumsy',
-    name: 'Lacunar — Clumsy Hand Dysarthria',
-    subtitle: 'Pons / corona radiata',
-    territory: 'Pontine/deep perforators',
-    lvoRisk: false,
-    features: ['Dysarthria + mild contralateral hand weakness/clumsiness', 'Sometimes facial weakness or dysphagia'],
-    ctaExpect: 'Small vessel. CTA often normal.',
-    match: (s) => {
-      const dysarthria = (s['10'] || 0) >= 1;
-      const mildArm = (s['5a'] === 1) || (s['5b'] === 1);
-      return (dysarthria && mildArm) ? 1 : 0;
+      const noAphasia = (s['9'] || 0) === 0;
+      const noVisual = (s['3'] || 0) === 0;
+      const noNeglect = (s['11'] || 0) === 0;
+      const noGaze = (s['2'] || 0) === 0;
+      if (motor && sensory && noAphasia && noVisual && noNeglect) return 2;
+      if (motor && ataxia && noAphasia && noVisual && noNeglect && noGaze) return 2;
+      return 0;
     },
   },
 ];
