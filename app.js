@@ -492,7 +492,169 @@ function renderRelContra() {
   }
 }
 
-// ── Step: NIHSS ───────────────────────────────────────────────
+// ── Visual Field Guided Widget ────────────────────────────────
+// Module-level state (not persisted — score is what gets saved)
+const vfState = {
+  canFollow: null,       // 'yes' | 'no'
+  quadrants: { UL: null, UR: null, LL: null, LR: null },
+};
+
+function vfCalcScore(q) {
+  const answered = Object.values(q).filter(v => v !== null).length;
+  if (answered < 4) return null; // not ready
+  const missing = Object.keys(q).filter(k => q[k] === false);
+  if (missing.length === 0) return 0;
+  if (missing.length === 1) return 1;
+  if (missing.length === 2) {
+    // Complete hemianopia = both quadrants on the same side
+    const leftMissing = missing.includes('UL') && missing.includes('LL');
+    const rightMissing = missing.includes('UR') && missing.includes('LR');
+    return (leftMissing || rightMissing) ? 2 : 1;
+  }
+  return 3; // 3 or 4 quadrants missing
+}
+
+function vfScoreLabel(score) {
+  return ['Normal', 'Partial hemianopia', 'Complete hemianopia', 'Bilateral hemianopia'][score] ?? '–';
+}
+
+function renderVFWidget(container, currentVal) {
+  const q = vfState.quadrants;
+  const score = vfCalcScore(q);
+
+  const method = vfState.canFollow === 'yes'
+    ? 'Fix gaze on your nose. Wiggle fingers in each quadrant.'
+    : 'Blink-to-threat: advance hand from outer edge toward each eye.';
+
+  // Step 1: follow commands
+  const step1Html = `
+    <div class="vf-step">
+      <div class="vf-question">Can the patient follow commands?</div>
+      <div class="vf-btn-row">
+        <button class="vf-yn ${vfState.canFollow === 'yes' ? 'vf-yn-active' : ''}" data-vf-follow="yes">Yes</button>
+        <button class="vf-yn ${vfState.canFollow === 'no' ? 'vf-yn-active' : ''}" data-vf-follow="no">No</button>
+      </div>
+    </div>`;
+
+  // Step 2: quadrant grid (shown after follow answered)
+  const step2Html = vfState.canFollow ? `
+    <div class="vf-step">
+      <div class="vf-method">${vfState.canFollow === 'yes' ? '👁 Confrontation:' : '✋ Blink-to-threat:'} ${method}</div>
+      <div class="vf-question" style="margin-top:10px">Which quadrants responded?</div>
+      <div class="vf-grid">
+        ${['UL','UR','LL','LR'].map(k => {
+          const labels = { UL:'Upper L', UR:'Upper R', LL:'Lower L', LR:'Lower R' };
+          const state = q[k];
+          return `<button class="vf-quad${state === true ? ' vf-yes' : state === false ? ' vf-no' : ''}" data-vf-quad="${k}">
+            <span class="vf-quad-name">${labels[k]}</span>
+            <span class="vf-quad-state">${state === true ? '✓' : state === false ? '✗' : '?'}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  // Step 3: result (shown when all 4 answered)
+  const step3Html = score !== null ? `
+    <div class="vf-result ${score === 0 ? 'vf-result-ok' : score <= 1 ? 'vf-result-warn' : 'vf-result-bad'}">
+      <div class="vf-result-score">Score ${score}</div>
+      <div class="vf-result-label">${vfScoreLabel(score)}</div>
+      ${score === 1 && Object.keys(q).filter(k => q[k] === false).length === 2 ? '<div class="vf-result-note">Bilateral partial loss — confirm sides</div>' : ''}
+    </div>
+    <button class="btn-primary vf-confirm" data-vf-confirm="${score}">Confirm Score ${score} →</button>` : '';
+
+  // Override button if score already set — show change option
+  const resetHtml = currentVal !== undefined ? `
+    <div class="vf-current">Current score: <strong>${currentVal} — ${vfScoreLabel(currentVal)}</strong>
+    <button class="vf-reset">Change</button></div>` : '';
+
+  container.innerHTML = `
+    <div class="nihss-item-header">
+      <div class="nihss-item-number">Item ${NIHSS_ORDER.indexOf('3') + 1} of ${NIHSS_ORDER.length}</div>
+      <div class="nihss-item-name">3 — Visual Fields</div>
+    </div>
+    ${resetHtml}
+    <div class="vf-widget">
+      ${step1Html}
+      ${step2Html}
+      ${step3Html}
+    </div>
+    <details class="nihss-exam-details" style="margin-top:12px">
+      <summary>Scoring reference</summary>
+      <div class="vf-ref-table">
+        <div class="vf-ref-row"><span class="vf-ref-score vf-ref-0">0</span><span>All 4 respond — Normal</span></div>
+        <div class="vf-ref-row"><span class="vf-ref-score vf-ref-1">1</span><span>1 quadrant missing — Partial hemianopia</span></div>
+        <div class="vf-ref-row"><span class="vf-ref-score vf-ref-2">2</span><span>Full side missing (same 2 quadrants) — Complete hemianopia</span></div>
+        <div class="vf-ref-row"><span class="vf-ref-score vf-ref-3">3</span><span>No response — Bilateral / cortical blindness</span></div>
+      </div>
+    </details>
+  `;
+
+  // Attach handlers
+  container.querySelectorAll('[data-vf-follow]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      vfState.canFollow = btn.dataset.vfFollow;
+      // Reset quadrants on method change
+      Object.keys(vfState.quadrants).forEach(k => vfState.quadrants[k] = null);
+      renderVFWidget(container, STATE.current.nihss['3']);
+    });
+  });
+
+  container.querySelectorAll('[data-vf-quad]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.vfQuad;
+      // Cycle: null → true (yes) → false (no) → null
+      if (q[k] === null) q[k] = true;
+      else if (q[k] === true) q[k] = false;
+      else q[k] = null;
+      renderVFWidget(container, STATE.current.nihss['3']);
+    });
+  });
+
+  const confirmBtn = container.querySelector('[data-vf-confirm]');
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', () => {
+      const val = parseInt(confirmBtn.dataset.vfConfirm);
+      STATE.current.nihss['3'] = val;
+      STATE.current.nihssCurrentIdx = nihssCurrentIdx;
+      saveCurrentSession();
+      renderNIHSSTabs();
+      // Update badge
+      const total = getNIHSSTotal(STATE.current.nihss);
+      document.getElementById('nihss-badge').textContent = `NIHSS ${total}`;
+      // Re-render to show confirmed state + auto-advance
+      renderVFWidget(container, val);
+      document.getElementById('nihss-next').disabled = false;
+      setTimeout(() => {
+        if (nihssCurrentIdx < NIHSS_ORDER.length - 1) {
+          nihssCurrentIdx++;
+          STATE.current.nihssCurrentIdx = nihssCurrentIdx;
+          saveCurrentSession();
+          renderNIHSSItem();
+          renderNIHSSTabs();
+          window.scrollTo(0, 0);
+        }
+      }, 600);
+    });
+  }
+
+  const resetBtn = container.querySelector('.vf-reset');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      STATE.current.nihss['3'] = undefined;
+      vfState.canFollow = null;
+      Object.keys(vfState.quadrants).forEach(k => vfState.quadrants[k] = null);
+      saveCurrentSession();
+      renderVFWidget(container, undefined);
+      document.getElementById('nihss-next').disabled = true;
+    });
+  }
+
+  // Nav button state
+  document.getElementById('nihss-prev').disabled = nihssCurrentIdx === 0;
+  document.getElementById('nihss-next').disabled = STATE.current.nihss['3'] === undefined;
+}
+
+
 let nihssCurrentIdx = 0;
 
 function renderNIHSS() {
@@ -534,6 +696,12 @@ function renderNIHSSItem() {
 
   const container = document.getElementById('nihss-item-container');
   const currentVal = STATE.current.nihss[item.id];
+
+  // Item 3: Visual Fields — use guided widget
+  if (item.id === '3') {
+    renderVFWidget(container, currentVal);
+    return;
+  }
   const total = getNIHSSTotal(STATE.current.nihss);
   const severity = window.getNIHSSSeverity(total);
 
