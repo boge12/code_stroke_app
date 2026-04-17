@@ -1331,6 +1331,7 @@ window.CORTICAL_LVO_SCREEN = [
   {
     id: 'hemiparesis',
     label: 'Dense hemiparesis',
+    hasSidePicker: true,
     description: 'Dense arm or leg weakness (Item 5 or 6 = 3–4)',
     howToExamine: [
       'Arm drift at 90° supinated for 10 seconds, then leg at 30° for 5 seconds.',

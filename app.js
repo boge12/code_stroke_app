@@ -46,9 +46,6 @@ window.goToSide = function(sideId) {
   else if (sideId === 'step-syndrome-ref') renderSyndromeRef();
   else if (sideId === 'step-nihss-ref') renderNihssRef();
   else if (sideId === 'step-algorithm') renderAlgorithm();
-  // hide algo chip on side screen (it IS the algo screen sometimes, or avoid double nav)
-  const chip = document.getElementById('algo-chip');
-  if (chip) chip.style.display = sideId === 'step-algorithm' ? 'none' : '';
 };
 
 window.goBackFromSide = function() {
@@ -101,7 +98,7 @@ function newSession() {
     note: '',
     decisionStatus: null, // 'eligible'|'relative'|'ineligible'
     currentStep: 'home',
-    corticalScreen: { gaze: false, aphasia: false, neglect: false, hemiparesis: false },
+    corticalScreen: { gaze: false, aphasia: false, neglect: false, hemiparesis: false, hemiparesisSide: null },
     posteriorScreen: { fiveD: null, vertigoFocal: null, gaitAtaxia: null, verticalGazeSkew: null },
     relevantHistory: {}, // id -> { val: 'yes'|'no'|null|string|number, detail: string }
     nihssReassess: null,
@@ -200,11 +197,6 @@ function goTo(stepId) {
     saveCurrentSession();
   }
   updateHeader(stepId);
-  updateProgress(stepId);
-  const chip = document.getElementById('algo-chip');
-  if (chip) chip.style.display = (stepId === 'home' || SIDE_SCREENS.includes(stepId)) ? 'none' : '';
-  const nihssRefChip = document.getElementById('nihss-ref-chip');
-  if (nihssRefChip) nihssRefChip.style.display = (stepId === 'step-nihss') ? '' : 'none';
 }
 
 function updateHeader(stepId) {
@@ -240,13 +232,6 @@ function updateHeader(stepId) {
   } else {
     badge.style.display = 'none';
   }
-}
-
-function updateProgress(stepId) {
-  const bar = document.getElementById('progress-fill');
-  const stepNums = STEPS.indexOf(stepId);
-  const pct = stepNums <= 0 ? 0 : Math.round((stepNums / (STEPS.length - 1)) * 100);
-  bar.style.width = pct + '%';
 }
 
 // ── Home Screen ──────────────────────────────────────────────
@@ -744,9 +729,32 @@ function renderVFWidget(container, currentVal) {
 
 let nihssCurrentIdx = 0;
 
+// NIHSS item id → cortical flag key
+const NIHSS_TO_CORTICAL = { '2': 'gaze', '9': 'aphasia', '11': 'neglect' };
+
+function syncCorticalFromNIHSS() {
+  const n = STATE.current.nihss || {};
+  const cs = STATE.current.corticalScreen = STATE.current.corticalScreen
+    || { gaze: false, aphasia: false, neglect: false, hemiparesis: false, hemiparesisSide: null };
+  cs.gaze    = Number(n['2'])  >= 1;
+  cs.aphasia = Number(n['9'])  >= 1;
+  cs.neglect = Number(n['11']) >= 1;
+  const anyL = Number(n['5a']) >= 1 || Number(n['6a']) >= 1;
+  const anyR = Number(n['5b']) >= 1 || Number(n['6b']) >= 1;
+  cs.hemiparesis = anyL || anyR;
+  if (cs.hemiparesis) {
+    if (anyL && !anyR) cs.hemiparesisSide = 'L';
+    else if (anyR && !anyL) cs.hemiparesisSide = 'R';
+    // bilateral or already-picked: leave current value (preserves user choice)
+  } else {
+    cs.hemiparesisSide = null;
+  }
+}
+
 function renderNIHSS() {
   nihssCurrentIdx = STATE.current.nihssCurrentIdx || 0;
-  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false };
+  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false, hemiparesisSide: null };
+  if (!('hemiparesisSide' in STATE.current.corticalScreen)) STATE.current.corticalScreen.hemiparesisSide = null;
   renderNIHSSItem();
   renderNIHSSTabs();
 }
@@ -755,7 +763,8 @@ function renderNIHSS() {
 function renderQuickScreen() {
   const host = document.getElementById('quick-screen-content');
   if (!host) return;
-  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false };
+  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false, hemiparesisSide: null };
+  if (!('hemiparesisSide' in STATE.current.corticalScreen)) STATE.current.corticalScreen.hemiparesisSide = null;
 
   const rule = window.CORTICAL_LVO_RULE || 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.';
   const items = window.CORTICAL_LVO_SCREEN || [];
@@ -785,15 +794,32 @@ function renderQuickScreen() {
           <div style="margin-top:6px; font-size:13px; line-height:1.6; color:var(--text-dim)">${item.pearl}</div>
         </details>`
       : '';
+
+    let sidePickerHtml = '';
+    let sideWarningHtml = '';
+    if (item.hasSidePicker) {
+      const side = cs.hemiparesisSide;
+      sidePickerHtml = `
+        <div class="corti-side-picker" role="group" aria-label="Affected side">
+          <button class="corti-side-btn${side === 'L' ? ' active' : ''}" data-side="L">Left</button>
+          <button class="corti-side-btn${side === 'R' ? ' active' : ''}" data-side="R">Right</button>
+        </div>`;
+      if (active && !side) {
+        sideWarningHtml = `<div class="corti-side-warning">Pick a side to finalize.</div>`;
+      }
+    }
+
     return `
       <div class="card qs-card corti-card${active ? ' present' : ''}">
-        <div class="qs-card-title">⚡ ${item.label}</div>
+        <div class="qs-card-title">⚡ ${item.label}${item.hasSidePicker && cs.hemiparesisSide ? ` — ${cs.hemiparesisSide === 'L' ? 'Left' : 'Right'}` : ''}</div>
         <div class="qs-card-sub">${item.description || ''}</div>
         ${examHtml}
         ${pearlHtml}
+        ${sidePickerHtml}
         <button class="corti-present-btn${active ? ' active' : ''}" data-cortical="${id}">
           ${active ? '✓ Present — LVO flag set' : 'Mark present'}
         </button>
+        ${sideWarningHtml}
       </div>
     `;
   }).join('');
@@ -804,6 +830,17 @@ function renderQuickScreen() {
     btn.addEventListener('click', () => {
       const k = btn.dataset.cortical;
       STATE.current.corticalScreen[k] = !STATE.current.corticalScreen[k];
+      if (k === 'hemiparesis' && !STATE.current.corticalScreen[k]) {
+        STATE.current.corticalScreen.hemiparesisSide = null;
+      }
+      saveCurrentSession();
+      renderQuickScreen();
+    });
+  });
+
+  host.querySelectorAll('[data-side]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      STATE.current.corticalScreen.hemiparesisSide = btn.dataset.side;
       saveCurrentSession();
       renderQuickScreen();
     });
@@ -1063,11 +1100,30 @@ function renderNIHSSItem() {
     extrasHtml += `<details class="nihss-extras"><summary>🔍 Functional weakness clues</summary><ul>${item.functionalClues.map(c => `<li>${c}</li>`).join('')}</ul></details>`;
   }
 
+  // Cortical-flag hint: if this NIHSS item is linked to a cortical flag that's
+  // already set AND the current score is 0/undefined, show a yellow prompt.
+  const cs = STATE.current.corticalScreen || {};
+  let corticalHintHtml = '';
+  const hintFor = NIHSS_TO_CORTICAL[item.id];
+  const scoreZeroOrBlank = currentVal === undefined || Number(currentVal) === 0;
+  if (hintFor && cs[hintFor] && scoreZeroOrBlank) {
+    corticalHintHtml = `<div class="mimic-banner"><span class="mimic-icon">⚠️</span><div class="mimic-body"><strong>Cortical flag:</strong> ${hintFor} was marked present on the cortical screen. Score accordingly.</div></div>`;
+  } else if (cs.hemiparesis && scoreZeroOrBlank) {
+    const side = cs.hemiparesisSide;
+    const isLeftItem = item.id === '5a' || item.id === '6a';
+    const isRightItem = item.id === '5b' || item.id === '6b';
+    if ((side === 'L' && isLeftItem) || (side === 'R' && isRightItem)) {
+      corticalHintHtml = `<div class="mimic-banner"><span class="mimic-icon">⚠️</span><div class="mimic-body"><strong>Cortical flag:</strong> dense ${side === 'L' ? 'left' : 'right'} hemiparesis was marked present. Score accordingly.</div></div>`;
+    }
+  }
+
   container.innerHTML = `
     <div class="nihss-item-header">
       <div class="nihss-item-number">Item ${nihssCurrentIdx + 1} of ${NIHSS_ORDER.length}</div>
       <div class="nihss-item-name">${item.shortName}</div>
     </div>
+
+    ${corticalHintHtml}
 
     <details class="nihss-exam-details">
       <summary>How to examine</summary>
@@ -1092,6 +1148,7 @@ function renderNIHSSItem() {
       if (val !== 'UN') val = parseFloat(val);
       STATE.current.nihss[item.id] = val;
       STATE.current.nihssCurrentIdx = nihssCurrentIdx;
+      syncCorticalFromNIHSS();
       saveCurrentSession();
       renderNIHSSItem();
       renderNIHSSTabs();
