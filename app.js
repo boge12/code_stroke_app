@@ -16,8 +16,10 @@ const STEPS = [
   'step-timing',
   'step-abs-contra',
   'step-rel-contra',
+  'step-history',
   'step-quick-screen',
   'step-nihss',
+  'step-posterior',
   'step-syndrome',
   'step-ct',
   'step-decision',
@@ -101,6 +103,7 @@ function newSession() {
     currentStep: 'home',
     corticalScreen: { gaze: false, aphasia: false, neglect: false, hemiparesis: false },
     posteriorScreen: { fiveD: null, vertigoFocal: null, gaitAtaxia: null, verticalGazeSkew: null },
+    relevantHistory: {}, // id -> { val: 'yes'|'no'|null|string|number, detail: string }
     nihssReassess: null,
   };
 }
@@ -213,14 +216,16 @@ function updateHeader(stepId) {
     'step-label': 'Step 1 — Patient',
     'step-timing': 'Step 2 — Timing',
     'step-abs-contra': 'Step 3 — Absolute CIs',
-    'step-rel-contra': 'Step 4 — History / Relative CIs',
-    'step-quick-screen': 'Step 5 — Quick Screen',
-    'step-nihss': 'Step 6 — NIHSS Assessment',
-    'step-syndrome': 'Step 7 — Syndrome',
-    'step-ct': 'Step 8 — CT Results',
-    'step-decision': 'Step 9 — Decision',
-    'step-consent': 'Step 10 — Consent',
-    'step-note': 'Step 11 — EMR Note',
+    'step-rel-contra': 'Step 4 — Relative CIs',
+    'step-history': 'Step 5 — Relevant History',
+    'step-quick-screen': 'Step 6 — Cortical / LVO Screen',
+    'step-nihss': 'Step 7 — NIHSS Assessment',
+    'step-posterior': 'Step 8 — Posterior Circulation',
+    'step-syndrome': 'Step 9 — Syndrome',
+    'step-ct': 'Step 10 — CT Results',
+    'step-decision': 'Step 11 — Decision',
+    'step-consent': 'Step 12 — Consent',
+    'step-note': 'Step 13 — EMR Note',
   };
 
   title.textContent = titles[stepId] || 'Code Stroke';
@@ -770,16 +775,32 @@ function renderCorticalQuickScreen(containerId) {
   });
 }
 
-// ── Quick Screen step (pre-NIHSS: cortical + posterior) ───────
+// ── Quick Screen step (pre-NIHSS: cortical only) ──────────────
 function renderQuickScreen() {
   const host = document.getElementById('quick-screen-content');
   if (!host) return;
   STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false };
-  STATE.current.posteriorScreen = STATE.current.posteriorScreen || { fiveD: null, vertigoFocal: null, gaitAtaxia: null, verticalGazeSkew: null };
 
   const rule = window.CORTICAL_LVO_RULE || 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.';
-  const posteriorRedFlags = window.POSTERIOR_RED_FLAGS || [];
 
+  host.innerHTML = `
+    <div class="card qs-card">
+      <div class="qs-card-title">⚡ Cortical quick screen — LVO flags</div>
+      <div class="qs-card-sub">Tap any sign that's present. ${rule}</div>
+      <div id="cortical-pills"></div>
+    </div>
+  `;
+
+  renderCorticalQuickScreen('cortical-pills');
+}
+
+// ── Posterior Circulation step (post-NIHSS) ───────────────────
+function renderPosterior() {
+  const host = document.getElementById('posterior-content');
+  if (!host) return;
+  STATE.current.posteriorScreen = STATE.current.posteriorScreen || { fiveD: null, vertigoFocal: null, gaitAtaxia: null, verticalGazeSkew: null };
+
+  const posteriorRedFlags = window.POSTERIOR_RED_FLAGS || [];
   const posteriorItems = [
     { key: 'fiveD', label: 'Any of the 5 Ds? (Dysphagia, Dysarthria, Diplopia, Dysmetria, Decreased LOC)' },
     { key: 'vertigoFocal', label: "Vertigo + any focal sign (crossed sensory, limb ataxia, Horner's, facial numbness)?" },
@@ -788,12 +809,6 @@ function renderQuickScreen() {
   ];
 
   host.innerHTML = `
-    <div class="card qs-card">
-      <div class="qs-card-title">⚡ Cortical quick screen — LVO flags</div>
-      <div class="qs-card-sub">Tap any sign that's present. ${rule}</div>
-      <div id="cortical-pills"></div>
-    </div>
-
     <div class="card qs-card">
       <div class="qs-card-title">🧠 Posterior circulation check</div>
       <div class="qs-card-sub">NIHSS underscores posterior strokes. Tap YES for any that apply.</div>
@@ -823,18 +838,17 @@ function renderQuickScreen() {
     </div>
   `;
 
-  renderCorticalQuickScreen('cortical-pills');
-  wireQuickScreenPosterior();
+  wirePosteriorToggles();
 }
 
-function wireQuickScreenPosterior() {
+function wirePosteriorToggles() {
   document.querySelectorAll('[data-qs-key]').forEach(btn => {
     btn.addEventListener('click', () => {
       const k = btn.dataset.qsKey;
       const v = btn.dataset.qsVal === 'true';
       STATE.current.posteriorScreen[k] = v;
       saveCurrentSession();
-      renderQuickScreen();
+      renderPosterior();
     });
   });
   const hp = document.getElementById('hints-prompt-qs');
@@ -845,6 +859,101 @@ function wireQuickScreenPosterior() {
   } else {
     hp.innerHTML = '';
   }
+}
+
+// ── Relevant History step (post-Rel-CI) ───────────────────────
+function renderHistory() {
+  const host = document.getElementById('history-content');
+  if (!host) return;
+  STATE.current.relevantHistory = STATE.current.relevantHistory || {};
+  const rh = STATE.current.relevantHistory;
+  const items = (window.RELEVANT_HISTORY_ITEMS || []).filter(it => !it.showIf || it.showIf(STATE.current));
+
+  host.innerHTML = items.map(it => {
+    const entry = rh[it.id] || {};
+    if (it.type === 'text') {
+      const val = entry.val || '';
+      return `
+        <div class="card qs-card">
+          <div class="qs-card-title">${it.ask}</div>
+          <div class="qs-card-sub">${it.why}</div>
+          <input type="text" class="rh-text" data-rh-id="${it.id}" placeholder="${it.placeholder || ''}" value="${val.replace(/"/g, '&quot;')}">
+        </div>`;
+    }
+    if (it.type === 'yesno') {
+      const val = entry.val;
+      const yes = val === 'yes';
+      const no = val === 'no';
+      const detail = entry.detail || '';
+      return `
+        <div class="card qs-card">
+          <div class="qs-card-title">${it.ask}</div>
+          <div class="qs-card-sub">${it.why}</div>
+          <div class="qs-toggle-pills">
+            <button class="qs-toggle-pill yes${yes ? ' active' : ''}" data-rh-yn="${it.id}" data-rh-val="yes">Yes</button>
+            <button class="qs-toggle-pill no${no ? ' active' : ''}" data-rh-yn="${it.id}" data-rh-val="no">No</button>
+          </div>
+          ${yes && it.detail ? `<input type="text" class="rh-text" data-rh-id="${it.id}" data-rh-detail="1" placeholder="${it.detail}" value="${detail.replace(/"/g, '&quot;')}" style="margin-top:10px">` : ''}
+        </div>`;
+    }
+    if (it.type === 'mrs') {
+      const val = entry.val;
+      const choices = [
+        { v: '0', lbl: '0 — No symptoms' },
+        { v: '1', lbl: '1 — No significant disability' },
+        { v: '2', lbl: '2 — Slight disability' },
+        { v: '3', lbl: '3 — Moderate' },
+        { v: '4', lbl: '4 — Moderately severe' },
+        { v: '5', lbl: '5 — Severe' },
+      ];
+      return `
+        <div class="card qs-card">
+          <div class="qs-card-title">${it.ask}</div>
+          <div class="qs-card-sub">${it.why}</div>
+          <div class="mrs-grid">
+            ${choices.map(c => `<button class="mrs-pill${val === c.v ? ' active' : ''}" data-rh-mrs="${it.id}" data-rh-val="${c.v}">${c.lbl}</button>`).join('')}
+          </div>
+        </div>`;
+    }
+    return '';
+  }).join('');
+
+  wireHistoryInputs();
+}
+
+function wireHistoryInputs() {
+  document.querySelectorAll('[data-rh-yn]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.rhYn;
+      const val = btn.dataset.rhVal;
+      const rh = STATE.current.relevantHistory;
+      rh[id] = rh[id] || {};
+      rh[id].val = rh[id].val === val ? null : val;
+      saveCurrentSession();
+      renderHistory();
+    });
+  });
+  document.querySelectorAll('[data-rh-mrs]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.rhMrs;
+      const val = btn.dataset.rhVal;
+      const rh = STATE.current.relevantHistory;
+      rh[id] = rh[id] || {};
+      rh[id].val = rh[id].val === val ? null : val;
+      saveCurrentSession();
+      renderHistory();
+    });
+  });
+  document.querySelectorAll('.rh-text').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const id = inp.dataset.rhId;
+      const rh = STATE.current.relevantHistory;
+      rh[id] = rh[id] || {};
+      if (inp.dataset.rhDetail) rh[id].detail = inp.value;
+      else rh[id].val = inp.value;
+      saveCurrentSession();
+    });
+  });
 }
 
 function updateLvoBanner() {
@@ -1009,10 +1118,10 @@ function renderNIHSSItem() {
       renderNIHSSTabs();
       window.scrollTo(0, 0);
     } else {
-      // All done
+      // All done → posterior circulation check
       computeSyndromes();
-      renderSyndrome();
-      goTo('step-syndrome');
+      renderPosterior();
+      goTo('step-posterior');
     }
   };
 
@@ -1023,8 +1132,8 @@ function renderNIHSSItem() {
     doneBtn.style.display = '';
     doneBtn.onclick = () => {
       computeSyndromes();
-      renderSyndrome();
-      goTo('step-syndrome');
+      renderPosterior();
+      goTo('step-posterior');
     };
   } else {
     doneBtn.style.display = 'none';
@@ -1803,6 +1912,26 @@ CONTRAINDICATIONS:
   Absolute: ${absFlags ? '\n' + absFlags : 'None identified'}
   Relative: ${relFlags ? '\n' + relFlags : 'None identified'}
 
+RELEVANT HISTORY:${(() => {
+    const items = window.RELEVANT_HISTORY_ITEMS || [];
+    const rh = s.relevantHistory || {};
+    const lines = [];
+    const mrsLabel = { '0':'0 — No symptoms', '1':'1 — No significant disability', '2':'2 — Slight disability', '3':'3 — Moderate', '4':'4 — Moderately severe', '5':'5 — Severe' };
+    for (const it of items) {
+      if (it.showIf && !it.showIf(s)) continue;
+      const entry = rh[it.id];
+      if (!entry || entry.val === null || entry.val === undefined || entry.val === '') continue;
+      if (it.type === 'text') lines.push(`    • ${it.ask} ${entry.val}`);
+      else if (it.type === 'yesno') {
+        const d = entry.detail ? ` — ${entry.detail}` : '';
+        lines.push(`    • ${it.ask} ${entry.val.toUpperCase()}${d}`);
+      } else if (it.type === 'mrs') {
+        lines.push(`    • Baseline mRS: ${mrsLabel[entry.val] || entry.val}`);
+      }
+    }
+    return lines.length ? '\n' + lines.join('\n') : ' None recorded';
+  })()}
+
 IMAGING:
   CT Head: ${s.ctClear === 'yes' ? 'No hemorrhage' : s.ctClear === 'no' ? `Hemorrhage present (${s.ctHemType || 'type ?'})` : 'Pending'}
   ASPECTS: ${s.aspects !== null && s.aspects !== undefined ? s.aspects : 'Pending'}
@@ -2218,6 +2347,11 @@ function init() {
   });
 
   document.getElementById('rel-next').addEventListener('click', () => {
+    renderHistory();
+    goTo('step-history');
+  });
+
+  document.getElementById('history-next').addEventListener('click', () => {
     renderQuickScreen();
     goTo('step-quick-screen');
   });
@@ -2225,6 +2359,11 @@ function init() {
   document.getElementById('quick-screen-next').addEventListener('click', () => {
     renderNIHSS();
     goTo('step-nihss');
+  });
+
+  document.getElementById('posterior-next').addEventListener('click', () => {
+    renderSyndrome();
+    goTo('step-syndrome');
   });
 
   document.getElementById('syndrome-next').addEventListener('click', () => {
@@ -2310,8 +2449,10 @@ function goToStep(stepId) {
     case 'step-timing': renderTiming(); break;
     case 'step-abs-contra': renderAbsContra(); break;
     case 'step-rel-contra': renderRelContra(); break;
+    case 'step-history': renderHistory(); break;
     case 'step-quick-screen': renderQuickScreen(); break;
     case 'step-nihss': renderNIHSS(); break;
+    case 'step-posterior': renderPosterior(); break;
     case 'step-syndrome': renderSyndrome(); break;
     case 'step-ct': renderCT(); break;
     case 'step-decision': renderDecision(); break;

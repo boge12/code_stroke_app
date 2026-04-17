@@ -171,7 +171,7 @@
   <div class="screen" id="screen-step-rel-contra">
     <div class="card" style="margin-bottom:14px">
       <div id="glucose-banner"></div>
-      <div class="card-title">History / Relative Contraindications</div>
+      <div class="card-title">Relative Contraindications</div>
       <p class="text-sm">Relative CIs require clinical judgment. YES items will be flagged but do not automatically prevent TNK. Tap each item to expand and see why it matters.</p>
     </div>
 
@@ -181,17 +181,32 @@
 
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
-      <button class="btn-nav btn-nav-next" id="rel-next">Next: Quick Screen →</button>
+      <button class="btn-nav btn-nav-next" id="rel-next">Next: Relevant History →</button>
     </div>
   </div>
 
   <!-- ══════════════════════════════════════════════════════
-       SCREEN: Quick Screen (cortical + posterior) — pre-NIHSS
+       SCREEN: Relevant History (non-redundant supplement)
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-history">
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">Relevant History</div>
+      <p class="text-sm">Quick supplemental history to inform TNK/EVT decisions and the EMR note. Skip any that don't apply.</p>
+    </div>
+    <div id="history-content"></div>
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
+      <button class="btn-nav btn-nav-next" id="history-next">Next: Cortical Screen →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Cortical / LVO Quick Screen (pre-NIHSS)
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-quick-screen">
     <div class="card" style="margin-bottom:14px">
-      <div class="card-title">30-Second Quick Screen</div>
-      <p class="text-sm">Before full NIHSS: check for cortical / LVO flags and posterior-circulation red flags. This shapes imaging and activation priority.</p>
+      <div class="card-title">30-Second Cortical Screen</div>
+      <p class="text-sm">Tap any cortical / LVO sign that's present before full NIHSS. Shapes imaging and activation priority.</p>
     </div>
     <div id="quick-screen-content"></div>
     <div class="nav-footer">
@@ -209,12 +224,27 @@
     <div id="nihss-item-container"></div>
 
     <button class="btn-primary btn-green" id="nihss-done-btn" style="display:none; margin-top:16px; margin-bottom:70px">
-      ✓ All Items Scored — Continue to Syndrome →
+      ✓ All Items Scored — Continue to Posterior Check →
     </button>
 
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back" id="nihss-prev">‹ Prev</button>
       <button class="btn-nav btn-nav-next" id="nihss-next" disabled>Next ›</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Posterior Circulation (post-NIHSS)
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-posterior">
+    <div class="card" style="margin-bottom:14px">
+      <div class="card-title">Posterior Circulation Check</div>
+      <p class="text-sm">NIHSS underscores posterior strokes. Run this quick systematic check after scoring.</p>
+    </div>
+    <div id="posterior-content"></div>
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
+      <button class="btn-nav btn-nav-next" id="posterior-next">Next: Syndrome →</button>
     </div>
   </div>
 
