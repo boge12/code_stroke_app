@@ -1538,3 +1538,19 @@ label {
   background: var(--blue); color: #fff; border: none; border-radius: 10px;
   font-size: 15px; font-weight: 700; cursor: pointer;
 }
+
+/* Relevant History step — inputs + baseline mRS picker */
+.rh-text {
+  width: 100%; box-sizing: border-box;
+  padding: 10px 12px; border-radius: 8px;
+  border: 1px solid var(--border); background: var(--card); color: var(--text);
+  font-size: 14px; line-height: 1.4;
+}
+.rh-text:focus { outline: none; border-color: var(--blue); }
+.mrs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+.mrs-pill {
+  padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text); cursor: pointer;
+  font-size: 13px; font-weight: 600; text-align: left; line-height: 1.3;
+}
+.mrs-pill.active { background: var(--blue); color: #fff; border-color: var(--blue); }
