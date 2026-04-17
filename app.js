@@ -203,6 +203,8 @@ function goTo(stepId) {
   updateProgress(stepId);
   const chip = document.getElementById('algo-chip');
   if (chip) chip.style.display = (stepId === 'home' || SIDE_SCREENS.includes(stepId)) ? 'none' : '';
+  const nihssRefChip = document.getElementById('nihss-ref-chip');
+  if (nihssRefChip) nihssRefChip.style.display = (stepId === 'step-nihss') ? '' : 'none';
 }
 
 function updateHeader(stepId) {
@@ -749,49 +751,63 @@ function renderNIHSS() {
   renderNIHSSTabs();
 }
 
-function renderCorticalQuickScreen(containerId) {
-  const container = document.getElementById(containerId || 'cortical-pills');
-  if (!container) return;
-  const items = window.CORTICAL_LVO_SCREEN || [];
-  if (!items.length) { container.innerHTML = ''; return; }
-  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false };
-  const cs = STATE.current.corticalScreen;
-  container.innerHTML = items.map(item => {
-    const key = item.key || item.id;
-    const label = item.label || item.name || key;
-    const active = !!cs[key];
-    return `<button class="cortical-pill${active ? ' active' : ''}" data-cortical="${key}" style="padding:8px 12px; border-radius:20px; border:1px solid var(--border); background:${active ? 'var(--blue)' : 'var(--card)'}; color:${active ? '#fff' : 'var(--text)'}; cursor:pointer; font-size:13px; font-weight:600; margin:4px">${label}</button>`;
-  }).join('');
-  container.style.display = 'flex';
-  container.style.flexWrap = 'wrap';
-  container.style.gap = '6px';
-  container.querySelectorAll('[data-cortical]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const k = btn.dataset.cortical;
-      STATE.current.corticalScreen[k] = !STATE.current.corticalScreen[k];
-      saveCurrentSession();
-      renderCorticalQuickScreen(containerId);
-    });
-  });
-}
-
-// ── Quick Screen step (pre-NIHSS: cortical only) ──────────────
+// ── Quick Screen step (pre-NIHSS: cortical, NIHSS-style cards) ──
 function renderQuickScreen() {
   const host = document.getElementById('quick-screen-content');
   if (!host) return;
   STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false };
 
   const rule = window.CORTICAL_LVO_RULE || 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.';
+  const items = window.CORTICAL_LVO_SCREEN || [];
+  const cs = STATE.current.corticalScreen;
 
-  host.innerHTML = `
-    <div class="card qs-card">
-      <div class="qs-card-title">⚡ Cortical quick screen — LVO flags</div>
-      <div class="qs-card-sub">Tap any sign that's present. ${rule}</div>
-      <div id="cortical-pills"></div>
+  const ruleBanner = `
+    <div class="qs-rule-banner">
+      <span class="qs-rule-icon">⚡</span>
+      <span>${rule}</span>
     </div>
   `;
 
-  renderCorticalQuickScreen('cortical-pills');
+  const cards = items.map(item => {
+    const id = item.id;
+    const active = !!cs[id];
+    const exam = Array.isArray(item.howToExamine) ? item.howToExamine : [];
+    const examHtml = exam.length
+      ? `<details class="nihss-exam-details" open>
+          <summary>How to examine</summary>
+          <ul class="nihss-instructions">${exam.map(s => `<li>${s}</li>`).join('')}</ul>
+          ${item.lookFor ? `<p class="nihss-look-for"><strong>Look for:</strong> ${item.lookFor}</p>` : ''}
+        </details>`
+      : '';
+    const pearlHtml = item.pearl
+      ? `<details class="nihss-extras">
+          <summary>💡 Localization pearl</summary>
+          <div style="margin-top:6px; font-size:13px; line-height:1.6; color:var(--text-dim)">${item.pearl}</div>
+        </details>`
+      : '';
+    return `
+      <div class="card qs-card corti-card${active ? ' present' : ''}">
+        <div class="qs-card-title">⚡ ${item.label}</div>
+        <div class="qs-card-sub">${item.description || ''}</div>
+        ${examHtml}
+        ${pearlHtml}
+        <button class="corti-present-btn${active ? ' active' : ''}" data-cortical="${id}">
+          ${active ? '✓ Present — LVO flag set' : 'Mark present'}
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  host.innerHTML = ruleBanner + cards;
+
+  host.querySelectorAll('[data-cortical]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.cortical;
+      STATE.current.corticalScreen[k] = !STATE.current.corticalScreen[k];
+      saveCurrentSession();
+      renderQuickScreen();
+    });
+  });
 }
 
 // ── Posterior Circulation step (post-NIHSS) ───────────────────
