@@ -26,6 +26,42 @@ const STEPS = [
 
 const NIHSS_ORDER = ['1a','1b','1c','2','3','4','5a','5b','6a','6b','7','8','9','10','11'];
 
+// ── Side Screens (reference material; not part of linear flow) ──
+const SIDE_SCREENS = ['step-mimics','step-syndrome-ref','step-nihss-ref','step-algorithm'];
+let SIDE_RETURN_TO = null;
+
+window.goToSide = function(sideId) {
+  SIDE_RETURN_TO = (STATE.current && STATE.current.currentStep) || (document.querySelector('.screen.active') || {id:'home'}).id.replace('screen-','') || 'home';
+  // hide all screens, show side screen
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const screen = document.getElementById('screen-' + sideId);
+  if (!screen) return;
+  screen.classList.add('active');
+  window.scrollTo(0,0);
+  // render content
+  if (sideId === 'step-mimics') renderMimics('mimics');
+  else if (sideId === 'step-syndrome-ref') renderSyndromeRef();
+  else if (sideId === 'step-nihss-ref') renderNihssRef();
+  else if (sideId === 'step-algorithm') renderAlgorithm();
+  // hide algo chip on side screen (it IS the algo screen sometimes, or avoid double nav)
+  const chip = document.getElementById('algo-chip');
+  if (chip) chip.style.display = sideId === 'step-algorithm' ? 'none' : '';
+};
+
+window.goBackFromSide = function() {
+  const target = SIDE_RETURN_TO || 'home';
+  SIDE_RETURN_TO = null;
+  if (target === 'home') { goTo('home'); renderHome(); }
+  else goToStep(target);
+};
+
+window.switchMimicsTab = function(which) {
+  document.querySelectorAll('#screen-step-mimics .tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === which);
+  });
+  renderMimics(which);
+};
+
 // ── Session Helpers ──────────────────────────────────────────
 function newSession() {
   return {
@@ -62,6 +98,8 @@ function newSession() {
     note: '',
     decisionStatus: null, // 'eligible'|'relative'|'ineligible'
     currentStep: 'home',
+    corticalScreen: { gaze: false, aphasia: false, neglect: false, hemiparesis: false },
+    nihssReassess: null,
   };
 }
 
@@ -158,6 +196,8 @@ function goTo(stepId) {
   }
   updateHeader(stepId);
   updateProgress(stepId);
+  const chip = document.getElementById('algo-chip');
+  if (chip) chip.style.display = (stepId === 'home' || SIDE_SCREENS.includes(stepId)) ? 'none' : '';
 }
 
 function updateHeader(stepId) {
@@ -429,8 +469,42 @@ function refreshAbsSummary() {
 
 // ── Step: Relative Contraindications ─────────────────────────
 function renderRelContra() {
+  // Glucose banner (nudge)
+  const glucoseBanner = document.getElementById('glucose-banner');
+  if (glucoseBanner) {
+    glucoseBanner.innerHTML = `<div class="mimic-banner"><strong>Check glucose FIRST.</strong> Hypoglycemia is the most common stroke mimic — target 3.5–22.2 mmol/L before reading NIHSS.</div>`;
+  }
+
   const container = document.getElementById('rel-contra-list');
   container.innerHTML = '';
+
+  function updateDoacPrompt() {
+    const prompt = document.getElementById('doac-reversal-prompt');
+    if (!prompt) return;
+    const rc = STATE.current.relContra || {};
+    const showDoac = rc.doac === 'yes' || rc.warfarin === 'yes';
+    if (!showDoac) { prompt.innerHTML = ''; return; }
+    const options = window.DOAC_REVERSAL || [];
+    const footer = window.DOAC_REVERSAL_FOOTER || '';
+    const rows = options.map(opt => {
+      const drug = opt.drug || opt.agent || opt.name || '';
+      const reversal = opt.reversal || opt.agent || '';
+      const dose = opt.dose || '';
+      const notes = opt.notes || opt.caveat || opt.detail || '';
+      return `<tr><td>${drug}</td><td>${reversal}</td><td>${dose}</td><td>${notes}</td></tr>`;
+    }).join('');
+    prompt.innerHTML = `
+      <details class="check-detail open" open>
+        <summary style="font-weight:700; cursor:pointer; padding:10px 0; color:var(--yellow)">💉 DOAC / Warfarin reversal options</summary>
+        <div style="overflow-x:auto; margin-top:8px">
+          <table class="finding-table">
+            <thead><tr><th>Drug</th><th>Reversal</th><th>Dose</th><th>Notes</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+        ${footer ? `<div class="text-sm" style="margin-top:8px; color:var(--text-dim)">${footer}</div>` : ''}
+      </details>`;
+  }
 
   for (const item of window.REL_CONTRA) {
     const val = STATE.current.relContra[item.id];
@@ -470,6 +544,7 @@ function renderRelContra() {
         STATE.current.relContra[item.id] = btn.dataset.val;
         saveCurrentSession();
         renderRelContra();
+        updateDoacPrompt();
       });
     });
 
@@ -490,6 +565,8 @@ function renderRelContra() {
   } else {
     summary.innerHTML = '';
   }
+
+  updateDoacPrompt();
 }
 
 // ── Visual Field Guided Widget ────────────────────────────────
@@ -659,8 +736,59 @@ let nihssCurrentIdx = 0;
 
 function renderNIHSS() {
   nihssCurrentIdx = STATE.current.nihssCurrentIdx || 0;
+  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false };
+  renderCorticalQuickScreen();
   renderNIHSSItem();
   renderNIHSSTabs();
+  updateLvoBanner();
+}
+
+function renderCorticalQuickScreen() {
+  const container = document.getElementById('cortical-quick-screen');
+  if (!container) return;
+  const items = window.CORTICAL_LVO_SCREEN || [];
+  if (!items.length) { container.innerHTML = ''; return; }
+  const cs = STATE.current.corticalScreen;
+  const rule = window.CORTICAL_LVO_RULE || '';
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-title" style="font-size:14px">⚡ Cortical quick screen — LVO flags</div>
+      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px">
+        ${items.map(item => {
+          const key = item.key || item.id;
+          const label = item.label || item.name || key;
+          const active = !!cs[key];
+          return `<button class="cortical-pill${active ? ' active' : ''}" data-cortical="${key}" style="padding:8px 12px; border-radius:20px; border:1px solid var(--border); background:${active ? 'var(--blue)' : 'var(--card)'}; color:${active ? '#fff' : 'var(--text)'}; cursor:pointer; font-size:13px; font-weight:600">${label}</button>`;
+        }).join('')}
+      </div>
+      ${rule ? `<div class="text-sm" style="margin-top:8px; color:var(--text-dim)">${rule}</div>` : ''}
+    </div>`;
+  container.querySelectorAll('[data-cortical]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.cortical;
+      STATE.current.corticalScreen[k] = !STATE.current.corticalScreen[k];
+      saveCurrentSession();
+      renderCorticalQuickScreen();
+      updateLvoBanner();
+    });
+  });
+}
+
+function updateLvoBanner() {
+  const banner = document.getElementById('lvo-banner');
+  if (!banner) return;
+  const total = getNIHSSTotal(STATE.current.nihss || {});
+  const cs = STATE.current.corticalScreen || {};
+  const anyChecked = Object.values(cs).some(v => v === true);
+  if (total >= 6 && anyChecked) {
+    banner.innerHTML = `
+      <div class="lvo-banner" style="margin-top:12px; padding:12px; border-radius:10px; background:#7f1d1d; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+        <div style="font-weight:700; flex:1">🚨 Presumed LVO — activate EVT pathway</div>
+        <button class="btn-primary" onclick="goToStep('step-ct')" style="background:#fff; color:#7f1d1d">Activate EVT pathway →</button>
+      </div>`;
+  } else {
+    banner.innerHTML = '';
+  }
 }
 
 function renderNIHSSTabs() {
@@ -722,6 +850,21 @@ function renderNIHSSItem() {
   const instrHtml = item.examInstructions.map(i => `<li>${i}</li>`).join('');
   const lookForHtml = item.lookFor ? `<p class="nihss-look-for" style="margin-top:8px">${item.lookFor}</p>` : '';
 
+  // Optional enrichment panels (only render if present on item)
+  let extrasHtml = '';
+  if (Array.isArray(item.caveats) && item.caveats.length) {
+    extrasHtml += `<details class="nihss-extras"><summary>📝 Caveats</summary><ul>${item.caveats.map(c => `<li>${c}</li>`).join('')}</ul></details>`;
+  }
+  if (Array.isArray(item.rubric) && item.rubric.length) {
+    extrasHtml += `<details class="nihss-extras"><summary>📖 Textbook rubric</summary><table class="rubric-table"><thead><tr><th>Score</th><th>Criteria</th></tr></thead><tbody>${item.rubric.map(r => `<tr><td>${r.score}</td><td>${r.criteria}</td></tr>`).join('')}</tbody></table></details>`;
+  }
+  if (item.localizationPearl) {
+    extrasHtml += `<details class="nihss-extras"><summary>🧠 Localization pearl</summary><p>${item.localizationPearl}</p></details>`;
+  }
+  if (Array.isArray(item.functionalClues) && item.functionalClues.length) {
+    extrasHtml += `<details class="nihss-extras"><summary>🔍 Functional weakness clues</summary><ul>${item.functionalClues.map(c => `<li>${c}</li>`).join('')}</ul></details>`;
+  }
+
   container.innerHTML = `
     <div class="nihss-item-header">
       <div class="nihss-item-number">Item ${nihssCurrentIdx + 1} of ${NIHSS_ORDER.length}</div>
@@ -741,6 +884,7 @@ function renderNIHSSItem() {
       ${item.svg ? `<div class="nihss-svg-strip" aria-hidden="true">${item.svg}</div>` : ''}
       <div class="score-options">${scoresHtml}</div>
     </div>
+    ${extrasHtml}
   `;
 
   // Score buttons
@@ -812,6 +956,30 @@ function renderNIHSSItem() {
   } else {
     doneBtn.style.display = 'none';
   }
+
+  // HINTS prompt: dysarthria/facial asymmetry without cortical signs AND item 9/11 ≈ 0
+  const hintsPrompt = document.getElementById('hints-prompt');
+  if (hintsPrompt) {
+    const s = STATE.current;
+    const cs = s.corticalScreen || {};
+    const anyCortical = Object.values(cs).some(v => v === true);
+    const item7 = (typeof s.nihss['7'] === 'number') ? s.nihss['7'] : 0;
+    const item2 = (typeof s.nihss['2'] === 'number') ? s.nihss['2'] : 0;
+    const item9 = s.nihss['9'];
+    const item11 = s.nihss['11'];
+    const showHints = (item7 > 0 || item2 > 0)
+      && !anyCortical
+      && (item9 === 0 || item9 === undefined)
+      && (item11 === 0 || item11 === undefined);
+    if (showHints) {
+      hintsPrompt.innerHTML = `<button class="hints-prompt" onclick="goToSide('step-nihss-ref'); setTimeout(()=>document.getElementById('hints-section').scrollIntoView({behavior:'smooth'}),100);">Consider HINTS exam (posterior circulation) →</button>`;
+    } else {
+      hintsPrompt.innerHTML = '';
+    }
+  }
+
+  // Any NIHSS change may push total over 6 — re-evaluate LVO banner
+  updateLvoBanner();
 }
 
 // ── Step: Syndrome ────────────────────────────────────────────
@@ -826,7 +994,7 @@ function renderSyndrome() {
   const total = getNIHSSTotal(STATE.current.nihss);
   const severity = window.getNIHSSSeverity(total);
 
-  const minorNote = total < 5
+  const minorNote = total <= 5
     ? `<div class="status-detail" style="margin-top:4px; font-size:13px">Consider TNK if deficit is disabling: hand weakness, aphasia, hemianopia, or functionally significant to the patient.</div>`
     : '';
   const severeNote = total >= 22
@@ -838,7 +1006,7 @@ function renderSyndrome() {
       <span class="status-icon">🧠</span>
       <div class="status-body">
         <div class="status-title">NIHSS ${total} — ${severity.label}</div>
-        ${total < 5 ? '<div class="status-detail">⚠️ Below typical TNK threshold — consider if disabling</div>' : ''}
+        ${total <= 5 ? '<div class="status-detail">≤5 mild — consider TNK only if deficit is disabling.</div>' : ''}
         ${severeNote}${minorNote}
       </div>
     </div>
@@ -850,8 +1018,31 @@ function renderSyndrome() {
   // Only show syndromes with confidence ≥ 2
   const matches = STATE.current.syndromes.filter(s => s.confidence >= 2);
 
+  // Empty-match banner
+  const emptyHint = document.getElementById('empty-match-hint');
+  if (emptyHint) {
+    if (matches.length === 0) {
+      const linkHtml = total >= 1
+        ? `<div class="status-detail" style="margin-top:6px"><a href="#" onclick="event.preventDefault(); goToSide('step-mimics');" style="color:#fff; text-decoration:underline; font-weight:600">Review stroke mimics →</a></div>`
+        : '';
+      emptyHint.innerHTML = `
+        <div class="status-banner status-yellow">
+          <span class="status-icon">⚠️</span>
+          <div class="status-body">
+            <div class="status-title">Pattern doesn't clearly fit one territory</div>
+            <div class="status-detail">May be atypical, mixed, functional, or scores incomplete. Use clinical judgment.</div>
+            ${linkHtml}
+          </div>
+        </div>`;
+    } else {
+      emptyHint.innerHTML = '';
+    }
+  }
+
   if (matches.length === 0) {
     container.innerHTML = `<div class="card"><p class="text-sm">Pattern doesn't clearly fit one territory — may be atypical, mixed, or scores incomplete. Use clinical judgment.</p></div>`;
+    // Still render sanity-check below
+    renderSyndromeSanityCheck();
     return;
   }
 
@@ -871,6 +1062,22 @@ function renderSyndrome() {
     `;
     container.appendChild(card);
   });
+
+  renderSyndromeSanityCheck();
+}
+
+function renderSyndromeSanityCheck() {
+  const host = document.getElementById('single-territory-sanity-check');
+  if (!host) return;
+  host.innerHTML = `
+    <div class="sanity-check-card card" style="margin-top:12px">
+      <div class="card-title">🧐 Self-check</div>
+      <ul style="padding-left:18px; font-size:14px; line-height:1.8; color:var(--text-dim)">
+        <li>Do the signs fit a single vascular territory? <a href="#" onclick="event.preventDefault(); goToSide('step-syndrome-ref');" style="color:var(--blue); text-decoration:underline">Review syndromes →</a></li>
+        <li>Have I checked for functional clues? <a href="#" onclick="event.preventDefault(); goToSide('step-nihss-ref'); setTimeout(()=>{ var el=document.getElementById('nihss-ref-functional-clues'); if(el) el.scrollIntoView({behavior:'smooth'}); },100);" style="color:var(--blue); text-decoration:underline">Functional clues →</a></li>
+        <li>Was the deficit sudden + maximal at onset? <a href="#" onclick="event.preventDefault(); goToSide('step-mimics');" style="color:var(--blue); text-decoration:underline">Mimics to consider →</a></li>
+      </ul>
+    </div>`;
 }
 
 // ── Step: CT ──────────────────────────────────────────────────
@@ -1291,7 +1498,72 @@ function renderDecision() {
   }
 
   setupActionChecklist();
+
+  // BP targets card
+  const bpCard = document.getElementById('bp-targets-card');
+  if (bpCard) {
+    const bp = window.BP_TARGETS || [];
+    if (bp.length) {
+      const rows = bp.map(row => {
+        const scenario = row.scenario || row.context || row.label || '';
+        const target = row.target || row.targetBP || row.bp || '';
+        const notes = row.notes || row.rationale || row.detail || '';
+        return `<tr><td>${scenario}</td><td>${target}</td><td>${notes}</td></tr>`;
+      }).join('');
+      bpCard.innerHTML = `
+        <details class="card" open>
+          <summary style="font-weight:700; cursor:pointer; color:var(--yellow); padding:4px 0">💢 BP targets by scenario</summary>
+          <div style="overflow-x:auto; margin-top:8px">
+            <table class="finding-table">
+              <thead><tr><th>Scenario</th><th>Target</th><th>Notes</th></tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </details>`;
+    } else {
+      bpCard.innerHTML = '';
+    }
+  }
+
+  // NIHSS reassessment input
+  const reassessInp = document.getElementById('nihss-reassess-input');
+  if (reassessInp) {
+    if (s.nihssReassess !== null && s.nihssReassess !== undefined) {
+      reassessInp.value = s.nihssReassess;
+    }
+    reassessInp.onchange = window.saveNihssReassess;
+  }
+
+  // Deterioration banner
+  const detBanner = document.getElementById('deterioration-banner');
+  if (detBanner) {
+    const baseline = total;
+    const reassess = s.nihssReassess;
+    if (typeof reassess === 'number' && !isNaN(reassess)) {
+      const delta = reassess - baseline;
+      if (delta >= 4) {
+        detBanner.innerHTML = `
+          <div class="deterioration-banner" style="margin-top:12px; padding:14px; border-radius:10px; background:#7f1d1d; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+            <div style="font-weight:700; flex:1">⚠️ ≥4-point NIHSS increase (Δ ${delta}) — URGENT re-imaging indicated</div>
+            <button class="btn-primary" onclick="goToStep('step-ct')" style="background:#fff; color:#7f1d1d">Re-imaging →</button>
+          </div>`;
+      } else {
+        detBanner.innerHTML = '';
+      }
+    } else {
+      detBanner.innerHTML = '';
+    }
+  }
 }
+
+window.saveNihssReassess = function() {
+  const inp = document.getElementById('nihss-reassess-input');
+  if (!inp) return;
+  const v = parseInt(inp.value);
+  STATE.current.nihssReassess = isNaN(v) ? null : v;
+  saveCurrentSession();
+  renderDecision();
+};
 
 function buildActionChecklist() {
   const actions = [
@@ -1459,7 +1731,14 @@ TIMING:
   EVT window (24h): ${lsnMin !== null ? (lsnMin <= 1440 ? 'OPEN' : 'CLOSED') : 'Unknown'}
 
 NIHSS SCORE: ${total} — ${severity.label}
-  Suggested syndrome: ${synd}
+  Suggested syndrome: ${synd}${(() => {
+    const cs = s.corticalScreen || {};
+    const flagged = Object.keys(cs).filter(k => cs[k] === true);
+    if (flagged.length) return `\n  Cortical LVO flags: ${flagged.join(', ')}`;
+    return '';
+  })()}${(s.nihssReassess !== null && s.nihssReassess !== undefined)
+    ? `\n  Reassessment NIHSS: ${s.nihssReassess} (baseline ${total}) — delta Δ ${s.nihssReassess - total}`
+    : ''}
 ${nihssLines}
 
 CONTRAINDICATIONS:
@@ -1490,6 +1769,344 @@ CONSENT:
   ${consentLine}
 ${'─'.repeat(50)}
 Generated by Code Stroke Triage App — Lakeridge Health`;
+}
+
+// ── Side-screen renderers (reference material) ────────────────
+function renderMimics(tab) {
+  const host = document.getElementById('mimics-content');
+  if (!host) return;
+  tab = tab || 'mimics';
+
+  if (tab === 'mimics') {
+    const mimics = window.STROKE_MIMICS || [];
+    const redFlags = window.MIMIC_RED_FLAGS || [];
+    const redFlagsHtml = redFlags.length
+      ? `<div class="card"><div class="card-title">🚩 Red flags that suggest mimic</div><ul style="padding-left:18px; line-height:1.8; color:var(--text-dim); font-size:14px">${redFlags.map(r => `<li>${r}</li>`).join('')}</ul></div>`
+      : '';
+    const mimicCards = mimics.map(m => `
+      <details class="check-item" style="margin-bottom:8px">
+        <summary style="font-weight:700; cursor:pointer; padding:10px 0">${m.name || m.label || ''}</summary>
+        <div class="check-detail open" style="padding:6px 0 10px">
+          ${m.keyFeatures ? `<div style="margin-bottom:6px"><strong>Key features:</strong> ${Array.isArray(m.keyFeatures) ? `<ul style="padding-left:18px; margin:4px 0">${m.keyFeatures.map(f => `<li>${f}</li>`).join('')}</ul>` : m.keyFeatures}</div>` : ''}
+          ${m.clues ? `<div style="margin-bottom:6px"><strong>Clues:</strong> ${Array.isArray(m.clues) ? `<ul style="padding-left:18px; margin:4px 0">${m.clues.map(c => `<li>${c}</li>`).join('')}</ul>` : m.clues}</div>` : ''}
+          ${m.ruleOutTest ? `<div><strong>Rule-out test:</strong> ${m.ruleOutTest}</div>` : ''}
+        </div>
+      </details>`).join('');
+
+    host.innerHTML = `
+      <div class="mimic-banner" style="padding:12px; border-radius:10px; background:#78350f; color:#fff; margin-bottom:12px; font-weight:600">Check glucose FIRST — hypoglycemia is the most common mimic. Target: 3.5–22.2 mmol/L.</div>
+      ${redFlagsHtml}
+      ${mimicCards}
+      <div class="card">
+        <div class="card-title">🔎 Diagnostic approach</div>
+        <ol style="padding-left:20px; line-height:2; font-size:14px; color:var(--text-dim)">
+          <li>Check glucose</li>
+          <li>Assess NIHSS consistency with anatomy</li>
+          <li>NCCT head (rule out hemorrhage / established infarct)</li>
+          <li>CTA head + neck (LVO / dissection)</li>
+          <li>MRI DWI if diagnosis uncertain</li>
+        </ol>
+      </div>
+      <div class="card" style="background:#1e3a8a; color:#fff">
+        <p class="text-sm">If sudden, focal, stereotyped stroke story — do not over-withhold TNK for fear of a mimic. Mimic ICH rate on TNK is very low (~0.5%). Confirm with OTN Telestroke if uncertain.</p>
+      </div>`;
+  } else {
+    const chams = window.STROKE_CHAMELEONS || [];
+    const camCards = chams.map(c => `
+      <details class="check-item" style="margin-bottom:8px">
+        <summary style="font-weight:700; cursor:pointer; padding:10px 0">${c.name || c.label || ''}</summary>
+        <div class="check-detail open" style="padding:6px 0 10px">
+          ${c.keyFeatures ? `<div style="margin-bottom:6px"><strong>Key features:</strong> ${Array.isArray(c.keyFeatures) ? `<ul style="padding-left:18px; margin:4px 0">${c.keyFeatures.map(f => `<li>${f}</li>`).join('')}</ul>` : c.keyFeatures}</div>` : ''}
+          ${c.clues ? `<div style="margin-bottom:6px"><strong>Clues:</strong> ${Array.isArray(c.clues) ? `<ul style="padding-left:18px; margin:4px 0">${c.clues.map(x => `<li>${x}</li>`).join('')}</ul>` : c.clues}</div>` : ''}
+          ${c.ruleInTest || c.ruleOutTest ? `<div><strong>Workup:</strong> ${c.ruleInTest || c.ruleOutTest}</div>` : ''}
+        </div>
+      </details>`).join('');
+
+    host.innerHTML = `
+      <div class="mimic-banner" style="padding:12px; border-radius:10px; background:#7f1d1d; color:#fff; margin-bottom:12px; font-weight:600">Strokes can look like mimics. If the story is sudden focal change and CT/CTA unrevealing: MRI DWI or admit for observation — DO NOT discharge.</div>
+      ${camCards}
+      <div class="card" style="background:#7f1d1d; color:#fff">
+        <div class="card-title" style="color:#fff">🛡 Safety-net</div>
+        <p class="text-sm">Key chameleons: isolated vertigo (posterior circulation), isolated limb shaking (limb-shaking TIA), confusional state (thalamic / bilateral PCA), pure sensory loss, post-ictal Todd's presenting after unwitnessed seizure. When the story is sudden and stereotyped — do not discharge. MRI DWI or admit for observation.</p>
+      </div>`;
+  }
+}
+
+function renderSyndromeRef() {
+  const host = document.getElementById('syndrome-ref-content');
+  if (!host) return;
+  const details = window.SYNDROME_DETAILS || {};
+
+  function synCard(syn) {
+    if (!syn) return '';
+    const table = Array.isArray(syn.featuresTable)
+      ? `<table class="finding-table"><thead><tr><th>Finding</th><th>Explanation</th></tr></thead><tbody>${syn.featuresTable.map(r => {
+          const a = r.finding || r.sign || r[0] || '';
+          const b = r.explanation || r.detail || r.mechanism || r[1] || '';
+          return `<tr><td>${a}</td><td>${b}</td></tr>`;
+        }).join('')}</tbody></table>`
+      : '';
+    const mimics = Array.isArray(syn.mimicsToConsider) && syn.mimicsToConsider.length
+      ? `<div style="margin-top:8px"><strong>Mimics to consider:</strong> <ul style="padding-left:18px">${syn.mimicsToConsider.map(m => `<li>${m}</li>`).join('')}</ul></div>`
+      : '';
+    const note = syn.sourceNote ? `<div class="text-sm" style="color:var(--text-dim); margin-top:6px; font-style:italic">${syn.sourceNote}</div>` : '';
+    return `
+      <details class="check-item" style="margin-bottom:8px">
+        <summary style="font-weight:700; cursor:pointer; padding:10px 0">${syn.name || ''}</summary>
+        <div class="check-detail open" style="padding:6px 0 10px">
+          ${syn.anatomy ? `<div><strong>Anatomy:</strong> ${syn.anatomy}</div>` : ''}
+          ${syn.vascularSupply ? `<div style="margin-top:4px"><strong>Vascular supply:</strong> ${syn.vascularSupply}</div>` : ''}
+          ${table ? `<div style="overflow-x:auto; margin-top:8px">${table}</div>` : ''}
+          ${mimics}
+          ${note}
+        </div>
+      </details>`;
+  }
+
+  // Dedupe by object identity so aliases pointing to the same syndrome object render once per section
+  function collect(ids) {
+    const seen = new Set();
+    const out = [];
+    for (const id of ids) {
+      const syn = details[id];
+      if (!syn || seen.has(syn)) continue;
+      seen.add(syn);
+      out.push(synCard(syn));
+    }
+    return out.join('');
+  }
+
+  const allIds = Object.keys(details);
+  const pick = (predicate) => allIds.filter(predicate);
+
+  const anteriorIds = pick(id => /mca|aca|ant_choroidal|anterior_choroidal|gerstmann/i.test(id));
+  const posteriorIds = pick(id => /^pca$|pca_|_pca|bao|top_basilar|top_of_basilar|anton|balint|^posterior$/i.test(id));
+  const lacunarIds = pick(id => /lacunar|pure_motor|pure_sensory|sensorimotor|dysarthria|ataxic/i.test(id));
+  const brainstemIds = pick(id => /wallenberg|medial_medullary|foville|marie_foix|weber|claude|benedikt|lateral_medullary|lateral_pontine|medial_pontine|midbrain/i.test(id));
+  const spinalIds = pick(id => /spinal/i.test(id));
+
+  const ruleOf4 = window.BRAINSTEM_RULE_OF_4;
+  let ruleHtml = '';
+  if (ruleOf4) {
+    const rows = Array.isArray(ruleOf4)
+      ? ruleOf4.map(r => `<li>${r}</li>`).join('')
+      : (ruleOf4.rules || []).map(r => `<li>${r}</li>`).join('');
+    const intro = ruleOf4.intro || ruleOf4.title || 'Rule of 4';
+    ruleHtml = `<div class="card"><div class="card-title">🧱 ${intro}</div><ul style="padding-left:18px; line-height:1.8; font-size:14px; color:var(--text-dim)">${rows}</ul>${ruleOf4.footer ? `<div class="text-sm" style="margin-top:6px; color:var(--text-dim)">${ruleOf4.footer}</div>` : ''}</div>`;
+  }
+
+  host.innerHTML = `
+    <details class="card" open>
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Anterior circulation</summary>
+      <div style="margin-top:10px">${collect(anteriorIds) || '<p class="text-sm" style="color:var(--text-dim)">No entries available.</p>'}</div>
+    </details>
+    <details class="card">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Posterior circulation</summary>
+      <div style="margin-top:10px">${collect(posteriorIds) || '<p class="text-sm" style="color:var(--text-dim)">No entries available.</p>'}</div>
+    </details>
+    <details class="card">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Lacunar syndromes</summary>
+      <div style="margin-top:10px">${collect(lacunarIds) || '<p class="text-sm" style="color:var(--text-dim)">No entries available.</p>'}</div>
+    </details>
+    <details class="card">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Brainstem syndromes</summary>
+      <div style="margin-top:10px">
+        ${ruleHtml}
+        ${collect(brainstemIds) || '<p class="text-sm" style="color:var(--text-dim)">No entries available.</p>'}
+      </div>
+    </details>
+    <details class="card">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Spinal cord</summary>
+      <div style="margin-top:10px">${collect(spinalIds) || '<p class="text-sm" style="color:var(--text-dim)">No entries available.</p>'}</div>
+    </details>`;
+}
+
+function renderNihssRef() {
+  const host = document.getElementById('nihss-ref-content');
+  if (!host) return;
+
+  const gen = window.NIHSS_GENERAL_RULES || [];
+  const sev = window.NIHSS_SEVERITY || [];
+  const notAssessed = window.NIHSS_NOT_ASSESSED || [];
+  const hintsExam = window.HINTS_EXAM || [];
+  const hintsRule = window.HINTS_RULE || '';
+  const funcClues = window.NIHSS_FUNCTIONAL_CLUES || [];
+  const pearls = window.NIHSS_EXAM_PEARLS || [];
+  const useful = window.NIHSS_CLINICAL_USE || [];
+  const limits = window.NIHSS_LIMITATIONS || [];
+
+  const listify = (arr) => Array.isArray(arr) && arr.length
+    ? `<ul style="padding-left:18px; line-height:1.8; font-size:14px; color:var(--text-dim)">${arr.map(x => `<li>${x}</li>`).join('')}</ul>`
+    : '<p class="text-sm" style="color:var(--text-dim)">No entries available.</p>';
+
+  const sevRows = sev.map(b => `
+    <div style="display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px; background:${b.color}; color:#000; margin-bottom:6px; font-weight:600">
+      <span style="min-width:60px">${b.min}–${b.max}</span>
+      <span>${b.label}</span>
+    </div>`).join('');
+
+  const hintsTable = hintsExam.length
+    ? `<div style="overflow-x:auto"><table class="finding-table">
+        <thead><tr><th>Test</th><th>Peripheral</th><th>Central (stroke)</th></tr></thead>
+        <tbody>${hintsExam.map(r => {
+          const test = r.test || r.name || '';
+          const peripheral = r.peripheral || r.benign || '';
+          const central = r.central || r.stroke || r.dangerous || '';
+          return `<tr><td>${test}</td><td>${peripheral}</td><td>${central}</td></tr>`;
+        }).join('')}</tbody>
+      </table></div>`
+    : '';
+
+  host.innerHTML = `
+    <details class="card" open>
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">General rules</summary>
+      <div style="margin-top:10px">${listify(gen)}</div>
+    </details>
+    <details class="card">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Severity bands</summary>
+      <div style="margin-top:10px">${sevRows || '<p class="text-sm" style="color:var(--text-dim)">No entries available.</p>'}</div>
+    </details>
+    <details class="card">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">What NIHSS does NOT assess</summary>
+      <div style="margin-top:10px">${listify(notAssessed)}</div>
+    </details>
+    <details class="card" id="hints-section">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Blind-spot supplement: HINTS exam</summary>
+      <div style="margin-top:10px">
+        ${hintsTable}
+        ${hintsRule ? `<div class="text-sm" style="margin-top:8px; color:var(--text-dim)"><strong>Rule:</strong> ${hintsRule}</div>` : ''}
+      </div>
+    </details>
+    <details class="card" id="nihss-ref-functional-clues">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Functional weakness clues</summary>
+      <div style="margin-top:10px">${listify(funcClues)}</div>
+    </details>
+    <details class="card">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Misc exam pearls</summary>
+      <div style="margin-top:10px">${listify(pearls)}</div>
+    </details>
+    <details class="card">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Clinical use</summary>
+      <div style="margin-top:10px">${listify(useful)}</div>
+    </details>
+    <details class="card">
+      <summary style="font-weight:700; font-size:16px; cursor:pointer">Limitations</summary>
+      <div style="margin-top:10px">${listify(limits)}</div>
+    </details>`;
+}
+
+function renderAlgorithm() {
+  const host = document.getElementById('algorithm-content');
+  if (!host) return;
+  const algo = window.BEDSIDE_ALGORITHM || {};
+  const order = ['0-2','2-5','5-10','10-25','25-60'];
+
+  const bucketHtml = order.map(key => {
+    const bucket = algo[key];
+    if (!bucket) return '';
+    const title = bucket.title || `${key} min`;
+    const items = bucket.items || bucket.actions || [];
+    const rows = items.map(it => {
+      const text = it.text || it.label || it.action || it;
+      const link = it.link;
+      let arrow = '';
+      if (link) {
+        const isSide = SIDE_SCREENS.includes(link);
+        const fn = isSide ? `goToSide('${link}')` : `goToStep('${link}')`;
+        arrow = `<button class="algo-link" onclick="${fn}" style="background:none; border:none; color:var(--blue); font-size:18px; cursor:pointer; padding:0 4px">→</button>`;
+      }
+      return `<div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border)"><span style="flex:1; font-size:14px">${text}</span>${arrow}</div>`;
+    }).join('');
+    return `
+      <details class="algorithm-bucket card" open>
+        <summary style="font-weight:700; font-size:15px; cursor:pointer">⏱ ${title} min</summary>
+        <div style="margin-top:8px">${rows || '<p class="text-sm" style="color:var(--text-dim)">No items.</p>'}</div>
+      </details>`;
+  }).join('');
+
+  // Pocket reference cards
+  const phq = window.PARALLEL_HISTORY_QUESTIONS;
+  let phqHtml = '';
+  if (Array.isArray(phq) && phq.length) {
+    const rows = phq.map(q => {
+      if (typeof q === 'string') return `<tr><td colspan="2">${q}</td></tr>`;
+      const a = q.question || q.q || q.ask || '';
+      const b = q.why || q.rationale || q.purpose || '';
+      return `<tr><td>${a}</td><td>${b}</td></tr>`;
+    }).join('');
+    phqHtml = `
+      <div class="card">
+        <div class="card-title">🗣 Parallel history questions</div>
+        <div style="overflow-x:auto"><table class="finding-table"><thead><tr><th>Ask</th><th>Why</th></tr></thead><tbody>${rows}</tbody></table></div>
+      </div>`;
+  }
+
+  const cortical = window.CORTICAL_LVO_SCREEN || [];
+  const corticalRule = window.CORTICAL_LVO_RULE || '';
+  const corticalHtml = cortical.length
+    ? `<div class="card">
+        <div class="card-title">⚡ Cortical quick-screen (LVO)</div>
+        <ul style="padding-left:18px; line-height:1.8; font-size:14px; color:var(--text-dim)">${cortical.map(c => `<li>${c.label || c.name || c.key || ''}${c.detail ? ` — ${c.detail}` : ''}</li>`).join('')}</ul>
+        ${corticalRule ? `<div class="text-sm" style="margin-top:6px; color:var(--text-dim)"><strong>Rule:</strong> ${corticalRule}</div>` : ''}
+      </div>`
+    : '';
+
+  const bp = window.BP_TARGETS || [];
+  const bpHtml = bp.length
+    ? `<div class="card">
+        <div class="card-title">💢 BP targets</div>
+        <div style="overflow-x:auto"><table class="finding-table"><thead><tr><th>Scenario</th><th>Target</th><th>Notes</th></tr></thead><tbody>${bp.map(r => `<tr><td>${r.scenario || r.context || r.label || ''}</td><td>${r.target || r.bp || ''}</td><td>${r.notes || r.rationale || ''}</td></tr>`).join('')}</tbody></table></div>
+      </div>`
+    : '';
+
+  const doac = window.DOAC_REVERSAL || [];
+  const doacFoot = window.DOAC_REVERSAL_FOOTER || '';
+  const doacHtml = doac.length
+    ? `<div class="card">
+        <div class="card-title">💉 DOAC / anticoag reversal</div>
+        <div style="overflow-x:auto"><table class="finding-table"><thead><tr><th>Drug</th><th>Reversal</th><th>Dose</th><th>Notes</th></tr></thead><tbody>${doac.map(r => `<tr><td>${r.drug || r.name || ''}</td><td>${r.reversal || r.agent || ''}</td><td>${r.dose || ''}</td><td>${r.notes || r.caveat || ''}</td></tr>`).join('')}</tbody></table></div>
+        ${doacFoot ? `<div class="text-sm" style="margin-top:6px; color:var(--text-dim)">${doacFoot}</div>` : ''}
+      </div>`
+    : '';
+
+  const postRed = window.POSTERIOR_RED_FLAGS || [];
+  const postHtml = postRed.length
+    ? `<div class="card"><div class="card-title">🚩 Posterior circulation red flags</div><ul style="padding-left:18px; line-height:1.8; font-size:14px; color:var(--text-dim)">${postRed.map(x => `<li>${x}</li>`).join('')}</ul></div>`
+    : '';
+
+  const mimicRed = window.MIMIC_RED_FLAGS || [];
+  const mimicHtml = mimicRed.length
+    ? `<div class="card"><div class="card-title">🚩 Mimic red flags</div><ul style="padding-left:18px; line-height:1.8; font-size:14px; color:var(--text-dim)">${mimicRed.map(x => `<li>${x}</li>`).join('')}</ul></div>`
+    : '';
+
+  const r4 = window.BRAINSTEM_RULE_OF_4;
+  let r4Html = '';
+  if (r4) {
+    const rows = Array.isArray(r4) ? r4 : (r4.rules || []);
+    if (rows.length) {
+      r4Html = `<div class="card"><div class="card-title">🧱 Brainstem Rule of 4</div><ul style="padding-left:18px; line-height:1.8; font-size:14px; color:var(--text-dim)">${rows.map(x => `<li>${x}</li>`).join('')}</ul></div>`;
+    }
+  }
+
+  const legacyHtml = `
+    <div class="card">
+      <div class="card-title">📚 Legacy / international CIs (for comparison)</div>
+      <p class="text-sm" style="color:var(--text-dim)">International guidelines traditionally cite tPA (alteplase) 0.9 mg/kg (max 90 mg), 10% bolus + 90% over 60 min. This app uses <strong>tenecteplase (TNK) 0.25 mg/kg (max 25 mg) single IV bolus</strong>, now the preferred agent at Lakeridge Health and per 2022/2025 CSBPR.</p>
+    </div>`;
+
+  host.innerHTML = `
+    ${bucketHtml}
+    ${phqHtml}
+    ${corticalHtml}
+    ${bpHtml}
+    ${doacHtml}
+    ${postHtml}
+    ${mimicHtml}
+    ${r4Html}
+    ${legacyHtml}
+    <div class="card" style="background:#1e3a8a; color:#fff; text-align:center; font-weight:600">
+      Mental loop: Is it a stroke? → Where is it? → Can I treat? → When? → Watch for deterioration.
+    </div>`;
 }
 
 // ── Init ──────────────────────────────────────────────────────
@@ -1614,7 +2231,13 @@ function init() {
 }
 
 function goToStep(stepId) {
+  // Side screens take their own path (don't corrupt currentStep)
+  if (SIDE_SCREENS.includes(stepId)) {
+    window.goToSide(stepId);
+    return;
+  }
   switch(stepId) {
+    case 'home': renderHome(); break;
     case 'step-label': renderLabel(); break;
     case 'step-timing': renderTiming(); break;
     case 'step-abs-contra': renderAbsContra(); break;
@@ -1628,6 +2251,7 @@ function goToStep(stepId) {
   }
   goTo(stepId);
 }
+window.goToStep = goToStep;
 
 // ── Cookie Theft Picture (NIHSS Item 9) ───────────────────────
 // Validated aphasia assessment picture

@@ -19,6 +19,7 @@
   <header class="app-header" id="main-header">
     <button class="back-btn" id="back-btn" style="display:none">‹</button>
     <h1 id="header-title">Code Stroke</h1>
+    <button id="algo-chip" class="algo-chip" onclick="goToSide('step-algorithm')">📋 Algorithm</button>
     <span class="nihss-score-badge" id="nihss-badge" style="display:none">NIHSS 0</span>
   </header>
 
@@ -47,6 +48,16 @@
       <button class="btn-secondary btn-outline" id="clear-data-btn" style="width:auto; padding:8px 20px; font-size:14px">
         Clear All Saved Cases
       </button>
+    </div>
+
+    <div class="card" id="home-reference-index">
+      <h3>📖 Reference</h3>
+      <div class="ref-index-grid">
+        <button class="ref-cell" onclick="goToSide('step-mimics')"><div class="ref-emoji">🧠</div><div class="ref-title">Mimics & Chameleons</div><div class="ref-subtitle">Rule in / rule out</div></button>
+        <button class="ref-cell" onclick="goToSide('step-syndrome-ref')"><div class="ref-emoji">🗺️</div><div class="ref-title">Stroke Syndromes</div><div class="ref-subtitle">Vascular territories</div></button>
+        <button class="ref-cell" onclick="goToSide('step-nihss-ref')"><div class="ref-emoji">🔢</div><div class="ref-title">NIHSS Reference</div><div class="ref-subtitle">Rubric, caveats, pearls</div></button>
+        <button class="ref-cell" onclick="goToSide('step-algorithm')"><div class="ref-emoji">📋</div><div class="ref-title">Bedside Algorithm</div><div class="ref-subtitle">Time-anchored cognitive aid</div></button>
+      </div>
     </div>
   </div>
 
@@ -159,12 +170,14 @@
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-rel-contra">
     <div class="card" style="margin-bottom:14px">
+      <div id="glucose-banner"></div>
       <div class="card-title">History / Relative Contraindications</div>
       <p class="text-sm">Relative CIs require clinical judgment. YES items will be flagged but do not automatically prevent TNK. Tap each item to expand and see why it matters.</p>
     </div>
 
     <div id="rel-summary"></div>
     <div id="rel-contra-list"></div>
+    <div id="doac-reversal-prompt"></div>
 
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
@@ -176,8 +189,12 @@
        SCREEN: NIHSS
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-nihss">
+    <div id="cortical-quick-screen"></div>
+    <div id="lvo-banner"></div>
+    <div style="display:flex;justify-content:flex-end;margin:4px 0 8px;"><button class="btn btn-ghost btn-sm" onclick="goToSide('step-nihss-ref')">📖 NIHSS reference</button></div>
     <div class="step-tabs" id="nihss-tabs"></div>
     <div id="nihss-item-container"></div>
+    <div id="hints-prompt"></div>
 
     <button class="btn-primary btn-green" id="nihss-done-btn" style="display:none; margin-top:16px; margin-bottom:70px">
       ✓ All Items Scored — Continue to Syndrome →
@@ -194,11 +211,18 @@
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-syndrome">
     <div id="syndrome-nihss-total"></div>
+    <div id="empty-match-hint"></div>
 
     <p class="section-title">Suggested Stroke Syndrome(s)</p>
     <p class="text-sm" style="margin-bottom:14px; color:var(--text-dim)">Based on NIHSS pattern. These are clinical suggestions — always use your full clinical judgment.</p>
 
     <div id="syndrome-list"></div>
+
+    <div style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-ghost" onclick="goToSide('step-mimics')">🧠 Rule out mimics / Chameleons</button>
+      <button class="btn btn-ghost" onclick="goToSide('step-syndrome-ref')">🗺️ Full syndrome reference</button>
+    </div>
+    <div id="single-territory-sanity-check"></div>
 
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
@@ -324,6 +348,14 @@
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-decision">
     <div id="decision-content"></div>
+    <div id="bp-targets-card"></div>
+    <div id="deterioration-banner"></div>
+
+    <div class="card" id="nihss-reassess-card">
+      <h4>NIHSS reassessment (optional)</h4>
+      <label>New NIHSS total: <input type="number" id="nihss-reassess-input" min="0" max="42" placeholder="baseline was N"></label>
+      <button class="btn btn-sm" onclick="saveNihssReassess()">Save</button>
+    </div>
 
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
@@ -406,6 +438,54 @@
       <button class="overlay-close-btn" id="cookie-overlay-close">✕ Close</button>
     </div>
     <div class="overlay-content" id="cookie-overlay-content"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SIDE SCREEN: Mimics & Chameleons
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-mimics">
+    <div class="screen-header">
+      <button class="btn-back" onclick="goBackFromSide()">← Back</button>
+      <h2>Stroke Mimics & Chameleons</h2>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="mimics" onclick="switchMimicsTab('mimics')">Mimics</button>
+      <button class="tab" data-tab="chameleons" onclick="switchMimicsTab('chameleons')">Chameleons</button>
+    </div>
+    <div id="mimics-content"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SIDE SCREEN: Syndrome Reference
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-syndrome-ref">
+    <div class="screen-header">
+      <button class="btn-back" onclick="goBackFromSide()">← Back</button>
+      <h2>Stroke Syndromes — Reference</h2>
+    </div>
+    <div id="syndrome-ref-content"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SIDE SCREEN: NIHSS Reference
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-nihss-ref">
+    <div class="screen-header">
+      <button class="btn-back" onclick="goBackFromSide()">← Back</button>
+      <h2>NIHSS Reference</h2>
+    </div>
+    <div id="nihss-ref-content"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SIDE SCREEN: Bedside Algorithm
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-algorithm">
+    <div class="screen-header">
+      <button class="btn-back" onclick="goBackFromSide()">← Back</button>
+      <h2>Code Stroke Bedside Algorithm</h2>
+    </div>
+    <div id="algorithm-content"></div>
   </div>
 
 </div><!-- #app -->
