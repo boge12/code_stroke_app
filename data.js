@@ -52,6 +52,17 @@ window.NIHSS_ITEMS = [
       { value: 3, label: 'Unresponsive', description: 'Responds only with reflex motor/autonomic effects, or completely unresponsive, flaccid, with no responses.' },
     ],
     note: 'This is the ONLY item you can go back and change after completing it — if the patient deteriorates.',
+    caveats: [
+      'If patient deteriorates during the exam and needs more stimulation — go back and UPGRADE.',
+      'Score 3 (flaccid, no response) is specifically for complete unresponsiveness — reflex-only motor counts here.',
+      'Intubation or language barrier alone does NOT determine 1a — use stimulation threshold.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'Alert, keenly responsive.' },
+      { score: 1, criteria: 'Not alert, but arousable by minor stimulation to obey, answer, or respond.' },
+      { score: 2, criteria: 'Not alert; requires repeated stimulation to attend, or is obtunded and requires strong or painful stimulation.' },
+      { score: 3, criteria: 'Responds only with reflex motor or autonomic effects, or totally unresponsive, flaccid, areflexic.' },
+    ],
   },
   {
     id: '1b',
@@ -81,6 +92,17 @@ window.NIHSS_ITEMS = [
       { value: 0, label: 'Both correct', description: 'Answers BOTH month and age correctly.' },
       { value: 1, label: 'One correct', description: 'Answers one correctly. Also score 1 if patient is intubated or has severe dysarthria preventing speech.' },
       { value: 2, label: 'Neither correct', description: 'Neither answer correct — OR — patient is aphasic and cannot communicate either answer by any means (speech, writing, gesture).' },
+    ],
+    caveats: [
+      'Only the INITIAL answer counts — no credit for self-correction.',
+      'Do not coach or rephrase. Ask once, score what you get.',
+      'Score 1 for intubation, severe dysarthria, or non-aphasic language barrier.',
+      'Score 2 only if patient cannot communicate in ANY modality (speech, writing, gesture).',
+    ],
+    rubric: [
+      { score: 0, criteria: 'Answers both questions correctly.' },
+      { score: 1, criteria: 'Answers one question correctly.' },
+      { score: 2, criteria: 'Answers neither question correctly.' },
     ],
   },
   {
@@ -118,6 +140,16 @@ window.NIHSS_ITEMS = [
       { value: 0, label: 'Both correct', description: 'Performs both commands correctly.' },
       { value: 1, label: 'One correct', description: 'Performs only one correctly. Also score 1 if there is an unequivocal attempt but cannot complete due to weakness.' },
       { value: 2, label: 'Neither correct', description: 'Performs neither task.' },
+    ],
+    caveats: [
+      'One unequivocal attempt at a task that cannot be completed due to weakness still scores 1.',
+      'If the patient does not respond to verbal command, demonstrate (pantomime) ONCE — then score.',
+      'If patient is unresponsive (1a = 3) and cannot attempt, score 2 here.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'Performs both tasks correctly.' },
+      { score: 1, criteria: 'Performs one task correctly.' },
+      { score: 2, criteria: 'Performs neither task correctly.' },
     ],
   },
   {
@@ -173,6 +205,17 @@ window.NIHSS_ITEMS = [
       { value: 1, label: 'Partial gaze palsy', description: 'Horizontal movement is incomplete in one or both eyes — but there is NO forced deviation to one side that the patient cannot overcome.' },
       { value: 2, label: 'Forced deviation', description: 'Eyes are deviated to one side and CANNOT be overcome by voluntary tracking or oculocephalic (doll\'s eyes) reflex.' },
     ],
+    caveats: [
+      'Only horizontal gaze is scored. Vertical gaze palsy and nystagmus are NOT captured by NIHSS.',
+      'In aphasic patients, establish eye contact and move around the bed to test tracking.',
+      'Pre-existing eye movement disorder (e.g. external ophthalmoplegia) → score based on non-affected eye if possible.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'Normal.' },
+      { score: 1, criteria: 'Partial gaze palsy — gaze abnormal in one or both eyes, but no forced deviation or total gaze paresis.' },
+      { score: 2, criteria: 'Forced deviation or total gaze paresis not overcome by oculocephalic manoeuvre.' },
+    ],
+    localizationPearl: 'Right-way eyes vs wrong-way eyes: MCA lesion → eyes look TOWARD the lesion (AWAY from the hemiparesis — the "right way"). Thalamic/pontine hemorrhage or seizure → eyes look AWAY from the lesion (toward the hemiparesis — the "wrong way").',
   },
   {
     id: '3',
@@ -225,6 +268,18 @@ window.NIHSS_ITEMS = [
       { value: 3, label: 'Bilateral hemianopia', description: 'Cortical blindness — both eyes have lost vision from any cause. Patient may be unaware.' },
     ],
     note: 'If pre-existing unilateral blindness: score only the remaining eye.',
+    caveats: [
+      'Use blink-to-threat if patient cannot cooperate (e.g. aphasic, obtunded).',
+      'If patient has pre-existing blindness in one eye, score only the seeing eye.',
+      'Score 1 for partial hemianopia (quadrantanopia).',
+      'Score 3 requires bilateral visual loss from any cortical cause.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'No visual loss.' },
+      { score: 1, criteria: 'Partial hemianopia (including quadrantanopia) or extinction to double simultaneous stimulation.' },
+      { score: 2, criteria: 'Complete hemianopia.' },
+      { score: 3, criteria: 'Bilateral hemianopia (blind including cortical blindness).' },
+    ],
   },
   {
     id: '4',
@@ -293,6 +348,18 @@ window.NIHSS_ITEMS = [
       { value: 3, label: 'Complete paralysis', description: 'Both upper and lower face affected. Cannot close eye on weak side. No wrinkling of forehead. Found in peripheral (Bell\'s palsy pattern) or very severe stroke.' },
     ],
     note: 'Central stroke = lower face weakness only (upper face spared). Peripheral lesion = BOTH upper and lower face.',
+    caveats: [
+      'Test upper and lower face separately. Look at forehead wrinkles AND smile.',
+      'In aphasic or unresponsive patients, use tissue in nares or painful stimulus to assess grimace.',
+      'Score 3 (complete palsy, upper + lower) suggests Bell\'s palsy (LMN) or severe peripheral lesion — NOT a typical stroke pattern.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'Normal symmetrical movement.' },
+      { score: 1, criteria: 'Minor paralysis (flattened nasolabial fold, asymmetry on smiling).' },
+      { score: 2, criteria: 'Partial paralysis (total or near-total paralysis of lower face).' },
+      { score: 3, criteria: 'Complete paralysis of one or both sides (absence of facial movement in upper and lower face).' },
+    ],
+    localizationPearl: 'UMN (central/stroke) lesions spare the forehead because bilateral cortical innervation protects the upper face. LMN (Bell\'s palsy, CN VII nucleus) lesions involve the forehead. If the forehead is weak AND limbs are normal → Bell\'s palsy, NOT stroke.',
   },
   {
     id: '5a',
@@ -337,6 +404,25 @@ window.NIHSS_ITEMS = [
       { value: 'UN', label: 'Untestable', description: 'Amputation, joint fusion, or other physical reason the test cannot be done. Document the reason.' },
     ],
     note: 'Test right arm here. Left arm is item 5b.',
+    caveats: [
+      'UN is reserved for shoulder amputation or joint fusion ONLY. Do not use UN for weakness or non-cooperation.',
+      'Pronator drift still scores 1 — even if arm does not touch bed.',
+      'Score 4 requires no flicker of movement.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'No drift — holds 10 s at 90° (seated) or 45° (supine).' },
+      { score: 1, criteria: 'Drift — limb drifts before 10 s but does not hit bed or support.' },
+      { score: 2, criteria: 'Some effort against gravity — limb drifts to bed within 10 s.' },
+      { score: 3, criteria: 'No effort against gravity — limb falls; still some movement.' },
+      { score: 4, criteria: 'No movement.' },
+      { score: 'UN', criteria: 'Amputation or joint fusion (explain).' },
+    ],
+    functionalClues: [
+      'Give-way weakness: resistance suddenly collapses.',
+      'Co-contraction: antagonists firing simultaneously.',
+      'Variable weakness across the exam.',
+      'Weakness pattern does not match a vascular territory.',
+    ],
   },
   {
     id: '5b',
@@ -374,6 +460,22 @@ window.NIHSS_ITEMS = [
       { value: 'UN', label: 'Untestable', description: 'Amputation, joint fusion, or other physical reason. Document the reason.' },
     ],
     note: 'Test left arm here.',
+    caveats: [
+      'Same caveats as 5a. UN = shoulder amputation or fused joint only.',
+      'Pronator drift scores 1.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'No drift — holds 10 s.' },
+      { score: 1, criteria: 'Drift — before 10 s, does not hit bed.' },
+      { score: 2, criteria: 'Some effort against gravity — limb drifts to bed.' },
+      { score: 3, criteria: 'No effort against gravity.' },
+      { score: 4, criteria: 'No movement.' },
+      { score: 'UN', criteria: 'Amputation or joint fusion.' },
+    ],
+    functionalClues: [
+      'Give-way weakness, co-contraction, variable strength.',
+      'Consider Hoover\'s sign when testing opposite leg in item 6.',
+    ],
   },
   {
     id: '6a',
@@ -419,6 +521,22 @@ window.NIHSS_ITEMS = [
       { value: 4, label: 'No movement', description: 'No movement whatsoever.' },
       { value: 'UN', label: 'Untestable', description: 'Amputation, joint fusion, other. Document reason.' },
     ],
+    caveats: [
+      'Leg is tested at 30° for 5 seconds (not 90°/10s like arm).',
+      'UN = amputation or joint fusion only.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'No drift — holds 30° for 5 s.' },
+      { score: 1, criteria: 'Drift — before 5 s, does not hit bed.' },
+      { score: 2, criteria: 'Some effort against gravity — touches bed within 5 s.' },
+      { score: 3, criteria: 'No effort against gravity.' },
+      { score: 4, criteria: 'No movement.' },
+      { score: 'UN', criteria: 'Amputation or joint fusion.' },
+    ],
+    functionalClues: [
+      'Hoover\'s sign: downward pressure under the paretic heel when opposite leg flexes against resistance = genuine weakness; absent = functional.',
+      'Give-way weakness.',
+    ],
   },
   {
     id: '6b',
@@ -462,6 +580,22 @@ window.NIHSS_ITEMS = [
       { value: 3, label: 'No anti-gravity', description: 'Falls immediately. Movement on surface = 3. No movement at all = 4.' },
       { value: 4, label: 'No movement', description: 'No movement whatsoever.' },
       { value: 'UN', label: 'Untestable', description: 'Amputation, joint fusion, other. Document reason.' },
+    ],
+    caveats: [
+      '30°/5 s, UN only for amputation or fused joint.',
+      'Hoover\'s sign is the best quick functional-weakness clue in leg.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'No drift — holds 30° for 5 s.' },
+      { score: 1, criteria: 'Drift — before 5 s, no bed contact.' },
+      { score: 2, criteria: 'Some effort against gravity — touches bed.' },
+      { score: 3, criteria: 'No effort against gravity.' },
+      { score: 4, criteria: 'No movement.' },
+      { score: 'UN', criteria: 'Amputation or joint fusion.' },
+    ],
+    functionalClues: [
+      'Hoover\'s sign: a key test — see 6a.',
+      'Give-way weakness.',
     ],
   },
   {
@@ -510,6 +644,18 @@ window.NIHSS_ITEMS = [
       { value: 2, label: 'Ataxia in two limbs', description: 'Ataxia present in TWO or more limbs.' },
     ],
     note: 'Key distinction: If weakness alone limits the test → score 0. Only score ataxia if coordination problem exceeds what weakness would explain.',
+    caveats: [
+      'Ataxia is only scored if OUT OF PROPORTION to weakness.',
+      'If weakness is severe (4/4) and prevents the task → score 0, not 2.',
+      'This is a NIHSS blind spot for cerebellar strokes — truncal ataxia and gait ataxia are NOT captured. Always test tandem gait if safe.',
+      'Ataxia here refers to limb ataxia only (finger-to-nose, heel-to-shin).',
+    ],
+    rubric: [
+      { score: 0, criteria: 'Absent — or weakness prevents test.' },
+      { score: 1, criteria: 'Present in one limb.' },
+      { score: 2, criteria: 'Present in two or more limbs.' },
+    ],
+    localizationPearl: 'Ipsilateral limb ataxia = cerebellar hemisphere or cerebellar connections (inferior cerebellar peduncle). Truncal or gait ataxia = midline/vermis lesion — NIHSS will miss this.',
   },
   {
     id: '8',
@@ -557,6 +703,23 @@ window.NIHSS_ITEMS = [
       { value: 2, label: 'Severe loss', description: 'Patient does NOT feel touch on the affected side at all. Or: bilateral sensory loss.' },
     ],
     note: 'Do NOT test hands/feet. If uncertain, score 0. Only score loss clearly attributable to stroke, not pre-existing neuropathy.',
+    caveats: [
+      'Only score sensory loss attributable to the stroke — not pre-existing peripheral neuropathy, diabetes, prior injury.',
+      'If the patient is obtunded/aphasic: grimace or withdrawal to noxious stimuli counts as detection.',
+      'Isolated sensory level without cranial nerve deficits localizes to the SPINAL CORD, not stroke — broaden your differential.',
+      'Score 2 only for severe / total loss — patient is UNAWARE of being touched.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'Normal — no sensory loss.' },
+      { score: 1, criteria: 'Mild-to-moderate loss — patient feels pinprick less sharp or dull, but is aware of being touched; or loss in one extremity only.' },
+      { score: 2, criteria: 'Severe-to-total loss — patient unaware of being touched on the affected side; stuporous/aphasic with bilateral loss; quadriplegic.' },
+    ],
+    localizationPearl: 'Hemisensory loss + contralateral motor/cortical signs → cortex/subcortex. Pure hemisensory loss (thalamic lacune) → VPL thalamus. Crossed sensory loss (ipsilateral face + contralateral body) → lateral medulla (Wallenberg). A sensory LEVEL on the trunk points to spinal cord, not stroke.',
+    functionalClues: [
+      'Splitting of the midline — sensory loss that stops precisely at the midline of the trunk/face (true hemisensory loss stops 1–2 cm short of midline due to overlapping innervation).',
+      'Loss of vibration at the sternum on one side but not the other (vibration crosses bone — anatomically impossible).',
+      'Inconsistent sensory boundaries that change with re-testing.',
+    ],
   },
   {
     id: '9',
@@ -603,6 +766,24 @@ window.NIHSS_ITEMS = [
       { value: 2, label: 'Severe aphasia', description: 'Very fragmented communication. Examiner must guess what the patient is trying to say. Or patient is mute with severe expressive aphasia.' },
       { value: 3, label: 'Mute / global aphasia', description: 'Reserved for patient with NO usable speech AND unable to follow any one-step command. Global aphasia.' },
     ],
+    caveats: [
+      'This tests LANGUAGE, not speech clarity. Slurred-but-correct words = dysarthria (item 10), not aphasia.',
+      'Information from items 1b, 1c, and commands (item 2/3) also counts — you have already been assessing language.',
+      'Score 3 is reserved for NO usable speech AND no comprehension (global aphasia). If the patient can follow any command, they are not a 3.',
+      'Mutism alone does not equal score 3 — a patient may be mute from severe dysarthria/anarthria (score on item 10) while language is intact.',
+      'If intubated or visually impaired: use writing, hand-placed objects, and conversational assessment — do not default to UN.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'No aphasia — normal fluency, comprehension, naming, and reading.' },
+      { score: 1, criteria: 'Mild-to-moderate aphasia — some loss of fluency or comprehension; word-finding pauses, paraphasias; examiner can still identify the picture or objects from patient response.' },
+      { score: 2, criteria: 'Severe aphasia — fragmented expression; examiner must carry conversation and guess meaning; limited information exchange.' },
+      { score: 3, criteria: 'Mute, global aphasia — no usable speech AND no auditory/reading comprehension.' },
+    ],
+    localizationPearl: 'Aphasia almost always localizes to the DOMINANT (usually left) hemisphere. Broca\'s (expressive) aphasia = non-fluent, good comprehension, frustrated — inferior frontal gyrus (MCA superior division). Wernicke\'s (receptive) aphasia = fluent but empty/jargon, poor comprehension, unaware — superior temporal gyrus (MCA inferior division). Global aphasia = both → large dominant MCA (M1) territory. Assess 6 domains: fluency, comprehension, repetition, naming, reading, writing.',
+    functionalClues: [
+      'Functional "aphasia" is rare — if present, speech is usually whispered, childlike, or inconsistent (vs stereotyped paraphasias of true aphasia).',
+      'Patient understands complex questions but "cannot" produce any output (language comprehension and production usually degrade together).',
+    ],
   },
   {
     id: '10',
@@ -630,6 +811,19 @@ window.NIHSS_ITEMS = [
       { value: 2, label: 'Severe / unintelligible', description: 'So severely slurred as to be unintelligible — or patient is mute/anarthric. Includes severe expressive aphasia causing mutism (score 2 for either).' },
       { value: 'UN', label: 'Untestable', description: 'Patient is intubated. Document reason.' },
     ],
+    caveats: [
+      'Dysarthria = MOTOR speech (slurred). Aphasia = LANGUAGE (wrong words). If the word is correct but slurred → dysarthria. If the word is wrong/missing → aphasia.',
+      'UN is reserved for patients who physically cannot be assessed (intubated, severe facial trauma). Do not use UN for aphasia — score 2 if mute from anarthria.',
+      'Test with the standardized word list — not conversational speech. Novel words (huckleberry, baseball player) stress articulation.',
+      'Dysarthria alone does not exclude stroke but is non-localizing — it can occur with lesions anywhere along the motor speech pathway (cortex, internal capsule, brainstem, cerebellum).',
+    ],
+    rubric: [
+      { score: 0, criteria: 'Normal articulation.' },
+      { score: 1, criteria: 'Mild-to-moderate — slurs at least some words; at worst, can be understood with some difficulty.' },
+      { score: 2, criteria: 'Severe — speech so slurred as to be unintelligible (in the absence of or out of proportion to any aphasia); or patient is mute/anarthric.' },
+      { score: 'UN', criteria: 'Intubated or other physical barrier to producing speech. Document reason.' },
+    ],
+    localizationPearl: 'Isolated dysarthria is a classic STROKE CHAMELEON — easily dismissed. Pure dysarthria can come from small lacunes in the internal capsule (dysarthria-clumsy-hand syndrome), basis pontis, or corona radiata. Dysarthria + ipsilateral ataxia → ataxic hemiparesis (pons/internal capsule). Bulbar dysarthria + dysphagia + tongue deviation → medullary lesion. Cerebellar dysarthria is scanning / explosive.',
   },
   {
     id: '11',
@@ -684,6 +878,23 @@ window.NIHSS_ITEMS = [
       { value: 2, label: 'Profound neglect', description: 'Profound hemi-inattention or extinction in more than one modality. Patient does not recognize their own left hand when brought into the right visual field.' },
     ],
     note: 'Score 0 for aphasia if patient appears to attend to both sides. Inattention is scored only when clearly present.',
+    caveats: [
+      'Extinction = misses one side only when BOTH are stimulated simultaneously; detects each side normally when tested alone. Do not confuse with hemianopia (item 3) or hemisensory loss (item 8).',
+      'Score 0 if there is severe visual loss that prevents double-simultaneous testing but cutaneous sensation is normal to bilateral simultaneous touch.',
+      'Score 0 for aphasia if the patient appears to attend to both sides during the rest of the exam.',
+      'Neglect is scored only when clearly present — do not over-interpret a single missed stimulus as neglect.',
+      'A patient who fails to recognize their own limb (asomatognosia) or denies the deficit (anosognosia) has profound (score 2) neglect.',
+    ],
+    rubric: [
+      { score: 0, criteria: 'No abnormality. Detects bilateral simultaneous stimulation in both modalities.' },
+      { score: 1, criteria: 'Visual, tactile, auditory, spatial, or personal inattention OR extinction to bilateral simultaneous stimulation in ONE sensory modality.' },
+      { score: 2, criteria: 'Profound hemi-inattention or extinction to MORE THAN ONE modality. Does not recognize own hand or orients to only one side of space.' },
+    ],
+    localizationPearl: 'Neglect is almost always a RIGHT hemisphere (non-dominant) sign. The right parietal lobe dominates spatial attention to both sides; the left parietal only attends right — so right-sided lesions cause profound left neglect, while left-sided lesions are compensated. Classic localizations: right INFERIOR PARIETAL LOBULE (hemispatial neglect), right FRONTAL (motor neglect, gaze preference), RIGHT THALAMUS (motor/sensory neglect). A right MCA stroke with NIHSS underscored for weakness but obvious inattention is often more disabling than its number suggests.',
+    functionalClues: [
+      'True extinction is robust on retesting; inconsistent extinction that disappears when the patient is distracted suggests a non-organic process.',
+      'Patients with true neglect are typically UNAWARE of the deficit (anosognosia); functional patients usually complain of the symptom.',
+    ],
   },
 ];
 
@@ -950,12 +1161,12 @@ window.BP_MEDS = [
 ];
 
 // ── NIHSS SEVERITY LABELS ────────────────────────────────────
+// Textbook bands (Code Stroke Handbook 2020): 0–5 Mild / 6–10 Moderate / 11–20 Severe / >20 Very severe
 window.NIHSS_SEVERITY = [
-  { min: 0, max: 0, label: 'No stroke symptoms', color: '#4fc3f7' },
-  { min: 1, max: 4, label: 'Minor stroke', color: '#4fc3f7' },
-  { min: 5, max: 15, label: 'Moderate stroke', color: '#ffd54f' },
-  { min: 16, max: 20, label: 'Moderate–severe stroke', color: '#ff8c00' },
-  { min: 21, max: 42, label: 'Severe stroke', color: '#ef5350' },
+  { min: 0, max: 5, label: 'Mild', color: '#4fc3f7' },
+  { min: 6, max: 10, label: 'Moderate', color: '#ffd54f' },
+  { min: 11, max: 20, label: 'Severe', color: '#ff8c00' },
+  { min: 21, max: 42, label: 'Very severe', color: '#ef5350' },
 ];
 
 window.getNIHSSSeverity = function(total) {
@@ -983,3 +1194,392 @@ window.getSyndromeSuggestions = function(nihssScores) {
   results.sort((a, b) => b.confidence - a.confidence);
   return results;
 };
+
+// ============================================================
+// REFERENCE DATA — MIMICS, CHAMELEONS, RED FLAGS
+// ============================================================
+
+window.STROKE_MIMICS = [
+  { id: 'hypoglycemia', name: 'Hypoglycemia', keyFeatures: ['Focal deficit mimicking stroke (hemiparesis, aphasia)', 'Diaphoresis, tremor, tachycardia', 'Altered LOC'], clues: ['Known DM on insulin or sulfonylurea', 'Missed meal', 'Rapid complete resolution with glucose'], ruleOutTest: 'Fingerstick glucose — MUST be done before NIHSS. Target 3.5–22.2 mmol/L.' },
+  { id: 'hyperglycemia', name: 'Hyperglycemia (HHS/DKA)', keyFeatures: ['Focal deficit, seizures, altered LOC', 'Dehydration, polyuria', 'Osmolar stupor'], clues: ['Glucose >22.2 mmol/L', 'No stroke risk factors', 'Gradual onset'], ruleOutTest: 'Fingerstick glucose; serum osmolality; ketones.' },
+  { id: 'todds_paralysis', name: "Todd's Paralysis", keyFeatures: ['Focal weakness AFTER a seizure', 'May last minutes to 48h', 'Resolves gradually'], clues: ['Witnessed seizure or tongue bite', 'Post-ictal confusion', 'History of epilepsy', 'Weakness in territory of seizure focus'] },
+  { id: 'migraine_aura', name: 'Migraine with Aura (incl. hemiplegic)', keyFeatures: ['Positive symptoms (tingling, zigzag lights) spreading over minutes', 'Headache often follows', 'Young patient, prior episodes'], clues: ['Marching onset over 20–30 min (not sudden)', 'Photo/phonophobia', 'Previous identical episodes'] },
+  { id: 'functional_fnd', name: 'Functional Neurologic Disorder', keyFeatures: ['Non-anatomic deficits', 'Give-way weakness, Hoover sign', 'Splitting midline sensory loss', 'Variable exam'], clues: ['Positive Hoover sign', 'Co-contraction', 'Deficits change with distraction', 'No cranial nerve involvement', 'Young, female predominance'] },
+  { id: 'cns_mass', name: 'CNS Mass Lesion (tumour, abscess)', keyFeatures: ['Progressive focal deficit over days–weeks', 'Headache, vomiting, papilledema', 'Seizures'], clues: ['Gradual onset (not sudden)', 'Known malignancy', 'Fever (abscess)'], ruleOutTest: 'NCCT with contrast or MRI.' },
+  { id: 'peripheral_nerve', name: 'Peripheral Nerve / Radiculopathy', keyFeatures: ['Limb weakness in peripheral nerve distribution', 'Dermatomal sensory loss', 'Reflexes absent'], clues: ['Saturday night palsy, tight cast', 'Disc herniation history', 'No facial involvement'] },
+  { id: 'bells_palsy', name: "Bell's Palsy (LMN facial palsy)", keyFeatures: ['Involves FOREHEAD (cannot raise eyebrow)', 'Unilateral facial weakness', 'Preserved limb function', 'Possible ear pain, hyperacusis'], clues: ['Forehead involvement = LMN pattern = NOT stroke', 'Isolated facial weakness without limb or language signs'] },
+  { id: 'sepsis_toxic_metabolic', name: 'Sepsis / Toxic–Metabolic Encephalopathy', keyFeatures: ['Global altered LOC, confusion', 'Often "unmasks" old deficits (recrudescence)', 'No sharply focal signs'], clues: ['Fever, hypotension, infection source', 'Electrolyte or renal derangement', 'Symptoms resolve with treating underlying cause'] },
+  { id: 'hemiplegic_migraine', name: 'Hemiplegic Migraine', keyFeatures: ['Hemiparesis + headache', 'Family history', 'Marching aura preceding weakness'], clues: ['Young patient', 'Prior identical episodes', 'Full resolution', 'CACNA1A/ATP1A2 family history'] },
+];
+
+window.STROKE_CHAMELEONS = [
+  { id: 'isolated_vertigo_central_hints', presentation: 'Isolated vertigo with central HINTS', territory: 'Cerebellum / Vestibular nuclei (PICA/AICA)', whyMissed: 'Assumed to be peripheral vertigo / BPPV. HINTS exam with any one central finding reclassifies as posterior stroke.' },
+  { id: 'confusion_agitation', presentation: 'Acute confusion or agitation without lateralising signs', territory: 'Right MCA, thalamus, or bilateral frontal', whyMissed: 'Labelled as delirium or psychiatric. Look for neglect, aphasia, subtle gaze preference.' },
+  { id: 'monocular_blindness', presentation: 'Sudden monocular vision loss', territory: 'Ophthalmic artery / central retinal artery (ICA branch)', whyMissed: 'Sent to ophthalmology. CRAO is a stroke equivalent — activate code stroke.' },
+  { id: 'limb_shaking_tia', presentation: 'Limb-shaking spells (jerky rhythmic movements)', territory: 'Critical ICA stenosis with hemodynamic TIA', whyMissed: 'Misdiagnosed as focal seizure. Often positional; carotid imaging is diagnostic.' },
+  { id: 'isolated_dysarthria', presentation: 'Isolated dysarthria', territory: 'Small lacunar infarcts (internal capsule, pons, corona radiata)', whyMissed: 'Attributed to fatigue, intoxication, dentures. Examine for facial asymmetry, subtle weakness.' },
+  { id: 'decreased_loc_no_focal', presentation: 'Decreased LOC without focal signs', territory: 'Top-of-basilar, bilateral thalami, bilateral ACA', whyMissed: 'Presumed toxic–metabolic. Check for vertical gaze palsy, pupillary abnormalities; CTA of posterior circulation.' },
+  { id: 'psychiatric_elderly', presentation: '"Psychiatric" presentation in an elderly patient', territory: 'Right MCA (neglect, anosognosia), non-dominant frontal', whyMissed: 'Emotional lability, denial of deficits read as psychiatric. Neglect is often occult.' },
+  { id: 'transient_amnesia', presentation: 'Transient amnesia / confusion only', territory: 'Bilateral hippocampi (PCA branches) or thalamus', whyMissed: 'Diagnosed as transient global amnesia. DWI may reveal bilateral medial temporal infarcts.' },
+];
+
+window.MIMIC_RED_FLAGS = [
+  'Bilateral simultaneous deficits (unusual for single-territory stroke)',
+  'Gradual or "marching" onset over minutes–hours',
+  'Isolated loss of consciousness without focal signs',
+  'LMN facial weakness pattern (forehead involved) — think Bell\'s palsy',
+  'Recurrent identical stereotyped episodes',
+  'Psychiatric history + non-anatomic distribution',
+  'Positive symptoms (tingling, jerking, scintillations) spreading',
+  'Give-way or collapsing weakness on exam',
+  'Splitting midline on sensory testing (anatomically impossible)',
+  'Deficit changes with distraction or encouragement',
+];
+
+window.BRAINSTEM_RULE_OF_4 = {
+  summary: 'Rule of 4: 4 CN above pons, 4 in pons, 4 in medulla. 4 Medial (Midline) structures and 4 Side (Lateral) structures in each region.',
+  fourAbove: ['CN I — Olfactory', 'CN II — Optic', 'CN III — Oculomotor (midbrain)', 'CN IV — Trochlear (midbrain)'],
+  fourPons: ['CN V — Trigeminal', 'CN VI — Abducens', 'CN VII — Facial', 'CN VIII — Vestibulocochlear'],
+  fourMedulla: ['CN IX — Glossopharyngeal', 'CN X — Vagus', 'CN XI — Accessory', 'CN XII — Hypoglossal'],
+  fourMs: [
+    'Motor pathway (corticospinal tract) — contralateral hemiparesis',
+    'Medial lemniscus — contralateral vibration/proprioception loss',
+    'MLF — ipsilateral INO (internuclear ophthalmoplegia)',
+    'Motor nuclei of CN III, IV, VI, XII (the midline CN) — ipsilateral LMN palsy',
+  ],
+  fourSs: [
+    'Spinothalamic tract — contralateral pain/temperature loss',
+    'Sensory nucleus of CN V (spinal tract) — ipsilateral facial pain/temp loss',
+    'Sympathetic pathway — ipsilateral Horner\'s syndrome',
+    'Spinocerebellar tract — ipsilateral limb ataxia',
+  ],
+};
+
+window.BP_TARGETS = [
+  { scenario: 'TNK candidate / TNK given', target: '<185/110 before; <180/105 for 24h after', notes: 'Use labetalol, hydralazine, or nicardipine. Do NOT give TNK if BP uncontrolled.' },
+  { scenario: 'Ischemic stroke, no thrombolysis planned', target: 'Permissive ≤220/120', notes: 'Avoid aggressive lowering unless end-organ damage (aortic dissection, ACS, HF, eclampsia).' },
+  { scenario: 'Post-EVT, successful recanalization', target: '<180/105 routine; consider <140/90 if complete recanalization (TICI 2b/3)', notes: 'Individualize based on collaterals, infarct size, reperfusion quality.' },
+  { scenario: 'Intracerebral hemorrhage (ICH)', target: 'SBP 140–160 (INTERACT2 / ATACH-2)', notes: 'Avoid SBP <130. Titrate smoothly; avoid labile pressures.' },
+];
+
+window.DOAC_REVERSAL = [
+  { drug: 'Warfarin (INR >1.7)', reversal: '4F-PCC + Vitamin K', dose: '4F-PCC 25–50 units/kg IV + Vitamin K 10 mg IV', notes: 'Check INR before and 15 min after PCC. Goal INR <1.4.' },
+  { drug: 'Dabigatran (<48h last dose)', reversal: 'Idarucizumab', dose: '5 g IV (two 2.5 g vials, sequential)', notes: 'Enables thrombolysis after reversal. Confirm with OTN.' },
+  { drug: 'Apixaban / Rivaroxaban / Edoxaban', reversal: 'Andexanet alfa (preferred) OR 4F-PCC', dose: 'Andexanet per product; 4F-PCC 50 units/kg', notes: 'TNK generally not recommended after Xa-inhibitor reversal — confirm with stroke neurology.' },
+  { drug: 'Therapeutic heparin', reversal: 'Protamine sulfate', dose: '1 mg per 100 units heparin (max 50 mg)', notes: 'Based on last 2–3 h of heparin dose.' },
+  { drug: 'LMWH (enoxaparin <8h)', reversal: 'Protamine (partial)', dose: '1 mg per 1 mg enoxaparin', notes: 'Only ~60% reversal; >8h use 0.5 mg/mg.' },
+];
+
+window.DOAC_REVERSAL_FOOTER = 'Confirm with OTN Telestroke before reversing anticoagulation to enable TNK.';
+
+window.HINTS_EXAM = [
+  { component: 'Head Impulse Test', peripheral: 'Abnormal (catch-up saccade present) = peripheral', central: 'Normal (no catch-up saccade) = central — counterintuitive!' },
+  { component: 'Nystagmus', peripheral: 'Unidirectional, horizontal, fatigable', central: 'Direction-changing, vertical, or pure torsional' },
+  { component: 'Test of Skew (alternate cover)', peripheral: 'No vertical correction', central: 'Vertical refixation (skew deviation)' },
+];
+
+window.HINTS_RULE = 'INFARCT mnemonic: Impulse Normal, Fast-phase Alternating, Refixation on Cover Test = any ONE central finding = posterior circulation stroke until MRI proves otherwise.';
+
+window.POSTERIOR_RED_FLAGS = [
+  'Bilateral simultaneous sensorimotor symptoms',
+  'Vertigo + any focal neurological sign',
+  'Vertical gaze palsy',
+  'Skew deviation (vertical eye misalignment)',
+  'Direction-changing nystagmus',
+  '5 Ds: Dysphagia, Dysarthria, Diplopia, Dysmetria, Decreased LOC',
+  'Crossed signs (ipsilateral face + contralateral body)',
+  'Locked-in syndrome with deceptively low NIHSS',
+];
+
+window.CORTICAL_LVO_SCREEN = [
+  { id: 'gaze', label: 'Gaze deviation', description: 'Forced gaze preference (NIHSS Item 2 = 2)' },
+  { id: 'aphasia', label: 'Aphasia', description: 'Language deficit — dominant MCA (Item 9 ≥ 1)' },
+  { id: 'neglect', label: 'Neglect', description: 'Hemi-inattention or extinction — non-dominant MCA (Item 11 ≥ 1)' },
+  { id: 'hemiparesis', label: 'Dense hemiparesis', description: 'Dense arm or leg weakness (Item 5 or 6 = 3–4)' },
+];
+
+window.CORTICAL_LVO_RULE = 'Any one cortical sign + NIHSS ≥ 6 → presume LVO. Activate EVT pathway NOW — do not wait for CTA.';
+
+window.PARALLEL_HISTORY_QUESTIONS = [
+  { ask: 'When was the patient last seen normal?', why: 'Anchors TNK (4.5h) and EVT (24h) windows. Wake-up strokes go by imaging mismatch.' },
+  { ask: 'Wake-up onset? When did they go to bed?', why: 'If found <4.5h of wake time, treat as known onset. Else imaging-guided.' },
+  { ask: 'Any anticoagulants? Which, when was last dose?', why: 'DOAC <48h → reversal needed. Warfarin INR >1.7 → reversal or contraindication.' },
+  { ask: 'Recent surgery, trauma, or procedure (<3 months)?', why: 'Relative contraindication to TNK depending on site and bleeding risk.' },
+  { ask: 'Prior stroke or ICH?', why: 'Recent stroke/TIA may affect TNK; prior ICH is absolute in legacy criteria, relative in CSBPR.' },
+  { ask: 'Seizure at stroke onset?', why: 'Raises concern for Todd\'s paralysis mimic. Does not absolutely exclude TNK.' },
+  { ask: 'Currently pregnant or postpartum?', why: 'Pregnancy is relative; case-by-case with OB and neurology.' },
+  { ask: 'Known malignancy, especially intracranial?', why: 'Changes risk/benefit. CNS neoplasm = bleeding risk.' },
+  { ask: 'Usual BP medications? Any missed doses?', why: 'Explains high presenting BP; guides acute lowering plan.' },
+  { ask: 'Diabetes meds (insulin, sulfonylureas)?', why: 'Hypoglycemia is the #1 mimic — always fingerstick.' },
+  { ask: 'Baseline function / mRS?', why: 'EVT requires pre-stroke mRS ≤ 2. Shapes goals-of-care discussion.' },
+];
+
+// ============================================================
+// SYNDROME DETAILS — expanded reference by id
+// ============================================================
+
+window.SYNDROME_DETAILS = {
+  // ─── Anterior circulation ───
+  lmca_upper: { anatomy: 'Left MCA superior division (frontal operculum, precentral, postcentral)', vascularSupply: 'Left MCA (M2 superior division)', featuresTable: [
+    { finding: 'Right face + arm > leg weakness', side: 'Contralateral' },
+    { finding: 'Broca\'s (expressive) aphasia', side: 'Contralateral' },
+    { finding: 'Right hemisensory loss', side: 'Contralateral' },
+    { finding: 'Gaze preference toward lesion', side: 'Ipsilateral' },
+  ], mimicsToConsider: ['Todd\'s paralysis', 'Functional disorder'], sourceNote: 'High-yield LVO pattern.' },
+  rmca_upper: { anatomy: 'Right MCA superior division', vascularSupply: 'Right MCA (M2 superior division)', featuresTable: [
+    { finding: 'Left face + arm > leg weakness', side: 'Contralateral' },
+    { finding: 'Left hemi-neglect', side: 'Contralateral' },
+    { finding: 'Anosognosia (denial of deficits)', side: 'N/A' },
+    { finding: 'Gaze preference toward lesion', side: 'Ipsilateral' },
+  ], mimicsToConsider: ['Delirium', 'Psychiatric presentation'] },
+  lmca_lower: { anatomy: 'Left MCA inferior division (temporal)', vascularSupply: 'Left MCA (M2 inferior division)', featuresTable: [
+    { finding: 'Wernicke\'s (receptive) aphasia', side: 'N/A' },
+    { finding: 'Fluent but nonsensical speech', side: 'N/A' },
+    { finding: 'Right superior quadrantanopia', side: 'Contralateral' },
+    { finding: 'Often no motor deficit', side: 'N/A' },
+  ], mimicsToConsider: ['Delirium', 'Psychosis'], sourceNote: 'Easily missed if motor exam relied upon alone.' },
+  rmca_lower: { anatomy: 'Right MCA inferior division', vascularSupply: 'Right MCA (M2 inferior division)', featuresTable: [
+    { finding: 'Left homonymous quadrantanopia', side: 'Contralateral' },
+    { finding: 'Left hemi-neglect', side: 'Contralateral' },
+    { finding: 'Prosopagnosia (face recognition deficit)', side: 'N/A' },
+  ], mimicsToConsider: ['Delirium'] },
+  mca_m1: { anatomy: 'Complete MCA territory (M1 occlusion)', vascularSupply: 'MCA M1 segment', featuresTable: [
+    { finding: 'Dense contralateral face + arm + leg weakness', side: 'Contralateral' },
+    { finding: 'Hemisensory loss', side: 'Contralateral' },
+    { finding: 'Homonymous hemianopia', side: 'Contralateral' },
+    { finding: 'Aphasia (dominant) OR neglect (non-dominant)', side: 'N/A' },
+    { finding: 'Forced gaze deviation toward lesion', side: 'Ipsilateral' },
+  ], mimicsToConsider: ['None — classic LVO'], sourceNote: '🚨 High-priority EVT candidate.' },
+  aca: { anatomy: 'Anterior cerebral artery territory (medial frontal, parasagittal)', vascularSupply: 'ACA (A2 segment)', featuresTable: [
+    { finding: 'Leg > arm weakness (leg dominant)', side: 'Contralateral' },
+    { finding: 'Cortical sensory loss (leg)', side: 'Contralateral' },
+    { finding: 'Abulia, apathy, akinetic mutism (bilateral)', side: 'N/A' },
+    { finding: 'Urinary incontinence', side: 'N/A' },
+    { finding: 'Grasp reflex, gegenhalten', side: 'Contralateral' },
+  ], mimicsToConsider: ['Depression', 'Hydrocephalus (NPH triad)'], sourceNote: 'Rare; recurrent artery of Heubner causes face/arm weakness variant.' },
+  ant_choroidal: { anatomy: 'Posterior limb internal capsule, optic tract, medial temporal', vascularSupply: 'Anterior choroidal artery (ICA branch)', featuresTable: [
+    { finding: 'Contralateral hemiparesis (capsular)', side: 'Contralateral' },
+    { finding: 'Contralateral hemisensory loss', side: 'Contralateral' },
+    { finding: 'Contralateral homonymous hemianopia', side: 'Contralateral' },
+  ], mimicsToConsider: ['Lacunar syndrome'], sourceNote: 'Classic triad = "three-H\'s" (hemiparesis, hemisensory, hemianopia) without cortical signs.' },
+  gerstmann: { anatomy: 'Dominant (usually left) angular gyrus (inferior parietal)', vascularSupply: 'Dominant MCA angular branch', featuresTable: [
+    { finding: 'Finger agnosia', side: 'N/A' },
+    { finding: 'Left–right disorientation', side: 'N/A' },
+    { finding: 'Acalculia', side: 'N/A' },
+    { finding: 'Agraphia', side: 'N/A' },
+  ], mimicsToConsider: ['Dementia', 'Delirium'], sourceNote: 'Pure Gerstmann is rare; usually part of larger MCA stroke.' },
+  // ─── Posterior circulation ───
+  pca: { anatomy: 'Occipital cortex ± medial temporal', vascularSupply: 'PCA (P2 or distal)', featuresTable: [
+    { finding: 'Contralateral homonymous hemianopia (macular sparing)', side: 'Contralateral' },
+    { finding: 'Alexia without agraphia (dominant)', side: 'N/A' },
+    { finding: 'Memory deficit (medial temporal)', side: 'N/A' },
+  ], mimicsToConsider: ['Migraine aura', 'Occipital seizure'] },
+  top_basilar: { anatomy: 'Rostral brainstem, bilateral thalami, occipital + medial temporal lobes', vascularSupply: 'Distal basilar / P1 bilateral', featuresTable: [
+    { finding: 'Decreased LOC, somnolence', side: 'N/A' },
+    { finding: 'Vertical gaze palsy, pupillary abnormalities', side: 'N/A' },
+    { finding: 'Bilateral visual loss (cortical blindness)', side: 'Bilateral' },
+    { finding: 'Amnesia, confabulation', side: 'N/A' },
+    { finding: 'Limited motor findings despite severe presentation', side: 'N/A' },
+  ], mimicsToConsider: ['Toxic–metabolic encephalopathy', 'Seizure'], sourceNote: '🚨 Easily missed chameleon. Low NIHSS despite critical occlusion.' },
+  bao: { anatomy: 'Pons, midbrain, cerebellum (entire posterior circulation)', vascularSupply: 'Basilar artery (proximal or mid)', featuresTable: [
+    { finding: 'Quadriparesis, locked-in syndrome', side: 'Bilateral' },
+    { finding: 'Coma or reduced LOC', side: 'N/A' },
+    { finding: 'Bulbar dysfunction (dysphagia, dysarthria)', side: 'N/A' },
+    { finding: 'Cranial nerve palsies (III–VIII)', side: 'N/A' },
+  ], mimicsToConsider: ['Seizure', 'Toxic–metabolic'], sourceNote: '🚨 Mortality >80% without recanalization.' },
+  anton: { anatomy: 'Bilateral occipital cortex', vascularSupply: 'Bilateral PCA (top-of-basilar)', featuresTable: [
+    { finding: 'Cortical blindness', side: 'Bilateral' },
+    { finding: 'Denial of blindness (anosognosia)', side: 'N/A' },
+    { finding: 'Confabulation of visual content', side: 'N/A' },
+  ], mimicsToConsider: ['Psychiatric', 'Delirium'] },
+  balint: { anatomy: 'Bilateral parieto-occipital junction', vascularSupply: 'Bilateral PCA watershed', featuresTable: [
+    { finding: 'Simultanagnosia (inability to perceive multiple objects)', side: 'N/A' },
+    { finding: 'Optic ataxia (impaired visually guided reaching)', side: 'N/A' },
+    { finding: 'Ocular apraxia (impaired voluntary gaze shift)', side: 'N/A' },
+  ], mimicsToConsider: ['Dementia', 'Delirium'] },
+  // ─── Lacunar ───
+  lacunar_pure_motor: { anatomy: 'Posterior limb internal capsule or pons', vascularSupply: 'Lenticulostriates or pontine perforators', featuresTable: [
+    { finding: 'Pure motor hemiparesis (face, arm, leg equally)', side: 'Contralateral' },
+    { finding: 'No sensory, visual, cortical deficits', side: 'N/A' },
+  ], mimicsToConsider: ['Todd\'s paralysis', 'Functional'] },
+  lacunar_pure_sensory: { anatomy: 'Ventroposterolateral thalamus', vascularSupply: 'Thalamogeniculate artery', featuresTable: [
+    { finding: 'Pure hemisensory loss (face, arm, leg)', side: 'Contralateral' },
+    { finding: 'No motor or cortical deficits', side: 'N/A' },
+  ], mimicsToConsider: ['Migraine aura', 'Functional'] },
+  lacunar_sensorimotor: { anatomy: 'Internal capsule + thalamus', vascularSupply: 'Lenticulostriate + thalamoperforator', featuresTable: [
+    { finding: 'Hemiparesis + hemisensory loss', side: 'Contralateral' },
+    { finding: 'No cortical signs', side: 'N/A' },
+  ], mimicsToConsider: ['Partial MCA stroke'] },
+  dysarthria_clumsy_hand: { anatomy: 'Genu internal capsule or basis pontis', vascularSupply: 'Small perforator', featuresTable: [
+    { finding: 'Dysarthria', side: 'N/A' },
+    { finding: 'Clumsy hand (mild weakness, fine-motor)', side: 'Contralateral' },
+    { finding: 'Facial weakness', side: 'Contralateral' },
+  ], mimicsToConsider: ['Intoxication'] },
+  ataxic_hemiparesis: { anatomy: 'Posterior limb internal capsule or pons', vascularSupply: 'Lenticulostriate or pontine perforator', featuresTable: [
+    { finding: 'Weakness + ipsilateral ataxia (out of proportion to weakness)', side: 'Contralateral' },
+    { finding: 'Leg > arm typically', side: 'Contralateral' },
+  ], mimicsToConsider: ['Cerebellar stroke'] },
+  // ─── Brainstem ───
+  wallenberg: { anatomy: 'Lateral medulla', vascularSupply: 'PICA or vertebral artery', featuresTable: [
+    { finding: 'Ipsilateral facial pain/temp loss (CN V spinal tract)', side: 'Ipsilateral' },
+    { finding: 'Contralateral body pain/temp loss (spinothalamic)', side: 'Contralateral' },
+    { finding: 'Ipsilateral Horner\'s (sympathetic)', side: 'Ipsilateral' },
+    { finding: 'Vertigo, nystagmus (vestibular nuclei)', side: 'N/A' },
+    { finding: 'Dysphagia, hoarseness (nucleus ambiguus)', side: 'Ipsilateral' },
+    { finding: 'Ipsilateral limb ataxia (inferior cerebellar peduncle)', side: 'Ipsilateral' },
+  ], mimicsToConsider: ['Peripheral vertigo — differentiate with HINTS'], sourceNote: 'Classic crossed-sensory loss.' },
+  medial_medullary: { anatomy: 'Medial medulla', vascularSupply: 'Anterior spinal artery (vertebral branch)', featuresTable: [
+    { finding: 'Contralateral arm + leg weakness (corticospinal)', side: 'Contralateral' },
+    { finding: 'Contralateral vibration/proprioception loss (medial lemniscus)', side: 'Contralateral' },
+    { finding: 'Ipsilateral tongue weakness (CN XII)', side: 'Ipsilateral' },
+  ], mimicsToConsider: ['Capsular lacune'] },
+  foville: { anatomy: 'Lower/caudal pons (medial)', vascularSupply: 'Paramedian basilar perforators', featuresTable: [
+    { finding: 'Ipsilateral facial weakness (LMN CN VII)', side: 'Ipsilateral' },
+    { finding: 'Ipsilateral lateral gaze palsy (CN VI or PPRF)', side: 'Ipsilateral' },
+    { finding: 'Contralateral hemiparesis', side: 'Contralateral' },
+  ], mimicsToConsider: ['Bell\'s palsy (but Foville adds gaze palsy + hemiparesis)'] },
+  marie_foix: { anatomy: 'Lateral pons', vascularSupply: 'Long circumferential branches of basilar / AICA', featuresTable: [
+    { finding: 'Ipsilateral cerebellar ataxia', side: 'Ipsilateral' },
+    { finding: 'Contralateral hemiparesis', side: 'Contralateral' },
+    { finding: 'Contralateral spinothalamic loss', side: 'Contralateral' },
+  ], mimicsToConsider: ['Cerebellar stroke'] },
+  weber: { anatomy: 'Medial midbrain (cerebral peduncle + CN III fascicle)', vascularSupply: 'PCA perforators', featuresTable: [
+    { finding: 'Ipsilateral CN III palsy (ptosis, "down-and-out" eye, blown pupil)', side: 'Ipsilateral' },
+    { finding: 'Contralateral hemiparesis', side: 'Contralateral' },
+  ], mimicsToConsider: ['Posterior communicating artery aneurysm'] },
+  claude: { anatomy: 'Medial midbrain (red nucleus + CN III)', vascularSupply: 'PCA perforators', featuresTable: [
+    { finding: 'Ipsilateral CN III palsy', side: 'Ipsilateral' },
+    { finding: 'Contralateral ataxia / tremor (red nucleus)', side: 'Contralateral' },
+  ], mimicsToConsider: ['Weber syndrome'] },
+  benedikt: { anatomy: 'Midbrain tegmentum (red nucleus + CN III + corticospinal + medial lemniscus)', vascularSupply: 'PCA perforators', featuresTable: [
+    { finding: 'Ipsilateral CN III palsy', side: 'Ipsilateral' },
+    { finding: 'Contralateral hemiparesis', side: 'Contralateral' },
+    { finding: 'Contralateral ataxia / tremor', side: 'Contralateral' },
+    { finding: 'Contralateral sensory loss', side: 'Contralateral' },
+  ], mimicsToConsider: ['Weber + Claude combined'] },
+  ant_spinal: { anatomy: 'Anterior 2/3 spinal cord', vascularSupply: 'Anterior spinal artery', featuresTable: [
+    { finding: 'Bilateral motor paralysis below lesion', side: 'Bilateral' },
+    { finding: 'Bilateral pain/temp loss below lesion', side: 'Bilateral' },
+    { finding: 'Preserved vibration/proprioception (dorsal columns spared)', side: 'N/A' },
+    { finding: 'Bowel/bladder dysfunction', side: 'N/A' },
+  ], mimicsToConsider: ['Transverse myelitis', 'Compressive myelopathy'], sourceNote: 'Rare; check aortic pathology / post-surgical.' },
+};
+
+// Aliases so matcher ids (left_mca, right_mca, posterior, lacunar_*) can link into details
+window.SYNDROME_DETAILS.left_mca = window.SYNDROME_DETAILS.mca_m1;
+window.SYNDROME_DETAILS.right_mca = window.SYNDROME_DETAILS.mca_m1;
+window.SYNDROME_DETAILS.posterior = window.SYNDROME_DETAILS.bao;
+window.SYNDROME_DETAILS.lacunar_motor = window.SYNDROME_DETAILS.lacunar_pure_motor;
+window.SYNDROME_DETAILS.lacunar_sensory = window.SYNDROME_DETAILS.lacunar_pure_sensory;
+window.SYNDROME_DETAILS.lacunar_mixed = window.SYNDROME_DETAILS.lacunar_sensorimotor;
+
+// ============================================================
+// BEDSIDE ALGORITHM — time-anchored cognitive aid
+// ============================================================
+
+window.BEDSIDE_ALGORITHM = {
+  '0-2': [
+    { text: 'Airway, breathing, circulation; continuous telemetry' },
+    { text: 'Fingerstick glucose', detail: 'Hypoglycemia is the #1 mimic. Target 3.5–22.2 mmol/L.' },
+    { text: 'Establish Last Seen Normal (LSN)', link: 'step-timing' },
+    { text: 'Weight (actual or estimate) for TNK dosing', link: 'step-decision' },
+    { text: 'Two large-bore IVs; bloodwork incl. coags, CBC, lytes, trop, ßhCG' },
+    { text: 'Activate Code Stroke — page OTN Telestroke if remote' },
+  ],
+  '2-5': [
+    { text: 'Parallel history (11-question table below)', detail: 'Run history and exam simultaneously.' },
+    { text: 'Meds review: anticoagulants, insulin/sulfonylureas, antihypertensives' },
+    { text: 'Confirm CT/CTA order; call CT to prioritise' },
+    { text: 'Pre-exam vitals; initial BP — do NOT lower aggressively yet' },
+    { text: 'Rule out mimics — glucose done?', link: 'step-mimics' },
+  ],
+  '5-10': [
+    { text: '30-second cortical/LVO screen (gaze, aphasia, neglect, dense hemiparesis)', detail: 'Any one + NIHSS ≥6 → presume LVO, activate EVT.', link: 'step-nihss' },
+    { text: 'Full NIHSS', link: 'step-nihss' },
+    { text: 'Blind-spot supplement: tandem gait, vertical gaze, pupils, HINTS if vertigo', link: 'step-nihss-ref' },
+    { text: 'Pre-commit checklist: Is deficit disabling? Is it consistent with a territory?' },
+    { text: 'Chameleons: if story sudden focal but exam odd — do not dismiss', link: 'step-mimics' },
+  ],
+  '10-25': [
+    { text: 'NCCT head — rule out ICH, assess early ischemic changes (ASPECTS)', link: 'step-ct' },
+    { text: 'CTA neck + head — identify LVO; arch for access', link: 'step-ct' },
+    { text: 'CT Perfusion if extended window (6–24h) or diagnostic uncertainty' },
+    { text: 'MRI DWI if diagnostic uncertainty (chameleon / posterior circulation)' },
+    { text: 'Consider reversal if DOAC <48h or warfarin INR >1.7', link: 'step-rel-contra' },
+  ],
+  '25-60': [
+    { text: 'Q1: Is this a TNK candidate? (LKN <4.5h, disabling deficit, no ABS CI)', link: 'step-decision' },
+    { text: 'TNK 0.25 mg/kg IV bolus (max 25 mg) — Lakeridge protocol', detail: 'Legacy: tPA 0.9 mg/kg (max 90 mg) — not used here.' },
+    { text: 'Q2: Is this an EVT candidate? (LVO, NIHSS ≥6, ASPECTS ≥6, mRS ≤2, ≤24h per DAWN/DEFUSE-3)', link: 'step-decision' },
+    { text: 'BP management: <185/110 pre-TNK; <180/105 for 24h post', link: 'step-decision' },
+    { text: 'Disposition: ICU post-TNK; transfer to EVT centre if indicated' },
+    { text: 'Document, copy EMR note, debrief team', link: 'step-note' },
+  ],
+};
+
+// ============================================================
+// NIHSS REFERENCE ARRAYS
+// ============================================================
+
+window.NIHSS_GENERAL_RULES = [
+  'Score what you SEE, not what you think the patient can do.',
+  'Do NOT coach — no rephrasing on items 1b, 1c, 9. Give the instruction once.',
+  'Always pick a score — no "unable to test" except items 5/6 UN (amputation/fused joint only).',
+  'You can ONLY go back and re-score Item 1a (if the patient deteriorates). All others: score once.',
+  'Under time pressure, highest-yield items: weakness (5/6), language (9), gaze (2).',
+  'Right-way eyes vs wrong-way eyes (Item 2): MCA lesion → eyes look TOWARD the lesion (right way). Thalamic hemorrhage or pontine → eyes look AWAY from the lesion (wrong way).',
+];
+
+window.NIHSS_NOT_ASSESSED = [
+  'Cognition beyond month/age orientation',
+  'Visual acuity',
+  'Pupils (size, reactivity, anisocoria)',
+  'Vertical gaze and nystagmus',
+  'Cranial nerves VIII, IX, X, XI, XII',
+  'Muscle tone and MRC grading',
+  'Distal weakness (grip strength, foot dorsiflexion)',
+  'Deep tendon reflexes, Babinski',
+  'Vibration and proprioception',
+  'Cortical sensation (graphesthesia, stereognosis)',
+  'Romberg, truncal ataxia',
+  'Gait and tandem gait',
+  'A normal NIHSS does NOT exclude stroke — especially posterior circulation.',
+];
+
+window.NIHSS_FUNCTIONAL_CLUES = [
+  'Hoover\'s sign: Place hand under the "paretic" heel while asking patient to lift opposite leg — feel downward pressure of paretic heel (genuine weakness: no pressure).',
+  'Give-way / collapsing weakness: resistance suddenly drops during exam.',
+  'Co-contraction: agonist and antagonist firing simultaneously.',
+  'Variable weakness: strength changes across the exam with distraction.',
+  'Splitting the midline: strict midline sensory loss is anatomically impossible.',
+  'Non-anatomic distribution: entire limb or hemibody spared of face; or weakness without tone change.',
+  'Exam findings change with suggestion, encouragement, or distraction.',
+];
+
+window.NIHSS_EXAM_PEARLS = [
+  'Delirium vs aphasia: aphasic patient CAN follow simple commands by mimicking; delirious patient cannot sustain attention. Both can be receptively impaired.',
+  'Cerebellar stroke requires tandem gait — NIHSS will not catch it. Always test when safe.',
+  'BP is usually elevated in acute stroke (>60% patients). Do not aggressively lower unless TNK planned or end-organ damage.',
+  'Pupils: sympathomimetic (cocaine, meth) → dilated and reactive; opioid → pinpoint and reactive; pontine hemorrhage → pinpoint and non-reactive; Wallenberg → ipsilateral Horner\'s (miotic, ptosis, anhidrosis).',
+  'Pronator drift catches subtle UMN weakness that passes full-strength testing.',
+  'Anisocoria: isolated finding is NOT a stroke — think CN III palsy, Horner\'s, pharmacologic. Only a stroke feature if accompanied by other brainstem signs (e.g. Wallenberg).',
+];
+
+window.NIHSS_CLINICAL_USE = [
+  'TNK requires a measurable and disabling deficit. No strict NIHSS floor — clinical judgment. Usually ≥4, but lower if deficit is disabling (hand weakness, aphasia, hemianopia).',
+  'EVT eligibility: NIHSS ≥6 with LVO on CTA + ASPECTS ≥6. Window ≤6h standard; 6–24h per DAWN/DEFUSE-3 with imaging mismatch.',
+  'DAPT (CHANCE/POINT): minor non-disabling stroke NIHSS ≤3 or high-risk TIA — ASA + clopidogrel for 21 days then ASA alone.',
+  'Baseline NIHSS is the single strongest predictor of 3-month functional outcome.',
+  '≥4-point increase on serial NIHSS = significant deterioration. Urgent re-imaging indicated.',
+];
+
+window.NIHSS_LIMITATIONS = [
+  'Under-scores posterior circulation strokes (brainstem, cerebellum).',
+  'Dominant-hemisphere weighted — left MCA strokes score higher than right.',
+  'Does not capture cognition, fatigue, mood, gait, or truncal balance.',
+  'Moderate inter-rater variability even among trained examiners.',
+  'NIHSS = 0 does NOT exclude TIA or a missed posterior stroke.',
+  'Fluctuating deficits (e.g. TIA-like, BAO) may score low at assessment but represent critical occlusion.',
+];
+
+
