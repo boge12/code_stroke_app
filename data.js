@@ -1494,7 +1494,7 @@ window.BEDSIDE_ALGORITHM = {
     { text: 'Rule out mimics — glucose done?', link: 'step-mimics' },
   ],
   '5-10': [
-    { text: '30-second cortical/LVO screen (gaze, aphasia, neglect, dense hemiparesis)', detail: 'Any one + NIHSS ≥6 → presume LVO, activate EVT.', link: 'step-nihss' },
+    { text: '30-second cortical/LVO screen (gaze, aphasia, neglect, dense hemiparesis)', detail: 'Any one + NIHSS ≥6 → presume LVO, activate EVT.', link: 'step-quick-screen' },
     { text: 'Full NIHSS', link: 'step-nihss' },
     { text: 'Blind-spot supplement: tandem gait, vertical gaze, pupils, HINTS if vertigo', link: 'step-nihss-ref' },
     { text: 'Pre-commit checklist: Is deficit disabling? Is it consistent with a territory?' },

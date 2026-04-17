@@ -1503,3 +1503,38 @@ label {
 .nihss-extras li { margin-bottom: 4px; color: var(--text); }
 .nihss-extras p { margin: 6px 0; font-size: 13px; color: var(--text); }
 .rubric-table td:first-child { width: 48px; text-align: center; font-weight: 700; }
+
+/* Parallel History questions — mobile-friendly stacked layout */
+.phq-list { display: flex; flex-direction: column; gap: 8px; }
+.phq-item {
+  padding: 10px 12px;
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.phq-ask { font-weight: 600; font-size: 14px; color: var(--text); line-height: 1.4; }
+.phq-why { margin-top: 6px; font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+
+/* Quick Screen step (cortical + posterior) */
+.qs-card { margin-bottom: 12px; }
+.qs-card-title { font-weight: 700; font-size: 15px; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.qs-card-sub { font-size: 13px; color: var(--text-dim); margin-bottom: 10px; line-height: 1.5; }
+.qs-toggle-row {
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.qs-toggle-row:last-child { border-bottom: none; }
+.qs-toggle-label { flex: 1; font-size: 14px; line-height: 1.4; color: var(--text); }
+.qs-toggle-pills { display: flex; gap: 6px; flex-shrink: 0; }
+.qs-toggle-pill {
+  padding: 6px 14px; border-radius: 16px; border: 1px solid var(--border);
+  background: var(--card); color: var(--text); cursor: pointer;
+  font-size: 13px; font-weight: 600; min-width: 48px;
+}
+.qs-toggle-pill.active.yes { background: var(--red); color: #fff; border-color: var(--red); }
+.qs-toggle-pill.active.no { background: var(--blue); color: #fff; border-color: var(--blue); }
+.qs-continue-btn {
+  width: 100%; padding: 14px; margin-top: 16px;
+  background: var(--blue); color: #fff; border: none; border-radius: 10px;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+}
