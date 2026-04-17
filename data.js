@@ -1292,10 +1292,53 @@ window.POSTERIOR_RED_FLAGS = [
 ];
 
 window.CORTICAL_LVO_SCREEN = [
-  { id: 'gaze', label: 'Gaze deviation', description: 'Forced gaze preference (NIHSS Item 2 = 2)' },
-  { id: 'aphasia', label: 'Aphasia', description: 'Language deficit — dominant MCA (Item 9 ≥ 1)' },
-  { id: 'neglect', label: 'Neglect', description: 'Hemi-inattention or extinction — non-dominant MCA (Item 11 ≥ 1)' },
-  { id: 'hemiparesis', label: 'Dense hemiparesis', description: 'Dense arm or leg weakness (Item 5 or 6 = 3–4)' },
+  {
+    id: 'gaze',
+    label: 'Gaze deviation',
+    description: 'Forced gaze preference (NIHSS Item 2 = 2)',
+    howToExamine: [
+      'Sit at the foot of the bed. Ask the patient to follow your finger across midline both ways.',
+      "If unable to follow, call the patient's name from each side to provoke voluntary gaze.",
+      "Test oculocephalic (doll's eyes) ONLY if c-spine cleared — forced deviation will not cross midline.",
+    ],
+    lookFor: 'Eyes deviate toward the lesion and cannot cross midline voluntarily or with name-calling.',
+    pearl: 'Cortical (frontal eye fields) → eyes toward the lesion. Pontine → eyes away. Seizure → eyes away from the seizure focus.',
+  },
+  {
+    id: 'aphasia',
+    label: 'Aphasia',
+    description: 'Language deficit — dominant MCA (Item 9 ≥ 1)',
+    howToExamine: [
+      'Ask the patient to name three objects (pen, watch, keys).',
+      'Ask them to read a short phrase and follow a 2-step command.',
+      'Use the cookie-theft picture for spontaneous speech if time permits.',
+    ],
+    lookFor: 'Non-fluent/halting speech (Broca), fluent-but-nonsensical speech (Wernicke), paraphasic errors, inability to follow commands, or inability to name.',
+    pearl: 'Broca → frontal (MCA superior). Wernicke → temporal (MCA inferior). Even mild aphasia is a cortical flag — don\'t dismiss word-finding pauses.',
+  },
+  {
+    id: 'neglect',
+    label: 'Neglect',
+    description: 'Hemi-inattention or extinction — non-dominant MCA (Item 11 ≥ 1)',
+    howToExamine: [
+      "Stand on the patient's left side. Ask them to look at you and describe the room.",
+      'Double simultaneous stimulation: touch both arms at the same time — do they extinguish one side?',
+      'Ask them to draw a clock face or bisect a line drawn across the page.',
+    ],
+    lookFor: 'Inattention to the left side, extinction to bilateral touch, asymmetric clock-drawing, or anosognosia (denying the deficit).',
+    pearl: 'Right inferior parietal lobule is the classic territory. Neglect can be the only cortical sign in right MCA strokes — easy to miss.',
+  },
+  {
+    id: 'hemiparesis',
+    label: 'Dense hemiparesis',
+    description: 'Dense arm or leg weakness (Item 5 or 6 = 3–4)',
+    howToExamine: [
+      'Arm drift at 90° supinated for 10 seconds, then leg at 30° for 5 seconds.',
+      'Compare power at shoulder, elbow, wrist, hip, knee, ankle.',
+    ],
+    lookFor: 'Dense face+arm (MCA superior) or face+arm+leg (M1) weakness — power ≤2/5 in a major muscle group. A limp limb that does not move against gravity is a strong LVO flag.',
+    pearl: 'Dense weakness in a cortical distribution (face+arm > leg) = MCA. Leg-dominant = ACA. Pure motor (no cortical signs) = lacunar — not an LVO.',
+  },
 ];
 
 window.CORTICAL_LVO_RULE = 'Any one cortical sign + NIHSS ≥ 6 → presume LVO. Activate EVT pathway NOW — do not wait for CTA.';
