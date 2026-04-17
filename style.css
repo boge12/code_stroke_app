@@ -106,20 +106,6 @@ body {
   white-space: nowrap;
 }
 
-/* ── Progress Bar ─────────────────────────────────────────── */
-.progress-bar {
-  height: 4px;
-  background: var(--border);
-  position: sticky;
-  top: calc(56px + env(safe-area-inset-top, 0px));
-  z-index: 99;
-}
-.progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--blue), var(--green));
-  transition: width 0.3s ease;
-}
-
 /* ── Main Content ─────────────────────────────────────────── */
 .screen {
   flex: 1;
@@ -1194,7 +1180,6 @@ label {
   :root { --tap-min: 52px; }
   .score-btn { min-height: 68px; }
   .app-header { min-height: calc(60px + env(safe-area-inset-top, 0px)); }
-  .progress-bar { top: calc(60px + env(safe-area-inset-top, 0px)); }
 }
 
 /* ── Reduced motion ───────────────────────────────────────── */
@@ -1573,4 +1558,22 @@ label {
 }
 .corti-present-btn.active {
   background: var(--red); color: #fff; border-color: var(--red);
+}
+.corti-side-picker {
+  display: flex; gap: 8px; margin-top: 10px;
+}
+.corti-side-btn {
+  flex: 1; padding: 10px; border-radius: 10px;
+  border: 1px solid var(--border); background: var(--card);
+  color: var(--text); font-weight: 600; font-size: 14px; cursor: pointer;
+  min-height: var(--tap-min);
+}
+.corti-side-btn.active {
+  background: var(--blue-dark); color: #fff; border-color: var(--blue-dark);
+}
+.corti-side-warning {
+  margin-top: 8px; padding: 8px 10px;
+  border-radius: 8px; background: rgba(255,213,79,0.1);
+  border: 1px solid var(--yellow); color: var(--yellow);
+  font-size: 13px; font-weight: 600; text-align: center;
 }
