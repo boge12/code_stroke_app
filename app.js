@@ -16,6 +16,7 @@ const STEPS = [
   'step-timing',
   'step-abs-contra',
   'step-rel-contra',
+  'step-quick-screen',
   'step-nihss',
   'step-syndrome',
   'step-ct',
@@ -99,6 +100,7 @@ function newSession() {
     decisionStatus: null, // 'eligible'|'relative'|'ineligible'
     currentStep: 'home',
     corticalScreen: { gaze: false, aphasia: false, neglect: false, hemiparesis: false },
+    posteriorScreen: { fiveD: null, vertigoFocal: null, gaitAtaxia: null, verticalGazeSkew: null },
     nihssReassess: null,
   };
 }
@@ -208,16 +210,17 @@ function updateHeader(stepId) {
 
   const titles = {
     'home': 'Code Stroke',
-    'step-label': 'Step 1 of 9 — Patient',
+    'step-label': 'Step 1 — Patient',
     'step-timing': 'Step 2 — Timing',
     'step-abs-contra': 'Step 3 — Absolute CIs',
     'step-rel-contra': 'Step 4 — History / Relative CIs',
-    'step-nihss': 'Step 5 — NIHSS Assessment',
-    'step-syndrome': 'Step 6 — Syndrome',
-    'step-ct': 'Step 7 — CT Results',
-    'step-decision': 'Step 8 — Decision',
-    'step-consent': 'Step 9 — Consent',
-    'step-note': 'Step 10 — EMR Note',
+    'step-quick-screen': 'Step 5 — Quick Screen',
+    'step-nihss': 'Step 6 — NIHSS Assessment',
+    'step-syndrome': 'Step 7 — Syndrome',
+    'step-ct': 'Step 8 — CT Results',
+    'step-decision': 'Step 9 — Decision',
+    'step-consent': 'Step 10 — Consent',
+    'step-note': 'Step 11 — EMR Note',
   };
 
   title.textContent = titles[stepId] || 'Code Stroke';
@@ -737,41 +740,111 @@ let nihssCurrentIdx = 0;
 function renderNIHSS() {
   nihssCurrentIdx = STATE.current.nihssCurrentIdx || 0;
   STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false };
-  renderCorticalQuickScreen();
   renderNIHSSItem();
   renderNIHSSTabs();
-  updateLvoBanner();
 }
 
-function renderCorticalQuickScreen() {
-  const container = document.getElementById('cortical-quick-screen');
+function renderCorticalQuickScreen(containerId) {
+  const container = document.getElementById(containerId || 'cortical-pills');
   if (!container) return;
   const items = window.CORTICAL_LVO_SCREEN || [];
   if (!items.length) { container.innerHTML = ''; return; }
+  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false };
   const cs = STATE.current.corticalScreen;
-  const rule = window.CORTICAL_LVO_RULE || '';
-  container.innerHTML = `
-    <div class="card">
-      <div class="card-title" style="font-size:14px">⚡ Cortical quick screen — LVO flags</div>
-      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px">
-        ${items.map(item => {
-          const key = item.key || item.id;
-          const label = item.label || item.name || key;
-          const active = !!cs[key];
-          return `<button class="cortical-pill${active ? ' active' : ''}" data-cortical="${key}" style="padding:8px 12px; border-radius:20px; border:1px solid var(--border); background:${active ? 'var(--blue)' : 'var(--card)'}; color:${active ? '#fff' : 'var(--text)'}; cursor:pointer; font-size:13px; font-weight:600">${label}</button>`;
-        }).join('')}
-      </div>
-      ${rule ? `<div class="text-sm" style="margin-top:8px; color:var(--text-dim)">${rule}</div>` : ''}
-    </div>`;
+  container.innerHTML = items.map(item => {
+    const key = item.key || item.id;
+    const label = item.label || item.name || key;
+    const active = !!cs[key];
+    return `<button class="cortical-pill${active ? ' active' : ''}" data-cortical="${key}" style="padding:8px 12px; border-radius:20px; border:1px solid var(--border); background:${active ? 'var(--blue)' : 'var(--card)'}; color:${active ? '#fff' : 'var(--text)'}; cursor:pointer; font-size:13px; font-weight:600; margin:4px">${label}</button>`;
+  }).join('');
+  container.style.display = 'flex';
+  container.style.flexWrap = 'wrap';
+  container.style.gap = '6px';
   container.querySelectorAll('[data-cortical]').forEach(btn => {
     btn.addEventListener('click', () => {
       const k = btn.dataset.cortical;
       STATE.current.corticalScreen[k] = !STATE.current.corticalScreen[k];
       saveCurrentSession();
-      renderCorticalQuickScreen();
-      updateLvoBanner();
+      renderCorticalQuickScreen(containerId);
     });
   });
+}
+
+// ── Quick Screen step (pre-NIHSS: cortical + posterior) ───────
+function renderQuickScreen() {
+  const host = document.getElementById('quick-screen-content');
+  if (!host) return;
+  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false };
+  STATE.current.posteriorScreen = STATE.current.posteriorScreen || { fiveD: null, vertigoFocal: null, gaitAtaxia: null, verticalGazeSkew: null };
+
+  const rule = window.CORTICAL_LVO_RULE || 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.';
+  const posteriorRedFlags = window.POSTERIOR_RED_FLAGS || [];
+
+  const posteriorItems = [
+    { key: 'fiveD', label: 'Any of the 5 Ds? (Dysphagia, Dysarthria, Diplopia, Dysmetria, Decreased LOC)' },
+    { key: 'vertigoFocal', label: "Vertigo + any focal sign (crossed sensory, limb ataxia, Horner's, facial numbness)?" },
+    { key: 'gaitAtaxia', label: 'Cannot sit or stand unaided / truncal ataxia?' },
+    { key: 'verticalGazeSkew', label: 'Vertical gaze palsy, skew deviation, or direction-changing nystagmus?' },
+  ];
+
+  host.innerHTML = `
+    <div class="card qs-card">
+      <div class="qs-card-title">⚡ Cortical quick screen — LVO flags</div>
+      <div class="qs-card-sub">Tap any sign that's present. ${rule}</div>
+      <div id="cortical-pills"></div>
+    </div>
+
+    <div class="card qs-card">
+      <div class="qs-card-title">🧠 Posterior circulation check</div>
+      <div class="qs-card-sub">NIHSS underscores posterior strokes. Tap YES for any that apply.</div>
+      <div id="posterior-check">
+        ${posteriorItems.map(it => {
+          const val = STATE.current.posteriorScreen[it.key];
+          const yesActive = val === true;
+          const noActive = val === false;
+          return `
+          <div class="qs-toggle-row">
+            <div class="qs-toggle-label">${it.label}</div>
+            <div class="qs-toggle-pills">
+              <button class="qs-toggle-pill yes${yesActive ? ' active' : ''}" data-qs-key="${it.key}" data-qs-val="true">Yes</button>
+              <button class="qs-toggle-pill no${noActive ? ' active' : ''}" data-qs-key="${it.key}" data-qs-val="false">No</button>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div id="hints-prompt-qs" style="margin-top:10px"></div>
+      ${posteriorRedFlags.length ? `
+        <details style="margin-top:10px">
+          <summary style="cursor:pointer; font-size:13px; color:var(--text-dim); font-weight:600">More posterior red flags</summary>
+          <ul style="padding-left:18px; margin-top:8px; line-height:1.7; font-size:13px; color:var(--text-dim)">
+            ${posteriorRedFlags.map(x => `<li>${x}</li>`).join('')}
+          </ul>
+        </details>` : ''}
+    </div>
+  `;
+
+  renderCorticalQuickScreen('cortical-pills');
+  wireQuickScreenPosterior();
+}
+
+function wireQuickScreenPosterior() {
+  document.querySelectorAll('[data-qs-key]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.qsKey;
+      const v = btn.dataset.qsVal === 'true';
+      STATE.current.posteriorScreen[k] = v;
+      saveCurrentSession();
+      renderQuickScreen();
+    });
+  });
+  const hp = document.getElementById('hints-prompt-qs');
+  if (!hp) return;
+  const anyYes = Object.values(STATE.current.posteriorScreen).some(v => v === true);
+  if (anyYes) {
+    hp.innerHTML = `<button class="hints-prompt" onclick="goToSide('step-nihss-ref'); setTimeout(()=>{const el=document.getElementById('hints-section'); if(el) el.scrollIntoView({behavior:'smooth'});},120);" style="padding:10px 14px; border-radius:8px; border:1px solid var(--blue); background:transparent; color:var(--blue); font-weight:600; cursor:pointer">📖 Open HINTS exam reference →</button>`;
+  } else {
+    hp.innerHTML = '';
+  }
 }
 
 function updateLvoBanner() {
@@ -957,29 +1030,6 @@ function renderNIHSSItem() {
     doneBtn.style.display = 'none';
   }
 
-  // HINTS prompt: dysarthria/facial asymmetry without cortical signs AND item 9/11 ≈ 0
-  const hintsPrompt = document.getElementById('hints-prompt');
-  if (hintsPrompt) {
-    const s = STATE.current;
-    const cs = s.corticalScreen || {};
-    const anyCortical = Object.values(cs).some(v => v === true);
-    const item7 = (typeof s.nihss['7'] === 'number') ? s.nihss['7'] : 0;
-    const item2 = (typeof s.nihss['2'] === 'number') ? s.nihss['2'] : 0;
-    const item9 = s.nihss['9'];
-    const item11 = s.nihss['11'];
-    const showHints = (item7 > 0 || item2 > 0)
-      && !anyCortical
-      && (item9 === 0 || item9 === undefined)
-      && (item11 === 0 || item11 === undefined);
-    if (showHints) {
-      hintsPrompt.innerHTML = `<button class="hints-prompt" onclick="goToSide('step-nihss-ref'); setTimeout(()=>document.getElementById('hints-section').scrollIntoView({behavior:'smooth'}),100);">Consider HINTS exam (posterior circulation) →</button>`;
-    } else {
-      hintsPrompt.innerHTML = '';
-    }
-  }
-
-  // Any NIHSS change may push total over 6 — re-evaluate LVO banner
-  updateLvoBanner();
 }
 
 // ── Step: Syndrome ────────────────────────────────────────────
@@ -1499,6 +1549,9 @@ function renderDecision() {
 
   setupActionChecklist();
 
+  // LVO banner: fires when any cortical flag + NIHSS ≥ 6
+  updateLvoBanner();
+
   // BP targets card
   const bpCard = document.getElementById('bp-targets-card');
   if (bpCard) {
@@ -1736,6 +1789,11 @@ NIHSS SCORE: ${total} — ${severity.label}
     const flagged = Object.keys(cs).filter(k => cs[k] === true);
     if (flagged.length) return `\n  Cortical LVO flags: ${flagged.join(', ')}`;
     return '';
+  })()}${(() => {
+    const ps = s.posteriorScreen || {};
+    const yes = Object.keys(ps).filter(k => ps[k] === true);
+    if (yes.length) return `\n  Posterior red flags: ${yes.join(', ')}`;
+    return '';
   })()}${(s.nihssReassess !== null && s.nihssReassess !== undefined)
     ? `\n  Reassessment NIHSS: ${s.nihssReassess} (baseline ${total}) — delta Δ ${s.nihssReassess - total}`
     : ''}
@@ -1812,15 +1870,18 @@ function renderMimics(tab) {
       </div>`;
   } else {
     const chams = window.STROKE_CHAMELEONS || [];
-    const camCards = chams.map(c => `
+    const camCards = chams.map(c => {
+      const title = c.presentation || c.name || c.label || '';
+      const terr = c.territory ? `<div style="margin-bottom:6px"><strong>Likely territory:</strong> ${c.territory}</div>` : '';
+      const why = c.whyMissed ? `<div><strong>Why it's missed:</strong> ${c.whyMissed}</div>` : '';
+      return `
       <details class="check-item" style="margin-bottom:8px">
-        <summary style="font-weight:700; cursor:pointer; padding:10px 0">${c.name || c.label || ''}</summary>
+        <summary style="font-weight:700; cursor:pointer; padding:10px 0">${title}</summary>
         <div class="check-detail open" style="padding:6px 0 10px">
-          ${c.keyFeatures ? `<div style="margin-bottom:6px"><strong>Key features:</strong> ${Array.isArray(c.keyFeatures) ? `<ul style="padding-left:18px; margin:4px 0">${c.keyFeatures.map(f => `<li>${f}</li>`).join('')}</ul>` : c.keyFeatures}</div>` : ''}
-          ${c.clues ? `<div style="margin-bottom:6px"><strong>Clues:</strong> ${Array.isArray(c.clues) ? `<ul style="padding-left:18px; margin:4px 0">${c.clues.map(x => `<li>${x}</li>`).join('')}</ul>` : c.clues}</div>` : ''}
-          ${c.ruleInTest || c.ruleOutTest ? `<div><strong>Workup:</strong> ${c.ruleInTest || c.ruleOutTest}</div>` : ''}
+          ${terr}${why}
         </div>
-      </details>`).join('');
+      </details>`;
+    }).join('');
 
     host.innerHTML = `
       <div class="mimic-banner" style="padding:12px; border-radius:10px; background:#7f1d1d; color:#fff; margin-bottom:12px; font-weight:600">Strokes can look like mimics. If the story is sudden focal change and CT/CTA unrevealing: MRI DWI or admit for observation — DO NOT discharge.</div>
@@ -2004,22 +2065,24 @@ function renderAlgorithm() {
   const bucketHtml = order.map(key => {
     const bucket = algo[key];
     if (!bucket) return '';
-    const title = bucket.title || `${key} min`;
-    const items = bucket.items || bucket.actions || [];
+    const isArr = Array.isArray(bucket);
+    const items = isArr ? bucket : (bucket.items || bucket.actions || []);
+    const title = (!isArr && bucket.title) || `${key} min`;
     const rows = items.map(it => {
-      const text = it.text || it.label || it.action || it;
-      const link = it.link;
+      const text = typeof it === 'string' ? it : (it.text || it.label || it.action || '');
+      const detail = (typeof it === 'object' && it.detail) ? `<div style="font-size:12px; color:var(--text-dim); margin-top:2px">${it.detail}</div>` : '';
+      const link = typeof it === 'object' ? it.link : null;
       let arrow = '';
       if (link) {
         const isSide = SIDE_SCREENS.includes(link);
         const fn = isSide ? `goToSide('${link}')` : `goToStep('${link}')`;
-        arrow = `<button class="algo-link" onclick="${fn}" style="background:none; border:none; color:var(--blue); font-size:18px; cursor:pointer; padding:0 4px">→</button>`;
+        arrow = `<button class="algo-link" onclick="${fn}" style="background:none; border:none; color:var(--blue); font-size:18px; cursor:pointer; padding:0 4px" aria-label="Go">→</button>`;
       }
-      return `<div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid var(--border)"><span style="flex:1; font-size:14px">${text}</span>${arrow}</div>`;
+      return `<div style="display:flex; align-items:flex-start; gap:8px; padding:8px 0; border-bottom:1px solid var(--border)"><div style="flex:1; font-size:14px"><div>${text}</div>${detail}</div>${arrow}</div>`;
     }).join('');
     return `
       <details class="algorithm-bucket card" open>
-        <summary style="font-weight:700; font-size:15px; cursor:pointer">⏱ ${title} min</summary>
+        <summary style="font-weight:700; font-size:15px; cursor:pointer">⏱ ${title}</summary>
         <div style="margin-top:8px">${rows || '<p class="text-sm" style="color:var(--text-dim)">No items.</p>'}</div>
       </details>`;
   }).join('');
@@ -2029,15 +2092,15 @@ function renderAlgorithm() {
   let phqHtml = '';
   if (Array.isArray(phq) && phq.length) {
     const rows = phq.map(q => {
-      if (typeof q === 'string') return `<tr><td colspan="2">${q}</td></tr>`;
+      if (typeof q === 'string') return `<div class="phq-item"><div class="phq-ask">${q}</div></div>`;
       const a = q.question || q.q || q.ask || '';
       const b = q.why || q.rationale || q.purpose || '';
-      return `<tr><td>${a}</td><td>${b}</td></tr>`;
+      return `<div class="phq-item"><div class="phq-ask">${a}</div>${b ? `<div class="phq-why">${b}</div>` : ''}</div>`;
     }).join('');
     phqHtml = `
       <div class="card">
         <div class="card-title">🗣 Parallel history questions</div>
-        <div style="overflow-x:auto"><table class="finding-table"><thead><tr><th>Ask</th><th>Why</th></tr></thead><tbody>${rows}</tbody></table></div>
+        <div class="phq-list">${rows}</div>
       </div>`;
   }
 
@@ -2155,6 +2218,11 @@ function init() {
   });
 
   document.getElementById('rel-next').addEventListener('click', () => {
+    renderQuickScreen();
+    goTo('step-quick-screen');
+  });
+
+  document.getElementById('quick-screen-next').addEventListener('click', () => {
     renderNIHSS();
     goTo('step-nihss');
   });
@@ -2242,6 +2310,7 @@ function goToStep(stepId) {
     case 'step-timing': renderTiming(); break;
     case 'step-abs-contra': renderAbsContra(); break;
     case 'step-rel-contra': renderRelContra(); break;
+    case 'step-quick-screen': renderQuickScreen(); break;
     case 'step-nihss': renderNIHSS(); break;
     case 'step-syndrome': renderSyndrome(); break;
     case 'step-ct': renderCT(); break;
