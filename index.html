@@ -20,6 +20,7 @@
     <button class="back-btn" id="back-btn" style="display:none">‹</button>
     <h1 id="header-title">Code Stroke</h1>
     <span class="nihss-score-badge" id="nihss-badge" style="display:none">NIHSS 0</span>
+    <div class="progress-track" id="progress-track" style="display:none"><div class="progress-fill" id="progress-fill"></div></div>
   </header>
 
   <!-- ══════════════════════════════════════════════════════
@@ -127,15 +128,15 @@
       <div id="wakeup-guidance-body" style="font-size:14px; line-height:1.8; color:var(--text-dim)"></div>
     </div>
 
-    <div class="card">
-      <div class="card-title">Window Summary</div>
+    <details class="card card-collapse">
+      <summary>Window Summary</summary>
       <div style="font-size:14px; line-height:1.8; color:var(--text-dim)">
         <div>✅ <strong>&lt;4.5h from onset/found</strong> → TNK window <span style="color:#81c784">OPEN</span></div>
         <div>⚠️ <strong>4.5–24h</strong> → TNK closed, EVT may be possible</div>
         <div>🚫 <strong>&gt;24h</strong> → Outside standard treatment windows</div>
         <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border)"><strong>Wake-up stroke:</strong> TNK window = time from waking/found. MRI DWI-FLAIR mismatch may allow treatment even if &gt;4.5h.</div>
       </div>
-    </div>
+    </details>
 
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
