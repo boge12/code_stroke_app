@@ -106,6 +106,45 @@ body {
   white-space: nowrap;
 }
 
+.progress-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 3px;
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  background: var(--blue);
+  border-radius: 0 2px 2px 0;
+  transition: width 0.25s ease;
+}
+
+/* ── Collapsible cards (progressive disclosure) ───────────── */
+details.card-collapse > summary {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+details.card-collapse > summary::-webkit-details-marker { display: none; }
+details.card-collapse > summary::before {
+  content: '▶';
+  font-size: 10px;
+  color: var(--blue);
+  flex-shrink: 0;
+}
+details.card-collapse[open] > summary::before { content: '▼'; }
+details.card-collapse[open] > summary { margin-bottom: 10px; }
+
 /* ── Main Content ─────────────────────────────────────────── */
 .screen {
   flex: 1;

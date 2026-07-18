@@ -225,6 +225,19 @@ function updateHeader(stepId) {
   title.textContent = titles[stepId] || 'Code Stroke';
   backBtn.style.display = stepId === 'home' ? 'none' : '';
 
+  // Slim progress bar — how far through the workflow
+  const track = document.getElementById('progress-track');
+  const fill = document.getElementById('progress-fill');
+  if (track && fill) {
+    const idx = STEPS.indexOf(stepId);
+    if (idx > 0) {
+      track.style.display = '';
+      fill.style.width = `${Math.round((idx / (STEPS.length - 1)) * 100)}%`;
+    } else {
+      track.style.display = 'none';
+    }
+  }
+
   if (STATE.current && stepId !== 'home') {
     const total = getNIHSSTotal(STATE.current.nihss);
     badge.textContent = `NIHSS ${total}`;
@@ -782,7 +795,7 @@ function renderQuickScreen() {
     const active = !!cs[id];
     const exam = Array.isArray(item.howToExamine) ? item.howToExamine : [];
     const examHtml = exam.length
-      ? `<details class="nihss-exam-details" open>
+      ? `<details class="nihss-exam-details">
           <summary>How to examine</summary>
           <ul class="nihss-instructions">${exam.map(s => `<li>${s}</li>`).join('')}</ul>
           ${item.lookFor ? `<p class="nihss-look-for"><strong>Look for:</strong> ${item.lookFor}</p>` : ''}
@@ -1505,8 +1518,8 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
   ];
 
   return `
-    <div class="card">
-      <div class="card-title">Post-Stroke Admission Management</div>
+    <details class="card card-collapse">
+      <summary>🏥 Admission Management — ${scenarioTitle}</summary>
       <div class="status-banner status-blue" style="margin-bottom:12px">
         <span class="status-icon">🏥</span>
         <div class="status-body">
@@ -1542,7 +1555,7 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
           ${nursingItems.map(i => `<li>${i}</li>`).join('')}
         </ul>
       </div>
-    </div>
+    </details>
   `;
 }
 
@@ -1665,12 +1678,15 @@ function renderDecision() {
 
     <div class="card">
       <div class="card-title">BP Management</div>
-      <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:var(--yellow)">Pre-TNK Target: &lt;185/110 mmHg</div>
-      ${window.BP_MEDS.map(m => `<div style="padding:8px 0; border-bottom:1px solid var(--border)">
-        <span style="font-weight:700">${m.drug}:</span> ${m.dose}<br>
-        <span style="font-size:13px;color:var(--text-dim)">${m.notes}</span>
-      </div>`).join('')}
-      <div style="margin-top:12px; font-size:15px; font-weight:700; color:#81c784">Post-TNK: SBP &lt;160, DBP &lt;80 — Avoid hypotension</div>
+      <div style="font-size:15px; font-weight:700; margin-bottom:4px; color:var(--yellow)">Pre-TNK Target: &lt;185/110 mmHg</div>
+      <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:#81c784">Post-TNK: SBP &lt;160, DBP &lt;80 — Avoid hypotension</div>
+      <details class="nihss-exam-details" style="margin-bottom:0">
+        <summary>Drug dosing</summary>
+        ${window.BP_MEDS.map(m => `<div style="padding:8px 0; border-bottom:1px solid var(--border)">
+          <span style="font-weight:700">${m.drug}:</span> ${m.dose}<br>
+          <span style="font-size:13px;color:var(--text-dim)">${m.notes}</span>
+        </div>`).join('')}
+      </details>
     </div>`;
   }
 
@@ -1697,8 +1713,8 @@ function renderDecision() {
       </div>
     </div>
 
-    <div class="card">
-      <div class="card-title">Disposition</div>
+    <details class="card card-collapse">
+      <summary>Disposition</summary>
       <ul style="padding-left:18px; font-size:15px; line-height:2">
         <li>TNK only → <strong>ICU admission</strong></li>
         <li>EVT candidate → <strong>Critical Care Transport + EVT centre</strong></li>
@@ -1707,7 +1723,7 @@ function renderDecision() {
         <li>Ajax/Pickering EMS → Oshawa campus</li>
         <li>Bowmanville: CT/CTA only — no EVT on site</li>
       </ul>
-    </div>
+    </details>
 
     ${postStrokeMgmt}
 
@@ -1746,7 +1762,7 @@ function renderDecision() {
         return `<tr><td>${scenario}</td><td>${target}</td><td>${notes}</td></tr>`;
       }).join('');
       bpCard.innerHTML = `
-        <details class="card" open>
+        <details class="card">
           <summary style="font-weight:700; cursor:pointer; color:var(--yellow); padding:4px 0">💢 BP targets by scenario</summary>
           <div style="overflow-x:auto; margin-top:8px">
             <table class="finding-table">
@@ -1848,8 +1864,9 @@ function renderConsent() {
   const lsnMin = elapsedMin(s.lsn);
 
   document.getElementById('consent-summary').innerHTML = `
-    <div class="nihss-look-for" style="margin-bottom:16px">
-      <strong>Sample Consent Discussion (based on CSBPR 2022/2025):</strong><br><br>
+    <details class="nihss-exam-details" style="margin-bottom:16px">
+      <summary>Sample consent discussion script (CSBPR 2022/2025)</summary>
+    <div class="nihss-look-for" style="margin-top:10px; margin-bottom:0">
       <em>Adapt to your clinical scenario — this is a template to guide your discussion.</em><br><br>
       "This patient presents with an acute ischemic stroke with an NIHSS of <strong>${total}</strong> (${window.getNIHSSSeverity(total).label}). Time from last known normal is approximately <strong>${lsnMin !== null ? elapsedLabel(lsnMin) : '?'}</strong>.<br><br>
 
@@ -1873,6 +1890,7 @@ function renderConsent() {
 
       I discussed risks and benefits with the <strong>${s.consentWith === 'sdm' ? `SDM (${s.sdmName || '___'})` : 'patient'}</strong>. They understood and ${s.tnkGiven === 'yes' ? 'consented to' : 'were informed about'} treatment.
     </div>
+    </details>
   `;
 
   const sdmName = document.getElementById('sdm-name');
