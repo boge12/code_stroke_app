@@ -1347,47 +1347,15 @@ window.CORTICAL_LVO_RULE = 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.
 // Active-workflow history items: ONLY questions not already captured in
 // timing (onset/wake-up) or Rel-CI (DOAC/warfarin/LMWH/ICH/stroke-trauma-3mo/
 // surgery-14d/seizure/pregnant/disability/age80+DM+stroke).
+// The standalone Relevant History step was removed — its only
+// decision-driving item, baseline mRS, now lives on the Relative CI
+// screen. This list feeds the EMR note generator.
 window.RELEVANT_HISTORY_ITEMS = [
-  {
-    id: 'anticoag_detail',
-    ask: 'Anticoagulant agent + last dose time?',
-    why: 'Only shown if any anticoag flag was YES in Rel-CI. Captures agent name and timing — drives reversal decision.',
-    type: 'text',
-    placeholder: 'e.g. apixaban 5mg, last dose 06:00 today',
-    showIf: (s) => ['doac','lmwh','warfarin','inr','aptt'].some(id => s.relContra[id] === 'yes'),
-  },
-  {
-    id: 'bp_meds',
-    ask: 'Usual BP medications + any missed doses?',
-    why: 'Explains high presenting BP; guides acute lowering plan.',
-    type: 'text',
-    placeholder: 'e.g. amlodipine 5mg daily — missed this AM',
-  },
-  {
-    id: 'dm_meds',
-    ask: 'On insulin or sulfonylurea?',
-    why: 'Hypoglycemia is the #1 mimic — confirms need to recheck fingerstick.',
-    type: 'yesno',
-    detail: 'Agent + last dose',
-  },
   {
     id: 'baseline_mrs',
     ask: 'Baseline function / pre-stroke mRS?',
     why: 'EVT requires pre-stroke mRS ≤ 2. Shapes goals-of-care discussion.',
     type: 'mrs',
-  },
-  {
-    id: 'malignancy',
-    ask: 'Known malignancy (especially intracranial / CNS)?',
-    why: 'Changes risk/benefit. CNS neoplasm = bleeding risk.',
-    type: 'yesno',
-    detail: 'Type / site',
-  },
-  {
-    id: 'postpartum',
-    ask: 'Postpartum (within 30 days)?',
-    why: 'Relative TNK risk. Case-by-case with OB + neurology.',
-    type: 'yesno',
   },
 ];
 
