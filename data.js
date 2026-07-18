@@ -1347,47 +1347,15 @@ window.CORTICAL_LVO_RULE = 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.
 // Active-workflow history items: ONLY questions not already captured in
 // timing (onset/wake-up) or Rel-CI (DOAC/warfarin/LMWH/ICH/stroke-trauma-3mo/
 // surgery-14d/seizure/pregnant/disability/age80+DM+stroke).
+// The standalone Relevant History step was removed — its only
+// decision-driving item, baseline mRS, now lives on the Relative CI
+// screen. This list feeds the EMR note generator.
 window.RELEVANT_HISTORY_ITEMS = [
-  {
-    id: 'anticoag_detail',
-    ask: 'Anticoagulant agent + last dose time?',
-    why: 'Only shown if any anticoag flag was YES in Rel-CI. Captures agent name and timing — drives reversal decision.',
-    type: 'text',
-    placeholder: 'e.g. apixaban 5mg, last dose 06:00 today',
-    showIf: (s) => ['doac','lmwh','warfarin','inr','aptt'].some(id => s.relContra[id] === 'yes'),
-  },
-  {
-    id: 'bp_meds',
-    ask: 'Usual BP medications + any missed doses?',
-    why: 'Explains high presenting BP; guides acute lowering plan.',
-    type: 'text',
-    placeholder: 'e.g. amlodipine 5mg daily — missed this AM',
-  },
-  {
-    id: 'dm_meds',
-    ask: 'On insulin or sulfonylurea?',
-    why: 'Hypoglycemia is the #1 mimic — confirms need to recheck fingerstick.',
-    type: 'yesno',
-    detail: 'Agent + last dose',
-  },
   {
     id: 'baseline_mrs',
     ask: 'Baseline function / pre-stroke mRS?',
     why: 'EVT requires pre-stroke mRS ≤ 2. Shapes goals-of-care discussion.',
     type: 'mrs',
-  },
-  {
-    id: 'malignancy',
-    ask: 'Known malignancy (especially intracranial / CNS)?',
-    why: 'Changes risk/benefit. CNS neoplasm = bleeding risk.',
-    type: 'yesno',
-    detail: 'Type / site',
-  },
-  {
-    id: 'postpartum',
-    ask: 'Postpartum (within 30 days)?',
-    why: 'Relative TNK risk. Case-by-case with OB + neurology.',
-    type: 'yesno',
   },
 ];
 
@@ -1606,6 +1574,28 @@ window.BEDSIDE_ALGORITHM = {
     { text: 'Disposition: ICU post-TNK; transfer to EVT centre if indicated' },
     { text: 'Document, copy EMR note, debrief team', link: 'step-note' },
   ],
+};
+
+// ============================================================
+// "IS THE DEFICIT DISABLING?" — functional judgment framework
+// Shown on Syndrome + Decision screens when NIHSS ≤ 5, and in
+// the Bedside Algorithm reference.
+// ============================================================
+
+window.DISABLING_DEFICIT = {
+  coreQuestion: 'If this deficit were permanent, would it stop this patient from doing their normal daily activities or living independently? If yes, it\'s disabling.',
+  proxyNote: '"Disabling" is a functional judgment, not just a number. NIHSS >4 is the usual proxy, but the score is a screen, not the definition. The trap is the low-NIHSS patient — a deficit can score low yet be genuinely disabling:',
+  lowScoreTraps: [
+    '<strong>Isolated aphasia</strong> — may score 1–2 but wrecks communication / return to work',
+    '<strong>Hemianopia</strong> — low score, but can\'t drive, read',
+    '<strong>Isolated hand weakness</strong> — trivial score for most, career-ending for a surgeon or musician',
+    '<strong>Ataxia / gait instability</strong> — under-weighted by NIHSS, but means falls and loss of independence',
+    '<strong>Isolated dysphagia or facial droop</strong> affecting swallow / speech',
+  ],
+  nonDisabling: 'Conversely, points that don\'t threaten independence (e.g. mild isolated dysarthria, minor sensory loss) point toward non-disabling.',
+  practicalRule: 'Anchor it to THIS person\'s baseline and life. Ask: "What does this patient need to be able to do, and does this deficit take that away?" Factor in dominant hand, occupation, and prior functional status.',
+  borderline: 'When it\'s genuinely borderline low-NIHSS, call the stroke specialist (OTN Telestroke) rather than default to withholding — several low-score deficits still benefit from thrombolysis.',
+  caution: 'Make sure the deficit isn\'t rapidly improving to non-disabling on serial exam, and isn\'t a mimic (post-ictal, hypoglycemia) before you commit.',
 };
 
 // ============================================================

@@ -16,7 +16,6 @@ const STEPS = [
   'step-timing',
   'step-abs-contra',
   'step-rel-contra',
-  'step-history',
   'step-quick-screen',
   'step-nihss',
   'step-posterior',
@@ -230,15 +229,14 @@ function updateHeader(stepId) {
     'step-timing': 'Step 2 — Timing',
     'step-abs-contra': 'Step 3 — Absolute CIs',
     'step-rel-contra': 'Step 4 — Relative CIs',
-    'step-history': 'Step 5 — Relevant History',
-    'step-quick-screen': 'Step 6 — Cortical / LVO Screen',
-    'step-nihss': 'Step 7 — NIHSS Assessment',
-    'step-posterior': 'Step 8 — Posterior Circulation',
-    'step-syndrome': 'Step 9 — Syndrome',
-    'step-ct': 'Step 10 — CT Results',
-    'step-decision': 'Step 11 — Decision',
-    'step-consent': 'Step 12 — Consent',
-    'step-note': 'Step 13 — EMR Note',
+    'step-quick-screen': 'Step 5 — Cortical / LVO Screen',
+    'step-nihss': 'Step 6 — NIHSS Assessment',
+    'step-posterior': 'Step 7 — Posterior Circulation',
+    'step-syndrome': 'Step 8 — Syndrome',
+    'step-ct': 'Step 9 — CT Results',
+    'step-decision': 'Step 10 — Decision',
+    'step-consent': 'Step 11 — Consent',
+    'step-note': 'Step 12 — EMR Note',
   };
 
   title.textContent = titles[stepId] || 'Code Stroke';
@@ -301,7 +299,7 @@ function renderHome() {
     `;
     item.addEventListener('click', () => {
       STATE.current = sess;
-      goTo(sess.currentStep || 'step-timing');
+      goToStep(sess.currentStep || 'step-timing');
     });
     list.appendChild(item);
   }
@@ -581,6 +579,38 @@ function renderRelContra() {
 
     container.appendChild(div);
   }
+
+  // Baseline mRS — the one keeper from the removed Relevant History step
+  // (EVT requires pre-stroke mRS ≤ 2)
+  STATE.current.relevantHistory = STATE.current.relevantHistory || {};
+  const mrsVal = (STATE.current.relevantHistory.baseline_mrs || {}).val;
+  const mrsChoices = [
+    { v: '0', lbl: '0 — No symptoms' },
+    { v: '1', lbl: '1 — No significant disability' },
+    { v: '2', lbl: '2 — Slight disability' },
+    { v: '3', lbl: '3 — Moderate' },
+    { v: '4', lbl: '4 — Moderately severe' },
+    { v: '5', lbl: '5 — Severe' },
+  ];
+  const mrsCard = document.createElement('div');
+  mrsCard.className = 'card qs-card';
+  mrsCard.style.marginTop = '14px';
+  mrsCard.innerHTML = `
+    <div class="qs-card-title">Baseline function / pre-stroke mRS</div>
+    <div class="qs-card-sub">EVT requires pre-stroke mRS ≤ 2. Shapes goals-of-care discussion.</div>
+    <div class="mrs-grid">
+      ${mrsChoices.map(c => `<button class="mrs-pill${mrsVal === c.v ? ' active' : ''}" data-val="${c.v}">${c.lbl}</button>`).join('')}
+    </div>`;
+  mrsCard.querySelectorAll('.mrs-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const rh = STATE.current.relevantHistory;
+      rh.baseline_mrs = rh.baseline_mrs || {};
+      rh.baseline_mrs.val = rh.baseline_mrs.val === btn.dataset.val ? null : btn.dataset.val;
+      saveCurrentSession();
+      renderRelContra();
+    });
+  });
+  container.appendChild(mrsCard);
 
   // Summary
   const yesCount = Object.values(STATE.current.relContra).filter(v => v === 'yes').length;
@@ -950,101 +980,6 @@ function wirePosteriorToggles() {
   }
 }
 
-// ── Relevant History step (post-Rel-CI) ───────────────────────
-function renderHistory() {
-  const host = document.getElementById('history-content');
-  if (!host) return;
-  STATE.current.relevantHistory = STATE.current.relevantHistory || {};
-  const rh = STATE.current.relevantHistory;
-  const items = (window.RELEVANT_HISTORY_ITEMS || []).filter(it => !it.showIf || it.showIf(STATE.current));
-
-  host.innerHTML = items.map(it => {
-    const entry = rh[it.id] || {};
-    if (it.type === 'text') {
-      const val = entry.val || '';
-      return `
-        <div class="card qs-card">
-          <div class="qs-card-title">${it.ask}</div>
-          <div class="qs-card-sub">${it.why}</div>
-          <input type="text" class="rh-text" data-rh-id="${it.id}" placeholder="${it.placeholder || ''}" value="${val.replace(/"/g, '&quot;')}">
-        </div>`;
-    }
-    if (it.type === 'yesno') {
-      const val = entry.val;
-      const yes = val === 'yes';
-      const no = val === 'no';
-      const detail = entry.detail || '';
-      return `
-        <div class="card qs-card">
-          <div class="qs-card-title">${it.ask}</div>
-          <div class="qs-card-sub">${it.why}</div>
-          <div class="qs-toggle-pills">
-            <button class="qs-toggle-pill yes${yes ? ' active' : ''}" data-rh-yn="${it.id}" data-rh-val="yes">Yes</button>
-            <button class="qs-toggle-pill no${no ? ' active' : ''}" data-rh-yn="${it.id}" data-rh-val="no">No</button>
-          </div>
-          ${yes && it.detail ? `<input type="text" class="rh-text" data-rh-id="${it.id}" data-rh-detail="1" placeholder="${it.detail}" value="${detail.replace(/"/g, '&quot;')}" style="margin-top:10px">` : ''}
-        </div>`;
-    }
-    if (it.type === 'mrs') {
-      const val = entry.val;
-      const choices = [
-        { v: '0', lbl: '0 — No symptoms' },
-        { v: '1', lbl: '1 — No significant disability' },
-        { v: '2', lbl: '2 — Slight disability' },
-        { v: '3', lbl: '3 — Moderate' },
-        { v: '4', lbl: '4 — Moderately severe' },
-        { v: '5', lbl: '5 — Severe' },
-      ];
-      return `
-        <div class="card qs-card">
-          <div class="qs-card-title">${it.ask}</div>
-          <div class="qs-card-sub">${it.why}</div>
-          <div class="mrs-grid">
-            ${choices.map(c => `<button class="mrs-pill${val === c.v ? ' active' : ''}" data-rh-mrs="${it.id}" data-rh-val="${c.v}">${c.lbl}</button>`).join('')}
-          </div>
-        </div>`;
-    }
-    return '';
-  }).join('');
-
-  wireHistoryInputs();
-}
-
-function wireHistoryInputs() {
-  document.querySelectorAll('[data-rh-yn]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.rhYn;
-      const val = btn.dataset.rhVal;
-      const rh = STATE.current.relevantHistory;
-      rh[id] = rh[id] || {};
-      rh[id].val = rh[id].val === val ? null : val;
-      saveCurrentSession();
-      renderHistory();
-    });
-  });
-  document.querySelectorAll('[data-rh-mrs]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const id = btn.dataset.rhMrs;
-      const val = btn.dataset.rhVal;
-      const rh = STATE.current.relevantHistory;
-      rh[id] = rh[id] || {};
-      rh[id].val = rh[id].val === val ? null : val;
-      saveCurrentSession();
-      renderHistory();
-    });
-  });
-  document.querySelectorAll('.rh-text').forEach(inp => {
-    inp.addEventListener('input', () => {
-      const id = inp.dataset.rhId;
-      const rh = STATE.current.relevantHistory;
-      rh[id] = rh[id] || {};
-      if (inp.dataset.rhDetail) rh[id].detail = inp.value;
-      else rh[id].val = inp.value;
-      saveCurrentSession();
-    });
-  });
-}
-
 function updateLvoBanner() {
   const banner = document.getElementById('lvo-banner');
   if (!banner) return;
@@ -1278,6 +1213,7 @@ function renderSyndrome() {
         ${severeNote}${minorNote}
       </div>
     </div>
+    ${total <= 5 ? buildDisablingCard(false) : ''}
   `;
 
   const container = document.getElementById('syndrome-list');
@@ -1582,6 +1518,29 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
   `;
 }
 
+// "Is the deficit disabling?" framework card — shared by the Syndrome,
+// Decision, and Bedside Algorithm screens.
+function buildDisablingCard(open) {
+  const d = window.DISABLING_DEFICIT;
+  if (!d) return '';
+  return `
+    <details class="card card-collapse"${open ? ' open' : ''}>
+      <summary>🎯 Is the deficit disabling?</summary>
+      <div class="status-banner status-blue" style="margin-bottom:10px">
+        <span class="status-icon">🎯</span>
+        <div class="status-body"><div class="status-detail" style="font-weight:600">${d.coreQuestion}</div></div>
+      </div>
+      <p class="text-sm" style="margin-bottom:10px; color:var(--text-dim)">${d.proxyNote}</p>
+      <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim); margin-bottom:10px">
+        ${d.lowScoreTraps.map(t => `<li>${t}</li>`).join('')}
+      </ul>
+      <p class="text-sm" style="margin-bottom:10px; color:var(--text-dim)">${d.nonDisabling}</p>
+      <div style="font-size:14px; line-height:1.6; margin-bottom:10px"><strong>Practical rule:</strong> ${d.practicalRule}</div>
+      <div style="font-size:14px; line-height:1.6; margin-bottom:10px; color:var(--blue)"><strong>Borderline low-NIHSS:</strong> ${d.borderline}</div>
+      <div class="nihss-note">⚠️ ${d.caution}</div>
+    </details>`;
+}
+
 // ── Step: Decision ───────────────────────────────────────────
 function renderDecision() {
   const s = STATE.current;
@@ -1724,6 +1683,8 @@ function renderDecision() {
         ${reasons.length > 0 ? `<div class="status-detail">${reasons.map(r => `• ${r}`).join('<br>')}</div>` : ''}
       </div>
     </div>
+
+    ${total <= 5 ? buildDisablingCard(true) : ''}
 
     ${evtBanner}
 
@@ -1971,6 +1932,11 @@ function collectGaps() {
 
   const relOpen = window.REL_CONTRA.filter(r => s.relContra[r.id] === undefined).length;
   if (relOpen) gaps.push({ label: `${relOpen} relative contraindication item${relOpen > 1 ? 's' : ''} unanswered`, step: 'step-rel-contra' });
+
+  const mrs = ((s.relevantHistory || {}).baseline_mrs || {}).val;
+  if (mrs === null || mrs === undefined || mrs === '') {
+    gaps.push({ label: 'Baseline pre-stroke mRS not recorded (EVT requires ≤2)', step: 'step-rel-contra' });
+  }
 
   const unscored = NIHSS_ORDER.filter(id => s.nihss[id] === undefined);
   if (unscored.length) gaps.push({ label: `NIHSS item${unscored.length > 1 ? 's' : ''} ${unscored.join(', ')} not scored`, step: 'step-nihss' });
@@ -2480,6 +2446,7 @@ function renderAlgorithm() {
 
   host.innerHTML = `
     ${bucketHtml}
+    ${buildDisablingCard(false)}
     ${phqHtml}
     ${corticalHtml}
     ${bpHtml}
@@ -2542,11 +2509,6 @@ function init() {
   });
 
   document.getElementById('rel-next').addEventListener('click', () => {
-    renderHistory();
-    goTo('step-history');
-  });
-
-  document.getElementById('history-next').addEventListener('click', () => {
     renderQuickScreen();
     goTo('step-quick-screen');
   });
@@ -2638,13 +2600,14 @@ function goToStep(stepId) {
     window.goToSide(stepId);
     return;
   }
+  // Sessions saved before the Relevant History step was removed
+  if (stepId === 'step-history') stepId = 'step-quick-screen';
   switch(stepId) {
     case 'home': renderHome(); break;
     case 'step-label': renderLabel(); break;
     case 'step-timing': renderTiming(); break;
     case 'step-abs-contra': renderAbsContra(); break;
     case 'step-rel-contra': renderRelContra(); break;
-    case 'step-history': renderHistory(); break;
     case 'step-quick-screen': renderQuickScreen(); break;
     case 'step-nihss': renderNIHSS(); break;
     case 'step-posterior': renderPosterior(); break;
