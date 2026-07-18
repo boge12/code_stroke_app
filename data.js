@@ -1609,6 +1609,28 @@ window.BEDSIDE_ALGORITHM = {
 };
 
 // ============================================================
+// "IS THE DEFICIT DISABLING?" — functional judgment framework
+// Shown on Syndrome + Decision screens when NIHSS ≤ 5, and in
+// the Bedside Algorithm reference.
+// ============================================================
+
+window.DISABLING_DEFICIT = {
+  coreQuestion: 'If this deficit were permanent, would it stop this patient from doing their normal daily activities or living independently? If yes, it\'s disabling.',
+  proxyNote: '"Disabling" is a functional judgment, not just a number. NIHSS >4 is the usual proxy, but the score is a screen, not the definition. The trap is the low-NIHSS patient — a deficit can score low yet be genuinely disabling:',
+  lowScoreTraps: [
+    '<strong>Isolated aphasia</strong> — may score 1–2 but wrecks communication / return to work',
+    '<strong>Hemianopia</strong> — low score, but can\'t drive, read',
+    '<strong>Isolated hand weakness</strong> — trivial score for most, career-ending for a surgeon or musician',
+    '<strong>Ataxia / gait instability</strong> — under-weighted by NIHSS, but means falls and loss of independence',
+    '<strong>Isolated dysphagia or facial droop</strong> affecting swallow / speech',
+  ],
+  nonDisabling: 'Conversely, points that don\'t threaten independence (e.g. mild isolated dysarthria, minor sensory loss) point toward non-disabling.',
+  practicalRule: 'Anchor it to THIS person\'s baseline and life. Ask: "What does this patient need to be able to do, and does this deficit take that away?" Factor in dominant hand, occupation, and prior functional status.',
+  borderline: 'When it\'s genuinely borderline low-NIHSS, call the stroke specialist (OTN Telestroke) rather than default to withholding — several low-score deficits still benefit from thrombolysis.',
+  caution: 'Make sure the deficit isn\'t rapidly improving to non-disabling on serial exam, and isn\'t a mimic (post-ictal, hypoglycemia) before you commit.',
+};
+
+// ============================================================
 // NIHSS REFERENCE ARRAYS
 // ============================================================
 

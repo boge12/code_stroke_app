@@ -1278,6 +1278,7 @@ function renderSyndrome() {
         ${severeNote}${minorNote}
       </div>
     </div>
+    ${total <= 5 ? buildDisablingCard(false) : ''}
   `;
 
   const container = document.getElementById('syndrome-list');
@@ -1582,6 +1583,29 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
   `;
 }
 
+// "Is the deficit disabling?" framework card — shared by the Syndrome,
+// Decision, and Bedside Algorithm screens.
+function buildDisablingCard(open) {
+  const d = window.DISABLING_DEFICIT;
+  if (!d) return '';
+  return `
+    <details class="card card-collapse"${open ? ' open' : ''}>
+      <summary>🎯 Is the deficit disabling?</summary>
+      <div class="status-banner status-blue" style="margin-bottom:10px">
+        <span class="status-icon">🎯</span>
+        <div class="status-body"><div class="status-detail" style="font-weight:600">${d.coreQuestion}</div></div>
+      </div>
+      <p class="text-sm" style="margin-bottom:10px; color:var(--text-dim)">${d.proxyNote}</p>
+      <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim); margin-bottom:10px">
+        ${d.lowScoreTraps.map(t => `<li>${t}</li>`).join('')}
+      </ul>
+      <p class="text-sm" style="margin-bottom:10px; color:var(--text-dim)">${d.nonDisabling}</p>
+      <div style="font-size:14px; line-height:1.6; margin-bottom:10px"><strong>Practical rule:</strong> ${d.practicalRule}</div>
+      <div style="font-size:14px; line-height:1.6; margin-bottom:10px; color:var(--blue)"><strong>Borderline low-NIHSS:</strong> ${d.borderline}</div>
+      <div class="nihss-note">⚠️ ${d.caution}</div>
+    </details>`;
+}
+
 // ── Step: Decision ───────────────────────────────────────────
 function renderDecision() {
   const s = STATE.current;
@@ -1724,6 +1748,8 @@ function renderDecision() {
         ${reasons.length > 0 ? `<div class="status-detail">${reasons.map(r => `• ${r}`).join('<br>')}</div>` : ''}
       </div>
     </div>
+
+    ${total <= 5 ? buildDisablingCard(true) : ''}
 
     ${evtBanner}
 
@@ -2480,6 +2506,7 @@ function renderAlgorithm() {
 
   host.innerHTML = `
     ${bucketHtml}
+    ${buildDisablingCard(false)}
     ${phqHtml}
     ${corticalHtml}
     ${bpHtml}
