@@ -199,6 +199,25 @@ function goTo(stepId) {
   updateHeader(stepId);
 }
 
+// Always-visible TNK-window clock: elapsed since LKN (or wake/found time for
+// wake-up strokes). Yellow approaching the 4.5h cutoff, red once past it.
+function updateLknChip() {
+  const chip = document.getElementById('lkn-chip');
+  if (!chip) return;
+  const s = STATE.current;
+  const active = document.querySelector('.screen.active');
+  const onHome = !active || active.id === 'screen-home';
+  if (!s || onHome) { chip.style.display = 'none'; return; }
+  const isWakeup = s.onsetKnown === 'wakeup';
+  const min = elapsedMin(isWakeup ? s.wakeTime : s.lsn);
+  if (min === null || min < 0) { chip.style.display = 'none'; return; }
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  chip.textContent = `${isWakeup ? 'Found' : 'LKN'} ${h}:${String(m).padStart(2, '0')}`;
+  chip.className = 'lkn-chip' + (min > 270 ? ' lkn-over' : min > 225 ? ' lkn-warn' : '');
+  chip.style.display = '';
+}
+
 function updateHeader(stepId) {
   const header = document.getElementById('main-header');
   const backBtn = document.getElementById('back-btn');
@@ -245,6 +264,8 @@ function updateHeader(stepId) {
   } else {
     badge.style.display = 'none';
   }
+
+  updateLknChip();
 }
 
 // ── Home Screen ──────────────────────────────────────────────
@@ -371,6 +392,8 @@ function renderTiming() {
 
     if (STATE.current.lsn) onsetInp.value = formatTimeValue(STATE.current.lsn);
     if (STATE.current.wakeTime && wakeInp) wakeInp.value = formatTimeValue(STATE.current.wakeTime);
+
+    updateLknChip();
   }
 
   onsetBtns.forEach(b => {
@@ -1927,11 +1950,89 @@ function renderConsent() {
 }
 
 // ── Step: Note ────────────────────────────────────────────────
+// "Did I miss anything?" — everything left unanswered in the workflow,
+// each with the step to jump back to. Advisory only, never blocking.
+function collectGaps() {
+  const s = STATE.current;
+  const gaps = [];
+  if (!s) return gaps;
+
+  if (!s.onsetKnown) {
+    gaps.push({ label: 'Onset type not selected (known / unknown / wake-up)', step: 'step-timing' });
+  } else if (s.onsetKnown === 'wakeup') {
+    if (!s.lsn) gaps.push({ label: 'Bedtime / last seen well not entered', step: 'step-timing' });
+    if (!s.wakeTime) gaps.push({ label: 'Wake / found time not entered', step: 'step-timing' });
+  } else if (s.onsetKnown === 'yes' && !s.lsn) {
+    gaps.push({ label: 'Last known normal time not entered', step: 'step-timing' });
+  }
+
+  const absOpen = window.ABS_CONTRA.filter(a => s.absContra[a.id] === undefined).length;
+  if (absOpen) gaps.push({ label: `${absOpen} absolute contraindication item${absOpen > 1 ? 's' : ''} unanswered`, step: 'step-abs-contra' });
+
+  const relOpen = window.REL_CONTRA.filter(r => s.relContra[r.id] === undefined).length;
+  if (relOpen) gaps.push({ label: `${relOpen} relative contraindication item${relOpen > 1 ? 's' : ''} unanswered`, step: 'step-rel-contra' });
+
+  const unscored = NIHSS_ORDER.filter(id => s.nihss[id] === undefined);
+  if (unscored.length) gaps.push({ label: `NIHSS item${unscored.length > 1 ? 's' : ''} ${unscored.join(', ')} not scored`, step: 'step-nihss' });
+
+  const ps = s.posteriorScreen || {};
+  const postOpen = ['fiveD', 'vertigoFocal', 'gaitAtaxia', 'verticalGazeSkew'].filter(k => ps[k] === null || ps[k] === undefined).length;
+  if (postOpen) gaps.push({ label: `Posterior circulation check — ${postOpen} question${postOpen > 1 ? 's' : ''} unanswered`, step: 'step-posterior' });
+
+  if (s.ctClear === null) gaps.push({ label: 'CT head result not recorded', step: 'step-ct' });
+  if (s.aspects === null) gaps.push({ label: 'ASPECTS not entered', step: 'step-ct' });
+  if (s.ctaDone === null) gaps.push({ label: 'CTA done / not done not recorded', step: 'step-ct' });
+  if (s.ctaDone === 'yes' && s.lvo === null) gaps.push({ label: 'LVO present / absent not recorded', step: 'step-ct' });
+
+  if ((s.decisionStatus === 'eligible' || s.decisionStatus === 'relative') && !s.weightKg) {
+    gaps.push({ label: 'Weight not entered — TNK dose not calculated', step: 'step-decision' });
+  }
+
+  if (s.tnkGiven === null) {
+    gaps.push({ label: 'TNK given / not given not recorded', step: 'step-consent' });
+  } else if (s.tnkGiven === 'yes') {
+    if (!s.tnkTime) gaps.push({ label: 'TNK administration time not recorded', step: 'step-consent' });
+    if (!s.consentWith) gaps.push({ label: 'Consent (patient vs SDM) not recorded', step: 'step-consent' });
+  }
+
+  return gaps;
+}
+
+function renderGapCheck() {
+  const host = document.getElementById('note-gap-check');
+  if (!host) return;
+  const gaps = collectGaps();
+  if (!gaps.length) {
+    host.innerHTML = `
+      <div class="status-banner status-green">
+        <span class="status-icon">🛡</span>
+        <div class="status-body"><div class="status-title">Nothing missed — all workflow items answered</div></div>
+      </div>`;
+    return;
+  }
+  host.innerHTML = `
+    <div class="status-banner status-yellow">
+      <span class="status-icon">🛡</span>
+      <div class="status-body">
+        <div class="status-title">${gaps.length} item${gaps.length > 1 ? 's' : ''} not yet answered</div>
+        <div class="status-detail">Tap to jump back — or copy the note as-is if intentional.</div>
+      </div>
+    </div>
+    <div class="card" style="padding:8px 14px">
+      ${gaps.map(g => `
+        <button class="gap-row" onclick="goToStep('${g.step}')">
+          <span class="gap-label">${g.label}</span>
+          <span class="gap-arrow">→</span>
+        </button>`).join('')}
+    </div>`;
+}
+
 function renderNote() {
   const note = generateNote();
   STATE.current.note = note;
   saveCurrentSession();
   document.getElementById('note-output').textContent = note;
+  renderGapCheck();
 }
 
 function generateNote() {
@@ -2397,6 +2498,9 @@ function init() {
   loadState();
   renderHome();
   goTo('home');
+
+  // Keep the header LKN clock ticking
+  setInterval(updateLknChip, 30000);
 
   // New case button
   document.getElementById('new-case-btn').addEventListener('click', () => {
