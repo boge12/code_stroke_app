@@ -22,6 +22,8 @@ const STEPS = [
   'step-ct',
   'step-decision',
   'step-consent',
+  'step-dispo',
+  'step-admit',
   'step-note',
 ];
 
@@ -248,7 +250,9 @@ function updateHeader(stepId) {
     'step-syndrome': 'Scanner · Syndrome',
     'step-ct': 'Decide · CT Results',
     'step-decision': 'Decide · TNK / EVT',
-    'step-consent': 'Document · Consent',
+    'step-consent': 'Treat · Consent & TNK',
+    'step-dispo': 'Dispo · Destination',
+    'step-admit': 'Dispo · Admission Orders',
     'step-note': 'Document · EMR Note',
   };
 
@@ -1404,7 +1408,8 @@ document.addEventListener('click', (e) => {
 // ── Post-Stroke Admission Management ─────────────────────────
 function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
   const total = getNIHSSTotal(s.nihss);
-  const tnkGiven = tnkStatus === 'eligible' || tnkStatus === 'relative';
+  // Prefer the recorded administration over the predicted eligibility
+  const tnkGiven = s.tnkGiven ? s.tnkGiven === 'yes' : (tnkStatus === 'eligible' || tnkStatus === 'relative');
 
   let scenarioTitle = '';
   let admitTo = '';
@@ -1416,7 +1421,7 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
 
   // CSBPR Box 5D — pre-EVT / transfer management + post-EVT care
   const buildEvtCare = () => `
-    <div style="margin-bottom:14px">
+    <div class="card">
       <div style="font-size:14px; font-weight:700; color:#ef9a9a; margin-bottom:6px">🚑 Pre-EVT / Transfer (CSBPR Box 5D)</div>
       <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
         <li>Maintain O₂ sat >92%; intubate only if reduced oxygenation, vomiting, or heavy sedation needed</li>
@@ -1534,48 +1539,89 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
     'Smoking cessation counseling if applicable',
   ];
 
+  const section = (icon, title, color, items, open) => `
+    <details class="card card-collapse"${open ? ' open' : ''}>
+      <summary style="color:${color}">${icon} ${title}</summary>
+      <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
+        ${items.map(i => `<li>${i}</li>`).join('')}
+      </ul>
+    </details>`;
+
   return `
-    <details class="card card-collapse">
-      <summary>🏥 Admission Management — ${scenarioTitle}</summary>
-      <div class="status-banner status-blue" style="margin-bottom:12px">
-        <span class="status-icon">🏥</span>
-        <div class="status-body">
-          <div class="status-title">${scenarioTitle}</div>
-          <div class="status-detail">Admit to: ${admitTo}</div>
-        </div>
+    <div class="status-banner status-blue">
+      <span class="status-icon">🏥</span>
+      <div class="status-body">
+        <div class="status-title">${scenarioTitle}</div>
+        <div class="status-detail">Admit to: ${admitTo}</div>
       </div>
+    </div>
 
-      ${evtCareHtml}
+    ${evtCareHtml}
 
-      <div style="margin-bottom:14px">
-        <div style="font-size:14px; font-weight:700; color:var(--blue); margin-bottom:6px">📊 Monitoring</div>
-        <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
-          ${monitoringItems.map(i => `<li>${i}</li>`).join('')}
-        </ul>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <div style="font-size:14px; font-weight:700; color:var(--yellow); margin-bottom:6px">💊 Medications</div>
-        <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
-          ${medItems.map(i => `<li>${i}</li>`).join('')}
-        </ul>
-      </div>
-
-      <div style="margin-bottom:14px">
-        <div style="font-size:14px; font-weight:700; color:var(--purple); margin-bottom:6px">🔬 Investigations</div>
-        <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
-          ${investigationItems.map(i => `<li>${i}</li>`).join('')}
-        </ul>
-      </div>
-
-      <div>
-        <div style="font-size:14px; font-weight:700; color:var(--green); margin-bottom:6px">🩺 Nursing / Allied Health</div>
-        <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
-          ${nursingItems.map(i => `<li>${i}</li>`).join('')}
-        </ul>
-      </div>
-    </details>
+    ${section('📊', 'Monitoring', 'var(--blue)', monitoringItems, true)}
+    ${section('💊', 'Medications', 'var(--yellow)', medItems, false)}
+    ${section('🔬', 'Investigations', 'var(--purple)', investigationItems, false)}
+    ${section('🩺', 'Nursing / Allied Health', 'var(--green)', nursingItems, false)}
   `;
+}
+
+// ── Step: Disposition ─────────────────────────────────────────
+function renderDispo() {
+  const host = document.getElementById('dispo-content');
+  if (!host) return;
+  host.innerHTML = `
+    <div class="card">
+      <div class="card-title">Where does this patient go?</div>
+      <ul style="padding-left:18px; font-size:15px; line-height:2">
+        <li>TNK only → <strong>ICU admission</strong></li>
+        <li>EVT candidate → <strong>Critical Care Transport + EVT centre</strong></li>
+        <li>Day (08:00+): GIM/Neuro team</li>
+        <li>After midnight: ED runs workflow until morning</li>
+        <li>Ajax/Pickering EMS → Oshawa campus</li>
+        <li>Bowmanville: CT/CTA only — no EVT on site</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Calls & Actions</div>
+      <div id="action-checklist">${buildActionChecklist()}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">OTN Telestroke</div>
+      <p class="text-sm" style="margin-bottom:0">Call for: borderline, atypical, posterior circulation, or relative CIs. Low threshold — OTN is there to help.</p>
+    </div>`;
+  setupActionChecklist();
+}
+
+// ── Step: Admission Orders ────────────────────────────────────
+function renderAdmit() {
+  const host = document.getElementById('admit-content');
+  if (!host) return;
+  const s = STATE.current;
+  const tnkStatus = s.decisionStatus || 'ineligible';
+  const lvoPresent = s.lvo === 'yes';
+  const lsnMin = elapsedMin(s.lsn);
+  const aspectsOk = s.aspects === null || s.aspects >= 6;
+  const evtStatus = (lvoPresent && lsnMin !== null && lsnMin <= 1440 && aspectsOk) ? 'eligible' : 'none';
+
+  let bpHtml = '';
+  const bp = window.BP_TARGETS || [];
+  if (bp.length) {
+    const rows = bp.map(row => `<tr><td>${row.scenario || row.context || row.label || ''}</td><td>${row.target || row.targetBP || row.bp || ''}</td><td>${row.notes || row.rationale || row.detail || ''}</td></tr>`).join('');
+    bpHtml = `
+      <details class="card card-collapse">
+        <summary style="color:var(--yellow)">💢 BP targets by scenario</summary>
+        <div style="overflow-x:auto">
+          <table class="finding-table">
+            <thead><tr><th>Scenario</th><th>Target</th><th>Notes</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </details>`;
+  }
+
+  host.innerHTML = buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) + bpHtml;
 }
 
 // "Is the deficit disabling?" framework card — shared by the Syndrome,
@@ -1901,9 +1947,6 @@ function renderDecision() {
     </div>`;
   }
 
-  // Post-stroke admission management recommendations
-  const postStrokeMgmt = buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus);
-
   document.getElementById('decision-content').innerHTML = `
     <div class="status-banner ${tnkBannerClass}">
       <span class="status-icon">${tnkIcon}</span>
@@ -1931,32 +1974,6 @@ function renderDecision() {
     ${s.tnkGiven === 'yes' ? buildTnkComplicationsCard() : ''}
 
     ${buildEligibilityCard()}
-
-    <div class="card">
-      <div class="card-title">Lakeridge Actions</div>
-      <div id="action-checklist">
-        ${buildActionChecklist()}
-      </div>
-    </div>
-
-    <details class="card card-collapse">
-      <summary>Disposition</summary>
-      <ul style="padding-left:18px; font-size:15px; line-height:2">
-        <li>TNK only → <strong>ICU admission</strong></li>
-        <li>EVT candidate → <strong>Critical Care Transport + EVT centre</strong></li>
-        <li>Day (08:00+): GIM/Neuro team</li>
-        <li>After midnight: ED runs workflow until morning</li>
-        <li>Ajax/Pickering EMS → Oshawa campus</li>
-        <li>Bowmanville: CT/CTA only — no EVT on site</li>
-      </ul>
-    </details>
-
-    ${postStrokeMgmt}
-
-    <div class="card">
-      <div class="card-title">OTN Telestroke</div>
-      <p class="text-sm" style="margin-bottom:8px">Call for: borderline cases, atypical presentations, posterior circulation, or when relative CIs present. Low threshold — OTN is there to help.</p>
-    </div>
   `;
 
   // Set weight value after DOM injection (only if dose calculator is visible)
@@ -1971,8 +1988,6 @@ function renderDecision() {
     });
   }
 
-  setupActionChecklist();
-
   if (total <= 5) {
     wireDisablingChecklist(document.getElementById('decision-content'), renderDecision);
     const det = document.getElementById('dc-details');
@@ -1981,32 +1996,6 @@ function renderDecision() {
 
   // LVO banner: fires when any cortical flag + NIHSS ≥ 6
   updateLvoBanner();
-
-  // BP targets card
-  const bpCard = document.getElementById('bp-targets-card');
-  if (bpCard) {
-    const bp = window.BP_TARGETS || [];
-    if (bp.length) {
-      const rows = bp.map(row => {
-        const scenario = row.scenario || row.context || row.label || '';
-        const target = row.target || row.targetBP || row.bp || '';
-        const notes = row.notes || row.rationale || row.detail || '';
-        return `<tr><td>${scenario}</td><td>${target}</td><td>${notes}</td></tr>`;
-      }).join('');
-      bpCard.innerHTML = `
-        <details class="card">
-          <summary style="font-weight:700; cursor:pointer; color:var(--yellow); padding:4px 0">💢 BP targets by scenario</summary>
-          <div style="overflow-x:auto; margin-top:8px">
-            <table class="finding-table">
-              <thead><tr><th>Scenario</th><th>Target</th><th>Notes</th></tr></thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-        </details>`;
-    } else {
-      bpCard.innerHTML = '';
-    }
-  }
 
   // NIHSS reassessment input
   const reassessInp = document.getElementById('nihss-reassess-input');
@@ -2817,6 +2806,16 @@ function init() {
   });
 
   document.getElementById('consent-next').addEventListener('click', () => {
+    renderDispo();
+    goTo('step-dispo');
+  });
+
+  document.getElementById('dispo-next').addEventListener('click', () => {
+    renderAdmit();
+    goTo('step-admit');
+  });
+
+  document.getElementById('admit-next').addEventListener('click', () => {
     renderNote();
     goTo('step-note');
   });
@@ -2892,6 +2891,8 @@ function goToStep(stepId) {
     case 'step-ct': renderCT(); break;
     case 'step-decision': renderDecision(); break;
     case 'step-consent': renderConsent(); break;
+    case 'step-dispo': renderDispo(); break;
+    case 'step-admit': renderAdmit(); break;
     case 'step-note': renderNote(); break;
   }
   goTo(stepId);
