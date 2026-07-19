@@ -1270,7 +1270,7 @@ window.DOAC_REVERSAL = [
   { drug: 'LMWH (enoxaparin <8h)', reversal: 'Protamine (partial)', dose: '1 mg per 1 mg enoxaparin', notes: 'Only ~60% reversal; >8h use 0.5 mg/mg.' },
 ];
 
-window.DOAC_REVERSAL_FOOTER = 'Confirm with OTN Telestroke before reversing anticoagulation to enable TNK.';
+window.DOAC_REVERSAL_FOOTER = 'Thrombolysis is NOT routine on DOACs — consider only where DOAC level testing and reversal agents are available, in consultation with stroke/thrombosis experts (CSBPR). Confirm with OTN Telestroke before reversing anticoagulation to enable TNK. Anticoagulation is NOT a contraindication for EVT.';
 
 window.HINTS_EXAM = [
   { component: 'Head Impulse Test', peripheral: 'Abnormal (catch-up saccade present) = peripheral', central: 'Normal (no catch-up saccade) = central — counterintuitive!' },
@@ -1376,6 +1376,36 @@ window.PARALLEL_HISTORY_QUESTIONS = [
 // ============================================================
 // SYNDROME DETAILS — expanded reference by id
 // ============================================================
+
+// Display names for SYNDROME_DETAILS keys (entries themselves carry no name)
+window.SYNDROME_NAMES = {
+  lmca_upper: 'Left MCA — superior division',
+  rmca_upper: 'Right MCA — superior division',
+  lmca_lower: 'Left MCA — inferior division',
+  rmca_lower: 'Right MCA — inferior division',
+  mca_m1: 'MCA — M1 occlusion (complete MCA)',
+  aca: 'ACA — anterior cerebral artery',
+  ant_choroidal: 'Anterior choroidal artery',
+  gerstmann: 'Gerstmann syndrome (dominant parietal)',
+  pca: 'PCA — posterior cerebral artery',
+  top_basilar: 'Top-of-the-basilar syndrome',
+  bao: 'Basilar artery occlusion',
+  anton: 'Anton syndrome (cortical blindness)',
+  balint: 'Bálint syndrome (bilateral parieto-occipital)',
+  lacunar_pure_motor: 'Pure motor lacunar (internal capsule / pons)',
+  lacunar_pure_sensory: 'Pure sensory lacunar (thalamus)',
+  lacunar_sensorimotor: 'Sensorimotor lacunar (thalamocapsular)',
+  dysarthria_clumsy_hand: 'Dysarthria–clumsy hand syndrome',
+  ataxic_hemiparesis: 'Ataxic hemiparesis',
+  wallenberg: 'Wallenberg — lateral medullary',
+  medial_medullary: 'Medial medullary (Déjerine)',
+  foville: 'Foville — dorsal pontine',
+  marie_foix: 'Marie–Foix — lateral pontine',
+  weber: 'Weber — midbrain (CN III + hemiparesis)',
+  claude: 'Claude — midbrain (CN III + ataxia)',
+  benedikt: 'Benedikt — midbrain (CN III + movement disorder)',
+  ant_spinal: 'Anterior spinal artery',
+};
 
 window.SYNDROME_DETAILS = {
   // ─── Anterior circulation ───
@@ -1553,7 +1583,7 @@ window.BEDSIDE_ALGORITHM = {
     { text: 'Rule out mimics — glucose done?', link: 'step-mimics' },
   ],
   '5-10': [
-    { text: '30-second cortical/LVO screen (gaze, aphasia, neglect, dense hemiparesis)', detail: 'Any one + NIHSS ≥6 → presume LVO, activate EVT.', link: 'step-quick-screen' },
+    { text: 'Cortical/LVO signs captured during NIHSS (gaze, aphasia, neglect, dense hemiparesis)', detail: 'Any one + NIHSS ≥6 → presume LVO, activate EVT. The NIHSS screen alerts automatically.', link: 'step-nihss' },
     { text: 'Full NIHSS', link: 'step-nihss' },
     { text: 'Blind-spot supplement: tandem gait, vertical gaze, pupils, HINTS if vertigo', link: 'step-nihss-ref' },
     { text: 'Pre-commit checklist: Is deficit disabling? Is it consistent with a territory?' },
@@ -1568,11 +1598,86 @@ window.BEDSIDE_ALGORITHM = {
   ],
   '25-60': [
     { text: 'Q1: Is this a TNK candidate? (LKN <4.5h, disabling deficit, no ABS CI)', link: 'step-decision' },
+    { text: 'Door-to-needle target: ≤30 min median (≤60 min in ≥90% of patients)', detail: 'Treat as soon as possible after CT — time is brain. (CSBPR 5.2)' },
     { text: 'TNK 0.25 mg/kg IV bolus (max 25 mg) — Lakeridge protocol', detail: 'Legacy: tPA 0.9 mg/kg (max 90 mg) — not used here.' },
     { text: 'Q2: Is this an EVT candidate? (LVO, NIHSS ≥6, ASPECTS ≥6, mRS ≤2, ≤24h per DAWN/DEFUSE-3)', link: 'step-decision' },
     { text: 'BP management: <185/110 pre-TNK; <180/105 for 24h post', link: 'step-decision' },
     { text: 'Disposition: ICU post-TNK; transfer to EVT centre if indicated' },
     { text: 'Document, copy EMR note, debrief team', link: 'step-note' },
+  ],
+};
+
+// ============================================================
+// CSBPR 2022/2025 — TNK inclusion criteria, EVT eligibility,
+// and thrombolysis complication management (sections 5.2–5.6)
+// ============================================================
+
+window.TNK_INCLUSION = [
+  'Acute ischemic stroke with a <strong>disabling</strong> deficit (usually NIHSS >4 — see "Is the deficit disabling?")',
+  'Last known well <4.5h before administration (4.5–9h: tissue-based selection with stroke expert — see below)',
+  'Age ≥18 (pediatric/adolescent: clinical judgment + pediatric stroke consult)',
+  'Life expectancy ≥3 months',
+  'Treatment consistent with the patient\'s goals of care and pre-stroke function',
+];
+
+window.EXTENDED_WINDOW_NOTE = '<strong>Beyond 4.5h (CSBPR Box 5A):</strong> 4.5–6h — thrombolysis for select patients via advanced imaging (CTP / MRI DWI-FLAIR). 6–9h — only in discussion with a stroke expert, tissue-based selection. If LVO is present, late-thrombolysis workup must NOT delay EVT decisions.';
+
+window.DOOR_TO_NEEDLE = 'Door-to-needle target: ≤30 min median (≤60 min in ≥90%). Treat as soon as possible after CT.';
+
+window.EVT_CRITERIA = {
+  intro: 'Offer EVT when ALL four criteria are met (CSBPR 5.4, 2025 update):',
+  criteria: [
+    { name: '1 · Patient', items: ['Age >18', 'Baseline independent function (pre-stroke mRS ≤2)'] },
+    { name: '2 · Symptoms', items: ['Disabling acute ischemic stroke (e.g. NIHSS >5)', 'Last known well within 24 hours'] },
+    { name: '3 · Occlusion', items: ['Anterior circulation LVO (intracranial ICA, MCA-M1) OR basilar occlusion', 'Technically accessible per the treating neurointerventionalist'] },
+    { name: '4 · Brain tissue', items: ['Small core ≈ ASPECTS ≥6; moderate core ≈ ASPECTS 3–5 (CT + CTA collaterals, CTP, or MRI)', 'Moderate core may still benefit from EVT — weigh age, comorbidities, functional status, frailty', 'Beyond 6h from LKW: use CTA collaterals or perfusion imaging to select'] },
+  ],
+  notes: [
+    'Give thrombolysis to eligible patients WHILE the angio suite is prepared — never delay either treatment for the other.',
+    'Do NOT wait to see whether thrombolysis works before proceeding to EVT.',
+    'Anticoagulation is NOT a contraindication for EVT.',
+    'Medium-vessel occlusions (M2, A2, P2): EVT not uniformly supported by trials — decide with stroke expert + neurointerventionalist.',
+    'EVT decisions are shared: stroke physician + neurointerventionalist + patient / SDM.',
+    'Not functionally independent at baseline? Thrombolysis/EVT may still be considered — careful risk/benefit review and goals-of-care discussion with a stroke expert.',
+  ],
+};
+
+window.TNK_COMPLICATIONS = {
+  intro: 'Monitor closely for 24h after thrombolysis. Suspect ICH with any neuro change — especially ↓LOC, BP spike with persisting elevation, or new/worse headache. (CSBPR 5.2 / 5.6)',
+  scenarios: [
+    {
+      title: '🧠 Suspected intracranial hemorrhage',
+      items: [
+        'STOP the infusion immediately if still running (alteplase)',
+        'STAT non-contrast CT head — a stroke team member accompanies the patient; review results immediately',
+        'Draw CBC, INR (PT), type & cross — request STAT results',
+        'May consider (case-by-case): cryoprecipitate, fibrinogen concentrate, FFP, tranexamic acid',
+        'AVOID: prothrombin complex concentrate, platelet transfusion, factor VIIa — no benefit shown, potential harm',
+        'Hypertensive (>185/110) with symptomatic ICH → lower BP (specific target/duration unknown)',
+        'If CT shows NO hemorrhage → urgent CTA to identify occlusion; consider urgent EVT',
+      ],
+    },
+    {
+      title: '👄 Orolingual angioedema',
+      items: [
+        'STOP the infusion at the first signs if still running',
+        'H1 blocker (e.g. diphenhydramine) + H2 blocker (e.g. famotidine)',
+        'Consider glucocorticoids and inhaled/racemic epinephrine as part of standard airway management',
+        'Reserve IV epinephrine for life-threatening emergencies — risk of post-dose hypertension',
+        'Early airway assessment — low threshold to involve anesthesia',
+      ],
+    },
+    {
+      title: '🩸 Systemic hemorrhage',
+      items: [
+        'STOP the infusion if still running',
+        'Compressible site (IV site, abrasion, epistaxis): apply compression, consider ice',
+        'Non-compressible site (GI, oral): consider BP lowering + hemostatic management; consult appropriate specialists',
+        'Draw CBC, INR (PT), fibrinogen — request STAT results',
+        'Suspect with visible bleeding, BP drop, localized pain, diaphoresis, or other signs of hypovolemic shock',
+        'Transfuse as required per local protocol',
+      ],
+    },
   ],
 };
 

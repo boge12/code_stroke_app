@@ -16,7 +16,6 @@ const STEPS = [
   'step-timing',
   'step-abs-contra',
   'step-rel-contra',
-  'step-quick-screen',
   'step-nihss',
   'step-posterior',
   'step-syndrome',
@@ -32,6 +31,13 @@ const NIHSS_ORDER = ['1a','1b','1c','2','3','4','5a','5b','6a','6b','7','8','9',
 const SIDE_SCREENS = ['step-mimics','step-syndrome-ref','step-nihss-ref','step-algorithm'];
 let SIDE_RETURN_TO = null;
 
+const SIDE_TITLES = {
+  'step-mimics': 'Mimics & Chameleons',
+  'step-syndrome-ref': 'Stroke Syndromes',
+  'step-nihss-ref': 'NIHSS Reference',
+  'step-algorithm': 'Bedside Algorithm',
+};
+
 window.goToSide = function(sideId) {
   SIDE_RETURN_TO = (STATE.current && STATE.current.currentStep) || (document.querySelector('.screen.active') || {id:'home'}).id.replace('screen-','') || 'home';
   // hide all screens, show side screen
@@ -40,6 +46,11 @@ window.goToSide = function(sideId) {
   if (!screen) return;
   screen.classList.add('active');
   window.scrollTo(0,0);
+  // Sync main header: reference title, working back button, no progress bar
+  document.getElementById('header-title').textContent = SIDE_TITLES[sideId] || 'Reference';
+  document.getElementById('back-btn').style.display = '';
+  const track = document.getElementById('progress-track');
+  if (track) track.style.display = 'none';
   // render content
   if (sideId === 'step-mimics') renderMimics('mimics');
   else if (sideId === 'step-syndrome-ref') renderSyndromeRef();
@@ -223,20 +234,21 @@ function updateHeader(stepId) {
   const title = document.getElementById('header-title');
   const badge = document.getElementById('nihss-badge');
 
+  // Titles are phases matching the real workflow: at the bedside →
+  // patient in the scanner → results back, decide → document.
   const titles = {
     'home': 'Code Stroke',
-    'step-label': 'Step 1 — Patient',
-    'step-timing': 'Step 2 — Timing',
-    'step-abs-contra': 'Step 3 — Absolute CIs',
-    'step-rel-contra': 'Step 4 — Relative CIs',
-    'step-quick-screen': 'Step 5 — Cortical / LVO Screen',
-    'step-nihss': 'Step 6 — NIHSS Assessment',
-    'step-posterior': 'Step 7 — Posterior Circulation',
-    'step-syndrome': 'Step 8 — Syndrome',
-    'step-ct': 'Step 9 — CT Results',
-    'step-decision': 'Step 10 — Decision',
-    'step-consent': 'Step 11 — Consent',
-    'step-note': 'Step 12 — EMR Note',
+    'step-label': 'Bedside · Patient',
+    'step-timing': 'Bedside · Timing',
+    'step-abs-contra': 'Bedside · Absolute CIs',
+    'step-rel-contra': 'Bedside · Relative CIs',
+    'step-nihss': 'Bedside · NIHSS',
+    'step-posterior': 'Scanner · Posterior Check',
+    'step-syndrome': 'Scanner · Syndrome',
+    'step-ct': 'Decide · CT Results',
+    'step-decision': 'Decide · TNK / EVT',
+    'step-consent': 'Document · Consent',
+    'step-note': 'Document · EMR Note',
   };
 
   title.textContent = titles[stepId] || 'Code Stroke';
@@ -351,11 +363,16 @@ function renderTiming() {
       badge.innerHTML = isWakeup
         ? `✅ TNK WINDOW OPEN — ${elapsedLabel(wakeMin)} since found/woke`
         : `✅ TNK WINDOW OPEN — ${elapsedLabel(lsnMin)} from LKN`;
+    } else if (windowMin <= 540) {
+      badge.className = 'time-window-badge window-close';
+      badge.innerHTML = isWakeup
+        ? `⚠️ >4.5h since found (${elapsedLabel(wakeMin)}) — TNK needs imaging selection (DWI-FLAIR / CTP)`
+        : `⚠️ Standard TNK window closed (${elapsedLabel(lsnMin)}) — 4.5–9h: imaging-based selection with stroke expert; EVT ≤24h`;
     } else if (windowMin <= 1440) {
       badge.className = 'time-window-badge window-close';
       badge.innerHTML = isWakeup
         ? `⚠️ >4.5h since found (${elapsedLabel(wakeMin)}) — standard TNK closed`
-        : `⚠️ TNK WINDOW CLOSED (${elapsedLabel(lsnMin)}) — EVT may still be possible`;
+        : `⚠️ TNK WINDOW CLOSED (${elapsedLabel(lsnMin)}) — EVT may still be possible ≤24h`;
     } else {
       badge.className = 'time-window-badge window-expired';
       badge.innerHTML = `🚫 >24 hours — likely outside treatment windows`;
@@ -597,7 +614,7 @@ function renderRelContra() {
   mrsCard.style.marginTop = '14px';
   mrsCard.innerHTML = `
     <div class="qs-card-title">Baseline function / pre-stroke mRS</div>
-    <div class="qs-card-sub">EVT requires pre-stroke mRS ≤ 2. Shapes goals-of-care discussion.</div>
+    <div class="qs-card-sub">EVT criteria require pre-stroke mRS ≤ 2. Not independent at baseline? Treatment may still be considered case-by-case — review risks/benefits and goals of care with a stroke expert (CSBPR).</div>
     <div class="mrs-grid">
       ${mrsChoices.map(c => `<button class="mrs-pill${mrsVal === c.v ? ' active' : ''}" data-val="${c.v}">${c.lbl}</button>`).join('')}
     </div>`;
@@ -825,92 +842,29 @@ function renderNIHSS() {
   renderNIHSSTabs();
 }
 
-// ── Quick Screen step (pre-NIHSS: cortical, NIHSS-style cards) ──
-function renderQuickScreen() {
-  const host = document.getElementById('quick-screen-content');
-  if (!host) return;
-  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false, hemiparesisSide: null };
-  if (!('hemiparesisSide' in STATE.current.corticalScreen)) STATE.current.corticalScreen.hemiparesisSide = null;
-
-  const rule = window.CORTICAL_LVO_RULE || 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.';
-  const items = window.CORTICAL_LVO_SCREEN || [];
-  const cs = STATE.current.corticalScreen;
-
-  const ruleBanner = `
-    <div class="qs-rule-banner">
-      <span class="qs-rule-icon">⚡</span>
-      <span>${rule}</span>
-    </div>
-  `;
-
-  const cards = items.map(item => {
-    const id = item.id;
-    const active = !!cs[id];
-    const exam = Array.isArray(item.howToExamine) ? item.howToExamine : [];
-    const examHtml = exam.length
-      ? `<details class="nihss-exam-details">
-          <summary>How to examine</summary>
-          <ul class="nihss-instructions">${exam.map(s => `<li>${s}</li>`).join('')}</ul>
-          ${item.lookFor ? `<p class="nihss-look-for"><strong>Look for:</strong> ${item.lookFor}</p>` : ''}
-        </details>`
-      : '';
-    const pearlHtml = item.pearl
-      ? `<details class="nihss-extras">
-          <summary>💡 Localization pearl</summary>
-          <div style="margin-top:6px; font-size:13px; line-height:1.6; color:var(--text-dim)">${item.pearl}</div>
-        </details>`
-      : '';
-
-    let sidePickerHtml = '';
-    let sideWarningHtml = '';
-    if (item.hasSidePicker) {
-      const side = cs.hemiparesisSide;
-      sidePickerHtml = `
-        <div class="corti-side-picker" role="group" aria-label="Affected side">
-          <button class="corti-side-btn${side === 'L' ? ' active' : ''}" data-side="L">Left</button>
-          <button class="corti-side-btn${side === 'R' ? ' active' : ''}" data-side="R">Right</button>
-        </div>`;
-      if (active && !side) {
-        sideWarningHtml = `<div class="corti-side-warning">Pick a side to finalize.</div>`;
-      }
-    }
-
-    return `
-      <div class="card qs-card corti-card${active ? ' present' : ''}">
-        <div class="qs-card-title">⚡ ${item.label}${item.hasSidePicker && cs.hemiparesisSide ? ` — ${cs.hemiparesisSide === 'L' ? 'Left' : 'Right'}` : ''}</div>
-        <div class="qs-card-sub">${item.description || ''}</div>
-        ${examHtml}
-        ${pearlHtml}
-        ${sidePickerHtml}
-        <button class="corti-present-btn${active ? ' active' : ''}" data-cortical="${id}">
-          ${active ? '✓ Present — LVO flag set' : 'Mark present'}
-        </button>
-        ${sideWarningHtml}
-      </div>
-    `;
-  }).join('');
-
-  host.innerHTML = ruleBanner + cards;
-
-  host.querySelectorAll('[data-cortical]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const k = btn.dataset.cortical;
-      STATE.current.corticalScreen[k] = !STATE.current.corticalScreen[k];
-      if (k === 'hemiparesis' && !STATE.current.corticalScreen[k]) {
-        STATE.current.corticalScreen.hemiparesisSide = null;
-      }
-      saveCurrentSession();
-      renderQuickScreen();
-    });
-  });
-
-  host.querySelectorAll('[data-side]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      STATE.current.corticalScreen.hemiparesisSide = btn.dataset.side;
-      saveCurrentSession();
-      renderQuickScreen();
-    });
-  });
+// ── Live LVO banner on the NIHSS screen ───────────────────────
+// The former standalone cortical screen's job, done automatically:
+// flags sync from NIHSS scores, and the EVT alert fires the moment
+// a cortical sign + NIHSS ≥ 6 coexist.
+function updateNihssLvoBanner() {
+  const host = document.getElementById('nihss-lvo-banner');
+  if (!host || !STATE.current) return;
+  syncCorticalFromNIHSS();
+  const total = getNIHSSTotal(STATE.current.nihss);
+  const cs = STATE.current.corticalScreen || {};
+  const anyCortical = ['gaze', 'aphasia', 'neglect', 'hemiparesis'].some(k => cs[k] === true);
+  if (anyCortical && total >= 6) {
+    host.innerHTML = `
+      <div class="status-banner status-red" style="margin-bottom:10px">
+        <span class="status-icon">🚨</span>
+        <div class="status-body">
+          <div class="status-title">Presumed LVO — activate EVT pathway now</div>
+          <div class="status-detail">Cortical sign + NIHSS ≥6. Do not wait for CTA to make the call.</div>
+        </div>
+      </div>`;
+  } else {
+    host.innerHTML = `<div class="qs-rule-banner" style="margin-bottom:10px"><span class="qs-rule-icon">⚡</span><span>${window.CORTICAL_LVO_RULE || 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.'}</span></div>`;
+  }
 }
 
 // ── Posterior Circulation step (post-NIHSS) ───────────────────
@@ -927,13 +881,43 @@ function renderPosterior() {
     { key: 'verticalGazeSkew', label: 'Vertical gaze palsy, skew deviation, or direction-changing nystagmus?' },
   ];
 
+  const ps = STATE.current.posteriorScreen;
+  const anyYes = Object.values(ps).some(v => v === true);
+  const allNo = ['fiveD', 'vertigoFocal', 'gaitAtaxia', 'verticalGazeSkew'].every(k => ps[k] === false);
+  const vertigoYes = ps.vertigoFocal === true;
+
+  // Verdict: a positive screen must change what happens next
+  let verdictHtml = '';
+  if (anyYes) {
+    verdictHtml = `
+      <div class="status-banner status-yellow" style="margin-top:12px; margin-bottom:0">
+        <span class="status-icon">🚨</span>
+        <div class="status-body">
+          <div class="status-title">Posterior circulation suspected — this changes 4 things</div>
+          <div class="status-detail" style="line-height:1.7">
+            1. Treat as potentially <strong>disabling even with a low NIHSS</strong> — posterior strokes under-score.<br>
+            2. Confirm CTA covers <strong>vertebrals + basilar</strong> — basilar occlusion is an EVT indication (≤24h).<br>
+            3. CT is poor in the posterior fossa — if CT/CTA unrevealing, <strong>MRI DWI or admit. Do NOT discharge.</strong><br>
+            4. Vertigo-predominant? Do the <strong>HINTS exam</strong> before calling it peripheral.
+          </div>
+          <button onclick="goToSide('step-nihss-ref'); setTimeout(()=>{const el=document.getElementById('hints-section'); if(el){el.open=true; el.scrollIntoView({behavior:'smooth'});}},120);" style="margin-top:8px; padding:10px 14px; border-radius:8px; border:1px solid currentColor; background:transparent; color:inherit; font-weight:600; cursor:pointer">📖 HINTS exam reference →</button>
+        </div>
+      </div>`;
+  } else if (allNo) {
+    verdictHtml = `
+      <div class="status-banner status-green" style="margin-top:12px; margin-bottom:0">
+        <span class="status-icon">✅</span>
+        <div class="status-body"><div class="status-title">No posterior red flags — continue</div></div>
+      </div>`;
+  }
+
   host.innerHTML = `
     <div class="card qs-card">
       <div class="qs-card-title">🧠 Posterior circulation check</div>
-      <div class="qs-card-sub">NIHSS underscores posterior strokes. Tap YES for any that apply.</div>
+      <div class="qs-card-sub">Why this step: NIHSS misses posterior strokes — a basilar occlusion can score 2. Four taps to catch what it missed.</div>
       <div id="posterior-check">
         ${posteriorItems.map(it => {
-          const val = STATE.current.posteriorScreen[it.key];
+          const val = ps[it.key];
           const yesActive = val === true;
           const noActive = val === false;
           return `
@@ -946,7 +930,7 @@ function renderPosterior() {
           </div>`;
         }).join('')}
       </div>
-      <div id="hints-prompt-qs" style="margin-top:10px"></div>
+      ${verdictHtml}
       ${posteriorRedFlags.length ? `
         <details style="margin-top:10px">
           <summary style="cursor:pointer; font-size:13px; color:var(--text-dim); font-weight:600">More posterior red flags</summary>
@@ -962,22 +946,15 @@ function renderPosterior() {
 
 function wirePosteriorToggles() {
   document.querySelectorAll('[data-qs-key]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       const k = btn.dataset.qsKey;
       const v = btn.dataset.qsVal === 'true';
-      STATE.current.posteriorScreen[k] = v;
+      // Tap the active pill again to clear
+      STATE.current.posteriorScreen[k] = STATE.current.posteriorScreen[k] === v ? null : v;
       saveCurrentSession();
       renderPosterior();
-    });
+    };
   });
-  const hp = document.getElementById('hints-prompt-qs');
-  if (!hp) return;
-  const anyYes = Object.values(STATE.current.posteriorScreen).some(v => v === true);
-  if (anyYes) {
-    hp.innerHTML = `<button class="hints-prompt" onclick="goToSide('step-nihss-ref'); setTimeout(()=>{const el=document.getElementById('hints-section'); if(el) el.scrollIntoView({behavior:'smooth'});},120);" style="padding:10px 14px; border-radius:8px; border:1px solid var(--blue); background:transparent; color:var(--blue); font-weight:600; cursor:pointer">📖 Open HINTS exam reference →</button>`;
-  } else {
-    hp.innerHTML = '';
-  }
 }
 
 function updateLvoBanner() {
@@ -1022,6 +999,8 @@ function renderNIHSSTabs() {
       currentTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }, 50);
   }
+
+  updateNihssLvoBanner();
 }
 
 function renderNIHSSItem() {
@@ -1197,9 +1176,6 @@ function renderSyndrome() {
   const total = getNIHSSTotal(STATE.current.nihss);
   const severity = window.getNIHSSSeverity(total);
 
-  const minorNote = total <= 5
-    ? `<div class="status-detail" style="margin-top:4px; font-size:13px">Consider TNK if deficit is disabling: hand weakness, aphasia, hemianopia, or functionally significant to the patient.</div>`
-    : '';
   const severeNote = total >= 22
     ? `<div class="status-detail" style="margin-top:4px; font-size:13px; color:#ef9a9a">🚨 Severe — confirm no extensive early infarct on CT. EVT critical.</div>`
     : '';
@@ -1209,12 +1185,15 @@ function renderSyndrome() {
       <span class="status-icon">🧠</span>
       <div class="status-body">
         <div class="status-title">NIHSS ${total} — ${severity.label}</div>
-        ${total <= 5 ? '<div class="status-detail">≤5 mild — consider TNK only if deficit is disabling.</div>' : ''}
-        ${severeNote}${minorNote}
+        ${total <= 5 ? '<div class="status-detail">≤5 mild — TNK only if the deficit is disabling. Run the checklist below.</div>' : ''}
+        ${severeNote}
       </div>
     </div>
-    ${total <= 5 ? buildDisablingCard(false) : ''}
+    ${total <= 5 ? buildDisablingChecklist() : ''}
   `;
+  if (total <= 5) {
+    wireDisablingChecklist(document.getElementById('syndrome-nihss-total'), renderSyndrome);
+  }
 
   const container = document.getElementById('syndrome-list');
   container.innerHTML = '';
@@ -1270,32 +1249,72 @@ function renderSyndrome() {
   renderSyndromeSanityCheck();
 }
 
+// Persisted self-check — tap the box to tick, tap → to open the reference
 function renderSyndromeSanityCheck() {
   const host = document.getElementById('single-territory-sanity-check');
   if (!host) return;
+  const s = STATE.current;
+  s.syndromeSelfCheck = s.syndromeSelfCheck || { territory: false, functional: false, sudden: false };
+  const sc = s.syndromeSelfCheck;
+  const items = [
+    { id: 'territory', label: 'Signs fit ONE vascular territory', side: 'step-syndrome-ref' },
+    { id: 'functional', label: 'Functional-weakness clues checked', side: 'step-nihss-ref', anchor: 'nihss-ref-functional-clues' },
+    { id: 'sudden', label: 'Sudden onset, maximal at start — else think mimic', side: 'step-mimics' },
+  ];
   host.innerHTML = `
-    <div class="sanity-check-card card" style="margin-top:12px">
-      <div class="card-title">🧐 Self-check</div>
-      <ul style="padding-left:18px; font-size:14px; line-height:1.8; color:var(--text-dim)">
-        <li>Do the signs fit a single vascular territory? <a href="#" onclick="event.preventDefault(); goToSide('step-syndrome-ref');" style="color:var(--blue); text-decoration:underline">Review syndromes →</a></li>
-        <li>Have I checked for functional clues? <a href="#" onclick="event.preventDefault(); goToSide('step-nihss-ref'); setTimeout(()=>{ var el=document.getElementById('nihss-ref-functional-clues'); if(el) el.scrollIntoView({behavior:'smooth'}); },100);" style="color:var(--blue); text-decoration:underline">Functional clues →</a></li>
-        <li>Was the deficit sudden + maximal at onset? <a href="#" onclick="event.preventDefault(); goToSide('step-mimics');" style="color:var(--blue); text-decoration:underline">Mimics to consider →</a></li>
-      </ul>
+    <div class="card" style="margin-top:12px; padding:12px 16px">
+      <div class="card-title" style="margin-bottom:4px">🧐 Self-check</div>
+      ${items.map(it => `
+        <div class="checklist-action">
+          <div class="action-checkbox${sc[it.id] ? ' done' : ''}" data-sc-id="${it.id}">${sc[it.id] ? '✓' : ''}</div>
+          <div class="action-text">${it.label}</div>
+          <button class="sc-link" data-sc-link="${it.side}" data-sc-anchor="${it.anchor || ''}" aria-label="Open reference">→</button>
+        </div>`).join('')}
     </div>`;
+  host.querySelectorAll('[data-sc-id]').forEach(box => {
+    box.onclick = () => {
+      sc[box.dataset.scId] = !sc[box.dataset.scId];
+      saveCurrentSession();
+      renderSyndromeSanityCheck();
+    };
+  });
+  host.querySelectorAll('[data-sc-link]').forEach(btn => {
+    btn.onclick = () => {
+      const anchor = btn.dataset.scAnchor;
+      goToSide(btn.dataset.scLink);
+      if (anchor) setTimeout(() => { const el = document.getElementById(anchor); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 120);
+    };
+  });
 }
 
 // ── Step: CT ──────────────────────────────────────────────────
 function renderCT() {
   const s = STATE.current;
 
-  // CT clear buttons
+  // Positive posterior screen → CTA coverage reminder
+  const postReminder = document.getElementById('ct-posterior-reminder');
+  if (postReminder) {
+    const postYes = Object.values(s.posteriorScreen || {}).some(v => v === true);
+    postReminder.innerHTML = postYes
+      ? `<div class="status-banner status-yellow">
+          <span class="status-icon">🧠</span>
+          <div class="status-body">
+            <div class="status-title">Posterior screen was positive</div>
+            <div class="status-detail">Confirm CTA covers vertebrals + basilar. If CT/CTA unrevealing → MRI DWI or admit — do not discharge.</div>
+          </div>
+        </div>`
+      : '';
+  }
+
+  // CT clear buttons (onclick assignment — renderCT re-runs on every click,
+  // so addEventListener here would stack duplicate handlers)
   document.querySelectorAll('.ct-clear-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.val === s.ctClear);
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       s.ctClear = btn.dataset.val;
       saveCurrentSession();
       renderCT();
-    });
+    };
   });
 
   document.getElementById('ct-hemorrhage-section').style.display = s.ctClear === 'no' ? '' : 'none';
@@ -1303,51 +1322,61 @@ function renderCT() {
   // ASPECTS
   const aspInp = document.getElementById('aspects-input');
   aspInp.value = s.aspects !== null ? s.aspects : '';
-  aspInp.addEventListener('change', () => {
+  aspInp.onchange = () => {
     const v = parseInt(aspInp.value);
     s.aspects = isNaN(v) ? null : Math.max(0, Math.min(10, v));
     saveCurrentSession();
     refreshAspects();
-  });
+  };
   refreshAspects();
 
   // CTA
   document.querySelectorAll('.cta-done-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.val === s.ctaDone);
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       s.ctaDone = btn.dataset.val;
       saveCurrentSession();
       renderCT();
-    });
+    };
   });
 
   document.getElementById('lvo-section').style.display = s.ctaDone === 'yes' ? '' : 'none';
 
   document.querySelectorAll('.lvo-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.val === s.lvo);
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       s.lvo = btn.dataset.val;
       saveCurrentSession();
       renderCT();
-    });
+    };
   });
 
   document.getElementById('lvo-vessel-section').style.display = s.lvo === 'yes' ? '' : 'none';
 
   document.querySelectorAll('.vessel-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.vessel === s.lvoVessel);
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       s.lvoVessel = btn.dataset.vessel;
       saveCurrentSession();
-    });
+      renderCT();
+    };
   });
+
+  // Medium-vessel occlusions: EVT not uniformly supported (CSBPR 5.4.1 CC6)
+  const mvNote = document.getElementById('medium-vessel-note');
+  if (mvNote) {
+    mvNote.innerHTML = ['M2', 'A2', 'P2'].includes(s.lvoVessel)
+      ? `<div class="nihss-note" style="margin-bottom:12px">⚠️ Medium-vessel occlusion (${s.lvoVessel}) — EVT not uniformly supported by trials. Decide after consultation between stroke expert and neurointerventionalist (CSBPR 2025).</div>`
+      : '';
+  }
 
   document.querySelectorAll('.collateral-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.val === s.collaterals);
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       s.collaterals = btn.dataset.val;
       saveCurrentSession();
-    });
+      renderCT();
+    };
   });
 }
 
@@ -1382,6 +1411,32 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
   let medItems = [];
   let investigationItems = [];
   let nursingItems = [];
+  let evtCareHtml = '';
+
+  // CSBPR Box 5D — pre-EVT / transfer management + post-EVT care
+  const buildEvtCare = () => `
+    <div style="margin-bottom:14px">
+      <div style="font-size:14px; font-weight:700; color:#ef9a9a; margin-bottom:6px">🚑 Pre-EVT / Transfer (CSBPR Box 5D)</div>
+      <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
+        <li>Maintain O₂ sat >92%; intubate only if reduced oxygenation, vomiting, or heavy sedation needed</li>
+        <li>Avoid aggressive BP lowering before reperfusion is achieved</li>
+        <li>Aim for euthermia and normoglycemia (hyperglycemia is harmful in acute stroke)</li>
+        <li>Contrast allergy is NOT an absolute CI — pre-treat: diphenhydramine 50 mg IV + methylprednisolone 40 mg IV (or hydrocortisone 200 mg IV) + famotidine 20 mg IV</li>
+        <li>Foley only if essential to reduce movement — never delay reperfusion for it</li>
+      </ul>
+      <details class="nihss-exam-details" style="margin-top:8px">
+        <summary>Post-EVT care (receiving centre / on return)</summary>
+        <ul style="padding-left:18px; font-size:13px; line-height:1.7; color:var(--text-dim); margin-top:6px">
+          <li>Supine 2–6h, head of bed ≤30°</li>
+          <li>Puncture site checks: q15min × 1h → q30min × 1h → q1h × 1–5h; assess distal pulses with vitals</li>
+          <li>Suspect site hematoma with bleeding, swelling, pain, or unexplained ↓Hb → prolonged manual compression + STAT CBC (repeat q4–6h); persistent → CTA/ultrasound ± vascular surgery</li>
+          <li>Suspect retroperitoneal hemorrhage with back pain, flank bruising (Grey Turner), periumbilical ecchymosis (Cullen), hypotension/tachycardia → 3-phase CT abdomen, resuscitate</li>
+          <li>Neurologic deterioration → STAT CT + CTA (hemorrhagic conversion vs. reocclusion — reocclusion may need repeat EVT)</li>
+          <li>Check creatinine — contrast-induced nephropathy; nephrology if identified</li>
+          <li>Post-EVT BP target is individualized (recanalization achieved, thrombolysis given, complications, baseline BP)</li>
+        </ul>
+      </details>
+    </div>`;
 
   // Determine scenario
   if (tnkGiven && lvoPresent) {
@@ -1401,6 +1456,7 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
       'Hold ASA/clopidogrel until 24h CT head confirms no hemorrhage',
       'DVT prophylaxis: SCDs only (no LMWH until 24h post-TNK + imaging clear)',
     ];
+    evtCareHtml = buildEvtCare();
   } else if (tnkGiven) {
     scenarioTitle = 'Post-TNK — No EVT Required';
     admitTo = 'ICU / Stroke Unit';
@@ -1434,6 +1490,7 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
       'Statin (atorvastatin 40–80mg)',
       'DVT prophylaxis: SCDs, LMWH per EVT centre protocol',
     ];
+    evtCareHtml = buildEvtCare();
   } else {
     scenarioTitle = 'Acute Ischemic Stroke — Medical Management';
     admitTo = total >= 5 ? 'Stroke Unit / Monitored Bed' : 'Stroke Unit / GIM Ward';
@@ -1487,6 +1544,8 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
         </div>
       </div>
 
+      ${evtCareHtml}
+
       <div style="margin-bottom:14px">
         <div style="font-size:14px; font-weight:700; color:var(--blue); margin-bottom:6px">📊 Monitoring</div>
         <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
@@ -1539,6 +1598,141 @@ function buildDisablingCard(open) {
       <div style="font-size:14px; line-height:1.6; margin-bottom:10px; color:var(--blue)"><strong>Borderline low-NIHSS:</strong> ${d.borderline}</div>
       <div class="nihss-note">⚠️ ${d.caution}</div>
     </details>`;
+}
+
+// Thrombolysis complication management (CSBPR 5.2/5.6) — Decision + Consent screens
+function buildTnkComplicationsCard() {
+  const c = window.TNK_COMPLICATIONS;
+  if (!c) return '';
+  return `
+    <details class="card card-collapse">
+      <summary>🚨 Thrombolysis complications — emergency management</summary>
+      <p class="text-sm" style="margin-bottom:10px; color:var(--text-dim)">${c.intro}</p>
+      ${c.scenarios.map(sc => `
+        <div style="margin-bottom:12px">
+          <div style="font-size:14px; font-weight:700; margin-bottom:6px">${sc.title}</div>
+          <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
+            ${sc.items.map(i => `<li>${i}</li>`).join('')}
+          </ul>
+        </div>`).join('')}
+    </details>`;
+}
+
+// TNK inclusion criteria + EVT 4-criteria eligibility (CSBPR Box 5B / 5.4)
+function buildEligibilityCard() {
+  const inc = window.TNK_INCLUSION || [];
+  const evt = window.EVT_CRITERIA;
+  return `
+    <details class="card card-collapse">
+      <summary>📘 TNK / EVT eligibility criteria (CSBPR)</summary>
+      <div style="font-size:14px; font-weight:700; margin-bottom:6px">TNK inclusion (Box 5B)</div>
+      <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim); margin-bottom:8px">
+        ${inc.map(i => `<li>${i}</li>`).join('')}
+      </ul>
+      <p class="text-sm" style="margin-bottom:12px; color:var(--text-dim)">${window.EXTENDED_WINDOW_NOTE || ''}</p>
+      ${evt ? `
+        <div style="font-size:14px; font-weight:700; margin-bottom:6px; padding-top:10px; border-top:1px solid var(--border)">${evt.intro}</div>
+        ${evt.criteria.map(cr => `
+          <div style="margin-bottom:8px">
+            <div style="font-size:13px; font-weight:700; color:var(--blue)">${cr.name}</div>
+            <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
+              ${cr.items.map(i => `<li>${i}</li>`).join('')}
+            </ul>
+          </div>`).join('')}
+        <details class="nihss-exam-details" style="margin-top:8px">
+          <summary>Key EVT principles</summary>
+          <ul style="padding-left:18px; font-size:13px; line-height:1.7; color:var(--text-dim); margin-top:6px">
+            ${evt.notes.map(n => `<li>${n}</li>`).join('')}
+          </ul>
+        </details>` : ''}
+    </details>`;
+}
+
+// ── Disabling-deficit checklist (interactive, low-NIHSS cases) ──
+// Six taps → verdict. Prose framework stays one tap away.
+const DISABLING_CHECK_ITEMS = [
+  { id: 'aphasia', label: 'Aphasia — any language deficit?', hint: 'wrecks communication / return to work' },
+  { id: 'hemianopia', label: 'Hemianopia / visual field cut?', hint: "can't drive, can't read" },
+  { id: 'hand', label: 'Hand weakness — dominant hand or occupation-critical?', hint: 'career-ending for a surgeon or musician' },
+  { id: 'ataxia', label: 'Ataxia — cannot walk / stand unaided?', hint: 'falls, loss of independence' },
+  { id: 'swallow', label: 'Dysphagia, or facial droop affecting swallow / speech?', hint: '' },
+  { id: 'independence', label: 'Deficit takes away something THIS patient needs?', hint: 'job, driving, living alone — anchor to their baseline' },
+];
+
+function disablingVerdict(dc) {
+  const vals = DISABLING_CHECK_ITEMS.map(it => dc[it.id]);
+  const answered = vals.filter(v => v === true || v === false).length;
+  if (vals.some(v => v === true)) return 'disabling';
+  if (answered === DISABLING_CHECK_ITEMS.length) return 'nondisabling';
+  return answered === 0 ? 'empty' : 'partial';
+}
+
+function buildDisablingChecklist() {
+  const s = STATE.current;
+  s.disablingCheck = s.disablingCheck || {};
+  const dc = s.disablingCheck;
+  const verdict = disablingVerdict(dc);
+
+  let verdictHtml = '';
+  if (verdict === 'disabling') {
+    const hits = DISABLING_CHECK_ITEMS.filter(it => dc[it.id] === true).map(it => it.label.split(' — ')[0].replace('?', ''));
+    verdictHtml = `<div class="status-banner status-green" style="margin-top:10px">
+      <span class="status-icon">✅</span>
+      <div class="status-body">
+        <div class="status-title">DISABLING deficit — treat as thrombolysis-eligible</div>
+        <div class="status-detail">${hits.join(' · ')}. Low NIHSS does not exclude treatment.</div>
+      </div>
+    </div>`;
+  } else if (verdict === 'nondisabling') {
+    verdictHtml = `<div class="status-banner status-yellow" style="margin-top:10px">
+      <span class="status-icon">🤔</span>
+      <div class="status-body">
+        <div class="status-title">Likely NON-disabling</div>
+        <div class="status-detail">Re-examine serially — and call OTN Telestroke before withholding if any doubt.</div>
+      </div>
+    </div>`;
+  }
+
+  const rows = DISABLING_CHECK_ITEMS.map(it => {
+    const val = dc[it.id];
+    return `
+      <div class="qs-toggle-row">
+        <div class="qs-toggle-label">${it.label}${it.hint ? `<div style="font-size:12px; color:var(--text-dim); margin-top:2px">${it.hint}</div>` : ''}</div>
+        <div class="qs-toggle-pills">
+          <button class="qs-toggle-pill yes${val === true ? ' active' : ''}" data-dc-id="${it.id}" data-dc-val="yes">Yes</button>
+          <button class="qs-toggle-pill no${val === false ? ' active' : ''}" data-dc-id="${it.id}" data-dc-val="no">No</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const d = window.DISABLING_DEFICIT || {};
+  return `
+    <div class="card qs-card">
+      <div class="qs-card-title">🎯 Is the deficit disabling?</div>
+      <div class="qs-card-sub">If permanent, would it stop this patient's normal daily activities or independent living? Any YES = disabling.</div>
+      ${rows}
+      ${verdictHtml}
+      <div class="nihss-note" style="margin-top:10px">⚠️ Before committing: not rapidly improving on serial exam, and not a mimic (post-ictal, hypoglycemia).</div>
+      <details class="nihss-exam-details" style="margin-top:8px; margin-bottom:0">
+        <summary>Full framework (CSBPR)</summary>
+        <p style="margin:8px 0; font-size:13px; color:var(--text-dim)">${d.proxyNote || ''}</p>
+        <p style="margin:8px 0; font-size:13px; color:var(--text-dim)">${d.nonDisabling || ''}</p>
+        <p style="margin:8px 0; font-size:13px; color:var(--text-dim)"><strong>Practical rule:</strong> ${d.practicalRule || ''}</p>
+        <p style="margin:8px 0; font-size:13px; color:var(--blue)"><strong>Borderline:</strong> ${d.borderline || ''}</p>
+      </details>
+    </div>`;
+}
+
+function wireDisablingChecklist(host, rerender) {
+  host.querySelectorAll('[data-dc-id]').forEach(btn => {
+    btn.onclick = () => {
+      const dc = STATE.current.disablingCheck;
+      const val = btn.dataset.dcVal === 'yes';
+      dc[btn.dataset.dcId] = dc[btn.dataset.dcId] === val ? null : val;
+      saveCurrentSession();
+      rerender();
+    };
+  });
 }
 
 // ── Step: Decision ───────────────────────────────────────────
@@ -1599,6 +1793,9 @@ function renderDecision() {
     else reasons.push(`Wake-up stroke found ${elapsedLabel(wakeMin)} ago — requires imaging selection (MRI DWI-FLAIR mismatch or CT perfusion)`);
   } else if (!withinWindow && tnkWindowMin !== null) {
     reasons.push(`Outside 4.5h window (${elapsedLabel(tnkWindowMin)} from ${isWakeup ? 'found/wake time' : 'LKN'})`);
+    if (tnkWindowMin <= 540) {
+      reasons.push('4.5–9h: TNK may still be possible via advanced imaging selection (CTP / MRI) with a stroke expert — do not delay EVT decisions');
+    }
   }
   if (!ctClear) reasons.push('CT not clear / hemorrhage on imaging');
   if (!aspectsOk) reasons.push(`ASPECTS ${s.aspects} < 6`);
@@ -1650,6 +1847,7 @@ function renderDecision() {
     tnkDoseBPHtml = `
     <div class="card">
       <div class="card-title">TNK Dose Calculator</div>
+      <p class="text-sm" style="margin-bottom:8px; color:var(--yellow); font-weight:600">⏱ ${window.DOOR_TO_NEEDLE || 'Door-to-needle target: ≤30 min median.'}</p>
       <label>Patient Weight (kg)</label>
       <div class="weight-row">
         <input type="number" id="weight-input" placeholder="e.g. 75" min="30" max="200" value="${s.weightKg || ''}">
@@ -1684,11 +1882,24 @@ function renderDecision() {
       </div>
     </div>
 
-    ${total <= 5 ? buildDisablingCard(true) : ''}
+    ${total <= 5 ? buildDisablingChecklist() : ''}
+
+    ${Object.values(s.posteriorScreen || {}).some(v => v === true) ? `
+    <div class="status-banner status-yellow">
+      <span class="status-icon">🧠</span>
+      <div class="status-body">
+        <div class="status-title">Posterior screen was positive</div>
+        <div class="status-detail">Basilar occlusion is an EVT indication (≤24h). A low NIHSS may still be disabling. If imaging unrevealing → MRI DWI or admit.</div>
+      </div>
+    </div>` : ''}
 
     ${evtBanner}
 
     ${tnkDoseBPHtml}
+
+    ${(tnkStatus === 'eligible' || tnkStatus === 'relative' || s.tnkGiven === 'yes') ? buildTnkComplicationsCard() : ''}
+
+    ${buildEligibilityCard()}
 
     <div class="card">
       <div class="card-title">Lakeridge Actions</div>
@@ -1730,6 +1941,10 @@ function renderDecision() {
   }
 
   setupActionChecklist();
+
+  if (total <= 5) {
+    wireDisablingChecklist(document.getElementById('decision-content'), renderDecision);
+  }
 
   // LVO banner: fires when any cortical flag + NIHSS ≥ 6
   updateLvoBanner();
@@ -1908,6 +2123,9 @@ function renderConsent() {
     s.tnkTime = timePickerToISO(tnkTimeInp.value);
     saveCurrentSession();
   });
+
+  const compHost = document.getElementById('consent-complications');
+  if (compHost) compHost.innerHTML = buildTnkComplicationsCard();
 }
 
 // ── Step: Note ────────────────────────────────────────────────
@@ -1940,6 +2158,13 @@ function collectGaps() {
 
   const unscored = NIHSS_ORDER.filter(id => s.nihss[id] === undefined);
   if (unscored.length) gaps.push({ label: `NIHSS item${unscored.length > 1 ? 's' : ''} ${unscored.join(', ')} not scored`, step: 'step-nihss' });
+
+  if (!unscored.length && getNIHSSTotal(s.nihss) <= 5) {
+    const dv = disablingVerdict(s.disablingCheck || {});
+    if (dv === 'empty' || dv === 'partial') {
+      gaps.push({ label: 'Disabling-deficit checklist not completed (NIHSS ≤5)', step: 'step-decision' });
+    }
+  }
 
   const ps = s.posteriorScreen || {};
   const postOpen = ['fiveD', 'vertigoFocal', 'gaitAtaxia', 'verticalGazeSkew'].filter(k => ps[k] === null || ps[k] === undefined).length;
@@ -2061,6 +2286,14 @@ NIHSS SCORE: ${total} — ${severity.label}
     const yes = Object.keys(ps).filter(k => ps[k] === true);
     if (yes.length) return `\n  Posterior red flags: ${yes.join(', ')}`;
     return '';
+  })()}${(() => {
+    const dc = s.disablingCheck || {};
+    const v = disablingVerdict(dc);
+    if (v === 'empty') return '';
+    const yes = DISABLING_CHECK_ITEMS.filter(it => dc[it.id] === true).map(it => it.label.split(' — ')[0].replace('?', ''));
+    if (v === 'disabling') return `\n  Disabling deficit: YES — ${yes.join(', ')}`;
+    if (v === 'nondisabling') return '\n  Disabling deficit: assessed as non-disabling';
+    return '\n  Disabling deficit: assessment incomplete';
   })()}${(s.nihssReassess !== null && s.nihssReassess !== undefined)
     ? `\n  Reassessment NIHSS: ${s.nihssReassess} (baseline ${total}) — delta Δ ${s.nihssReassess - total}`
     : ''}
@@ -2185,12 +2418,13 @@ function renderSyndromeRef() {
   if (!host) return;
   const details = window.SYNDROME_DETAILS || {};
 
-  function synCard(syn) {
+  function synCard(syn, id) {
     if (!syn) return '';
+    const name = syn.name || (window.SYNDROME_NAMES || {})[id] || id.replace(/_/g, ' ').toUpperCase();
     const table = Array.isArray(syn.featuresTable)
-      ? `<table class="finding-table"><thead><tr><th>Finding</th><th>Explanation</th></tr></thead><tbody>${syn.featuresTable.map(r => {
+      ? `<table class="finding-table"><thead><tr><th>Finding</th><th>Side</th></tr></thead><tbody>${syn.featuresTable.map(r => {
           const a = r.finding || r.sign || r[0] || '';
-          const b = r.explanation || r.detail || r.mechanism || r[1] || '';
+          const b = r.side || r.explanation || r.detail || r.mechanism || r[1] || '';
           return `<tr><td>${a}</td><td>${b}</td></tr>`;
         }).join('')}</tbody></table>`
       : '';
@@ -2200,7 +2434,7 @@ function renderSyndromeRef() {
     const note = syn.sourceNote ? `<div class="text-sm" style="color:var(--text-dim); margin-top:6px; font-style:italic">${syn.sourceNote}</div>` : '';
     return `
       <details class="check-item" style="margin-bottom:8px">
-        <summary style="font-weight:700; cursor:pointer; padding:10px 0">${syn.name || ''}</summary>
+        <summary style="font-weight:700; cursor:pointer; padding:10px 0">${name}</summary>
         <div class="check-detail open" style="padding:6px 0 10px">
           ${syn.anatomy ? `<div><strong>Anatomy:</strong> ${syn.anatomy}</div>` : ''}
           ${syn.vascularSupply ? `<div style="margin-top:4px"><strong>Vascular supply:</strong> ${syn.vascularSupply}</div>` : ''}
@@ -2219,7 +2453,7 @@ function renderSyndromeRef() {
       const syn = details[id];
       if (!syn || seen.has(syn)) continue;
       seen.add(syn);
-      out.push(synCard(syn));
+      out.push(synCard(syn, id));
     }
     return out.join('');
   }
@@ -2441,12 +2675,21 @@ function renderAlgorithm() {
   const legacyHtml = `
     <div class="card">
       <div class="card-title">📚 Legacy / international CIs (for comparison)</div>
-      <p class="text-sm" style="color:var(--text-dim)">International guidelines traditionally cite tPA (alteplase) 0.9 mg/kg (max 90 mg), 10% bolus + 90% over 60 min. This app uses <strong>tenecteplase (TNK) 0.25 mg/kg (max 25 mg) single IV bolus</strong>, now the preferred agent at Lakeridge Health and per 2022/2025 CSBPR.</p>
+      <p class="text-sm" style="color:var(--text-dim)">International guidelines traditionally cite tPA (alteplase) 0.9 mg/kg (max 90 mg), 10% bolus + 90% over 60 min. This app uses <strong>tenecteplase (TNK) 0.25 mg/kg (max 25 mg) single IV bolus over 5 seconds</strong>, now the preferred agent at Lakeridge Health and per 2022/2025 CSBPR.</p>
+      <p class="text-sm" style="color:#ef9a9a; margin-top:8px"><strong>⚠️ Caution:</strong> stroke dosing of alteplase/TNK is NOT the same as the MI or massive-PE protocols.</p>
+    </div>`;
+
+  const inHospitalHtml = `
+    <div class="card">
+      <div class="card-title">🏥 Stroke while already in hospital</div>
+      <p class="text-sm" style="color:var(--text-dim)">Patients already in hospital (ED, inpatient unit, clinic, rehab) with sudden new stroke symptoms get the <strong>same rapid pathway</strong> — evaluate without delay for TNK and EVT eligibility (CSBPR 5.3).</p>
     </div>`;
 
   host.innerHTML = `
     ${bucketHtml}
     ${buildDisablingCard(false)}
+    ${buildEligibilityCard()}
+    ${buildTnkComplicationsCard()}
     ${phqHtml}
     ${corticalHtml}
     ${bpHtml}
@@ -2454,6 +2697,7 @@ function renderAlgorithm() {
     ${postHtml}
     ${mimicHtml}
     ${r4Html}
+    ${inHospitalHtml}
     ${legacyHtml}
     <div class="card" style="background:#1e3a8a; color:#fff; text-align:center; font-weight:600">
       Mental loop: Is it a stroke? → Where is it? → Can I treat? → When? → Watch for deterioration.
@@ -2480,6 +2724,12 @@ function init() {
 
   // Back button (header) + bottom nav back buttons
   function handleBack() {
+    // On a reference side screen, back returns to where the user came from
+    const active = document.querySelector('.screen.active');
+    if (active && SIDE_SCREENS.includes(active.id.replace('screen-', ''))) {
+      window.goBackFromSide();
+      return;
+    }
     const currentStep = STATE.current ? STATE.current.currentStep : 'home';
     const idx = STEPS.indexOf(currentStep);
     if (idx <= 0) { goTo('home'); renderHome(); }
@@ -2509,11 +2759,6 @@ function init() {
   });
 
   document.getElementById('rel-next').addEventListener('click', () => {
-    renderQuickScreen();
-    goTo('step-quick-screen');
-  });
-
-  document.getElementById('quick-screen-next').addEventListener('click', () => {
     renderNIHSS();
     goTo('step-nihss');
   });
@@ -2600,15 +2845,14 @@ function goToStep(stepId) {
     window.goToSide(stepId);
     return;
   }
-  // Sessions saved before the Relevant History step was removed
-  if (stepId === 'step-history') stepId = 'step-quick-screen';
+  // Sessions saved before the Relevant History / Cortical Screen steps were removed
+  if (stepId === 'step-history' || stepId === 'step-quick-screen') stepId = 'step-nihss';
   switch(stepId) {
     case 'home': renderHome(); break;
     case 'step-label': renderLabel(); break;
     case 'step-timing': renderTiming(); break;
     case 'step-abs-contra': renderAbsContra(); break;
     case 'step-rel-contra': renderRelContra(); break;
-    case 'step-quick-screen': renderQuickScreen(); break;
     case 'step-nihss': renderNIHSS(); break;
     case 'step-posterior': renderPosterior(); break;
     case 'step-syndrome': renderSyndrome(); break;
