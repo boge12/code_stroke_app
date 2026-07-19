@@ -353,7 +353,6 @@
   <div class="screen" id="screen-step-decision">
     <div id="lvo-banner"></div>
     <div id="decision-content"></div>
-    <div id="bp-targets-card"></div>
     <div id="deterioration-banner"></div>
 
     <div class="card" id="nihss-reassess-card">
@@ -411,7 +410,29 @@
 
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
-      <button class="btn-nav btn-nav-next" id="consent-next">Generate EMR Note →</button>
+      <button class="btn-nav btn-nav-next" id="consent-next">Next: Disposition →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Disposition
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-dispo">
+    <div id="dispo-content"></div>
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
+      <button class="btn-nav btn-nav-next" id="dispo-next">Next: Admission →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SCREEN: Admission Orders
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-admit">
+    <div id="admit-content"></div>
+    <div class="nav-footer">
+      <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
+      <button class="btn-nav btn-nav-next" id="admit-next">Generate EMR Note →</button>
     </div>
   </div>
 
