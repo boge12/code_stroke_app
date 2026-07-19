@@ -114,6 +114,7 @@ function newSession() {
     posteriorScreen: { fiveD: null, vertigoFocal: null, gaitAtaxia: null, verticalGazeSkew: null },
     relevantHistory: {}, // id -> { val: 'yes'|'no'|null|string|number, detail: string }
     nihssReassess: null,
+    workupDone: {},
   };
 }
 
@@ -965,14 +966,15 @@ function wirePosteriorToggles() {
 function updateLvoBanner() {
   const banner = document.getElementById('lvo-banner');
   if (!banner) return;
+  syncCorticalFromNIHSS();
   const total = getNIHSSTotal(STATE.current.nihss || {});
   const cs = STATE.current.corticalScreen || {};
   const anyChecked = Object.values(cs).some(v => v === true);
   if (total >= 6 && anyChecked) {
     banner.innerHTML = `
-      <div class="lvo-banner" style="margin-top:12px; padding:12px; border-radius:10px; background:#7f1d1d; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+      <div class="lvo-banner" style="margin-top:12px; padding:12px; border-radius:10px; background:var(--red-dark); color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
         <div style="font-weight:700; flex:1">🚨 Presumed LVO — activate EVT pathway</div>
-        <button class="btn-primary" onclick="goToStep('step-ct')" style="background:#fff; color:#7f1d1d">Activate EVT pathway →</button>
+        <button class="btn-primary" onclick="goToStep('step-ct')" style="background:#fff; color:var(--red-dark)">Activate EVT pathway →</button>
       </div>`;
   } else {
     banner.innerHTML = '';
@@ -1406,6 +1408,16 @@ document.addEventListener('click', (e) => {
 });
 
 // ── Post-Stroke Admission Management ─────────────────────────
+// Admission labs & workup — tickable, persisted, printed in the note
+const ADMIT_WORKUP_ITEMS = [
+  { id: 'bloodwork', label: 'Bloodwork: CBC, lytes, Cr, glucose, lipid panel, HbA1c, TSH, troponin' },
+  { id: 'ecg', label: 'ECG (if not already done) — look for AFib' },
+  { id: 'holter', label: 'Extended cardiac monitoring (Holter or telemetry × 48–72h) — AFib screening' },
+  { id: 'echo', label: 'Echocardiogram (TTE; consider TEE if young or cryptogenic)' },
+  { id: 'carotid', label: 'Carotid Doppler / CTA neck (if not done with initial CTA)' },
+  { id: 'mri', label: 'MRI brain with DWI (if diagnosis uncertain or to define territory)' },
+];
+
 function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
   const total = getNIHSSTotal(s.nihss);
   // Prefer the recorded administration over the predicted eligibility
@@ -1421,8 +1433,8 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
 
   // CSBPR Box 5D — pre-EVT / transfer management + post-EVT care
   const buildEvtCare = () => `
-    <div class="card">
-      <div style="font-size:14px; font-weight:700; color:#ef9a9a; margin-bottom:6px">🚑 Pre-EVT / Transfer (CSBPR Box 5D)</div>
+    <details class="card card-collapse">
+      <summary style="color:#ef9a9a">🚑 Pre-EVT / Transfer · 5</summary>
       <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
         <li>Maintain O₂ sat >92%; intubate only if reduced oxygenation, vomiting, or heavy sedation needed</li>
         <li>Avoid aggressive BP lowering before reperfusion is achieved</li>
@@ -1442,7 +1454,7 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
           <li>Post-EVT BP target is individualized (recanalization achieved, thrombolysis given, complications, baseline BP)</li>
         </ul>
       </details>
-    </div>`;
+    </details>`;
 
   // Determine scenario
   if (tnkGiven && lvoPresent) {
@@ -1518,15 +1530,7 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
   }
 
   // Common investigations and nursing for all scenarios
-  investigationItems = [
-    'Bloodwork: CBC, lytes, Cr, glucose, lipid panel, HbA1c, TSH, troponin',
-    'ECG (if not already done) — look for AFib',
-    'Extended cardiac monitoring (Holter or telemetry × 48–72h) — AFib screening',
-    'Echocardiogram (TTE; consider TEE if young or cryptogenic)',
-    'Carotid Doppler / CTA neck (if not done with initial CTA)',
-    'MRI brain with DWI (if diagnosis uncertain or to define stroke territory)',
-    'Fasting lipids + HbA1c if not recent',
-  ];
+  investigationItems = ADMIT_WORKUP_ITEMS;
 
   nursingItems = [
     'Swallowing screen before any PO intake (risk of aspiration)',
@@ -1539,13 +1543,18 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
     'Smoking cessation counseling if applicable',
   ];
 
-  const section = (icon, title, color, items, open) => `
-    <details class="card card-collapse"${open ? ' open' : ''}>
-      <summary style="color:${color}">${icon} ${title}</summary>
+  // One banner, then one-line rows — every section carries its count,
+  // nothing opens unless tapped.
+  const section = (icon, title, color, items) => `
+    <details class="card card-collapse">
+      <summary style="color:${color}">${icon} ${title} · ${items.length}</summary>
       <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
         ${items.map(i => `<li>${i}</li>`).join('')}
       </ul>
     </details>`;
+
+  const wd = s.workupDone = s.workupDone || {};
+  const workupDoneCount = investigationItems.filter(it => wd[it.id]).length;
 
   return `
     <div class="status-banner status-blue">
@@ -1558,10 +1567,19 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
 
     ${evtCareHtml}
 
-    ${section('📊', 'Monitoring', 'var(--blue)', monitoringItems, true)}
-    ${section('💊', 'Medications', 'var(--yellow)', medItems, false)}
-    ${section('🔬', 'Investigations', 'var(--purple)', investigationItems, false)}
-    ${section('🩺', 'Nursing / Allied Health', 'var(--green)', nursingItems, false)}
+    ${section('📊', 'Monitoring', 'var(--blue)', monitoringItems)}
+    ${section('💊', 'Medications', 'var(--yellow)', medItems)}
+    <details class="card card-collapse">
+      <summary style="color:var(--purple)" id="workup-summary">🔬 Labs & Workup · ${workupDoneCount}/${investigationItems.length} ordered</summary>
+      <div id="workup-checklist">
+        ${investigationItems.map(it => `
+        <div class="checklist-action">
+          <div class="action-checkbox${wd[it.id] ? ' done' : ''}" data-workup="${it.id}">${wd[it.id] ? '✓' : ''}</div>
+          <div class="action-text">${it.label}</div>
+        </div>`).join('')}
+      </div>
+    </details>
+    ${section('🩺', 'Nursing / Allied Health', 'var(--green)', nursingItems)}
   `;
 }
 
@@ -1622,6 +1640,21 @@ function renderAdmit() {
   }
 
   host.innerHTML = buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) + bpHtml;
+
+  host.querySelectorAll('[data-workup]').forEach(box => {
+    box.onclick = () => {
+      const wd = STATE.current.workupDone;
+      wd[box.dataset.workup] = !wd[box.dataset.workup];
+      saveCurrentSession();
+      box.classList.toggle('done', wd[box.dataset.workup]);
+      box.textContent = wd[box.dataset.workup] ? '✓' : '';
+      const sum = document.getElementById('workup-summary');
+      if (sum) {
+        const done = ADMIT_WORKUP_ITEMS.filter(it => wd[it.id]).length;
+        sum.textContent = `🔬 Labs & Workup · ${done}/${ADMIT_WORKUP_ITEMS.length} ordered`;
+      }
+    };
+  });
 }
 
 // "Is the deficit disabling?" framework card — shared by the Syndrome,
@@ -1923,27 +1956,23 @@ function renderDecision() {
   if (tnkStatus === 'eligible' || tnkStatus === 'relative') {
     tnkDoseBPHtml = `
     <div class="card">
-      <div class="card-title">TNK Dose Calculator</div>
-      <p class="text-sm" style="margin-bottom:8px; color:var(--yellow); font-weight:600">⏱ ${window.DOOR_TO_NEEDLE || 'Door-to-needle target: ≤30 min median.'}</p>
+      <div class="card-title">TNK — Dose & BP</div>
       <label>Patient Weight (kg)</label>
       <div class="weight-row">
         <input type="number" id="weight-input" placeholder="e.g. 75" min="30" max="200" value="${s.weightKg || ''}">
         <span class="unit">kg</span>
       </div>
       <div id="dose-result" class="dose-result" style="display:none"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">BP Management</div>
-      <div style="font-size:15px; font-weight:700; margin-bottom:4px; color:var(--yellow)">Pre-TNK Target: &lt;185/110 mmHg</div>
-      <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:#81c784">Post-TNK: SBP &lt;160, DBP &lt;80 — Avoid hypotension</div>
-      <details class="nihss-exam-details" style="margin-bottom:0">
-        <summary>Drug dosing</summary>
+      <div style="font-size:15px; font-weight:700; margin:10px 0 4px; color:var(--yellow)">Pre-TNK: &lt;185/110 mmHg</div>
+      <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:#81c784">Post-TNK: SBP &lt;160, DBP &lt;80 — avoid hypotension</div>
+      <details class="nihss-exam-details" style="margin-bottom:8px">
+        <summary>BP drug dosing</summary>
         ${window.BP_MEDS.map(m => `<div style="padding:8px 0; border-bottom:1px solid var(--border)">
           <span style="font-weight:700">${m.drug}:</span> ${m.dose}<br>
           <span style="font-size:13px;color:var(--text-dim)">${m.notes}</span>
         </div>`).join('')}
       </details>
+      <p class="text-sm" style="margin-bottom:0; color:var(--text-dim)">⏱ ${window.DOOR_TO_NEEDLE || 'Door-to-needle target: ≤30 min median.'}</p>
     </div>`;
   }
 
@@ -2015,9 +2044,9 @@ function renderDecision() {
       const delta = reassess - baseline;
       if (delta >= 4) {
         detBanner.innerHTML = `
-          <div class="deterioration-banner" style="margin-top:12px; padding:14px; border-radius:10px; background:#7f1d1d; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+          <div class="deterioration-banner" style="margin-top:12px; padding:14px; border-radius:10px; background:var(--red-dark); color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
             <div style="font-weight:700; flex:1">⚠️ ≥4-point NIHSS increase (Δ ${delta}) — URGENT re-imaging indicated</div>
-            <button class="btn-primary" onclick="goToStep('step-ct')" style="background:#fff; color:#7f1d1d">Re-imaging →</button>
+            <button class="btn-primary" onclick="goToStep('step-ct')" style="background:#fff; color:var(--red-dark)">Re-imaging →</button>
           </div>`;
       } else {
         detBanner.innerHTML = '';
@@ -2365,6 +2394,9 @@ PLAN:
   - EVT centre: ${evtCentre}
   - EPIC orders: Phase 1 (ED) + Phase 2 (physician)
 
+ADMISSION WORKUP:
+${ADMIT_WORKUP_ITEMS.map(it => `  [${(s.workupDone || {})[it.id] ? 'x' : ' '}] ${it.label}`).join('\n')}
+
 CONSENT:
   ${consentLine}
 ${'─'.repeat(50)}
@@ -2394,7 +2426,7 @@ function renderMimics(tab) {
       </details>`).join('');
 
     host.innerHTML = `
-      <div class="mimic-banner" style="padding:12px; border-radius:10px; background:#78350f; color:#fff; margin-bottom:12px; font-weight:600">Check glucose FIRST — hypoglycemia is the most common mimic. Target: 3.5–22.2 mmol/L.</div>
+      <div class="mimic-banner" style="padding:12px; border-radius:10px; background:rgba(255,159,10,0.9); color:#fff; margin-bottom:12px; font-weight:600">Check glucose FIRST — hypoglycemia is the most common mimic. Target: 3.5–22.2 mmol/L.</div>
       ${redFlagsHtml}
       ${mimicCards}
       <div class="card">
@@ -2426,9 +2458,9 @@ function renderMimics(tab) {
     }).join('');
 
     host.innerHTML = `
-      <div class="mimic-banner" style="padding:12px; border-radius:10px; background:#7f1d1d; color:#fff; margin-bottom:12px; font-weight:600">Strokes can look like mimics. If the story is sudden focal change and CT/CTA unrevealing: MRI DWI or admit for observation — DO NOT discharge.</div>
+      <div class="mimic-banner" style="padding:12px; border-radius:10px; background:var(--red-dark); color:#fff; margin-bottom:12px; font-weight:600">Strokes can look like mimics. If the story is sudden focal change and CT/CTA unrevealing: MRI DWI or admit for observation — DO NOT discharge.</div>
       ${camCards}
-      <div class="card" style="background:#7f1d1d; color:#fff">
+      <div class="card" style="background:var(--red-dark); color:#fff">
         <div class="card-title" style="color:#fff">🛡 Safety-net</div>
         <p class="text-sm">Key chameleons: isolated vertigo (posterior circulation), isolated limb shaking (limb-shaking TIA), confusional state (thalamic / bilateral PCA), pure sensory loss, post-ictal Todd's presenting after unwitnessed seizure. When the story is sudden and stereotyped — do not discharge. MRI DWI or admit for observation.</p>
       </div>`;
