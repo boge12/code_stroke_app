@@ -966,14 +966,15 @@ function wirePosteriorToggles() {
 function updateLvoBanner() {
   const banner = document.getElementById('lvo-banner');
   if (!banner) return;
+  syncCorticalFromNIHSS();
   const total = getNIHSSTotal(STATE.current.nihss || {});
   const cs = STATE.current.corticalScreen || {};
   const anyChecked = Object.values(cs).some(v => v === true);
   if (total >= 6 && anyChecked) {
     banner.innerHTML = `
-      <div class="lvo-banner" style="margin-top:12px; padding:12px; border-radius:10px; background:#7f1d1d; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+      <div class="lvo-banner" style="margin-top:12px; padding:12px; border-radius:10px; background:var(--red-dark); color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
         <div style="font-weight:700; flex:1">🚨 Presumed LVO — activate EVT pathway</div>
-        <button class="btn-primary" onclick="goToStep('step-ct')" style="background:#fff; color:#7f1d1d">Activate EVT pathway →</button>
+        <button class="btn-primary" onclick="goToStep('step-ct')" style="background:#fff; color:var(--red-dark)">Activate EVT pathway →</button>
       </div>`;
   } else {
     banner.innerHTML = '';
@@ -2043,9 +2044,9 @@ function renderDecision() {
       const delta = reassess - baseline;
       if (delta >= 4) {
         detBanner.innerHTML = `
-          <div class="deterioration-banner" style="margin-top:12px; padding:14px; border-radius:10px; background:#7f1d1d; color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+          <div class="deterioration-banner" style="margin-top:12px; padding:14px; border-radius:10px; background:var(--red-dark); color:#fff; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
             <div style="font-weight:700; flex:1">⚠️ ≥4-point NIHSS increase (Δ ${delta}) — URGENT re-imaging indicated</div>
-            <button class="btn-primary" onclick="goToStep('step-ct')" style="background:#fff; color:#7f1d1d">Re-imaging →</button>
+            <button class="btn-primary" onclick="goToStep('step-ct')" style="background:#fff; color:var(--red-dark)">Re-imaging →</button>
           </div>`;
       } else {
         detBanner.innerHTML = '';
@@ -2425,7 +2426,7 @@ function renderMimics(tab) {
       </details>`).join('');
 
     host.innerHTML = `
-      <div class="mimic-banner" style="padding:12px; border-radius:10px; background:#78350f; color:#fff; margin-bottom:12px; font-weight:600">Check glucose FIRST — hypoglycemia is the most common mimic. Target: 3.5–22.2 mmol/L.</div>
+      <div class="mimic-banner" style="padding:12px; border-radius:10px; background:rgba(255,159,10,0.9); color:#fff; margin-bottom:12px; font-weight:600">Check glucose FIRST — hypoglycemia is the most common mimic. Target: 3.5–22.2 mmol/L.</div>
       ${redFlagsHtml}
       ${mimicCards}
       <div class="card">
@@ -2457,9 +2458,9 @@ function renderMimics(tab) {
     }).join('');
 
     host.innerHTML = `
-      <div class="mimic-banner" style="padding:12px; border-radius:10px; background:#7f1d1d; color:#fff; margin-bottom:12px; font-weight:600">Strokes can look like mimics. If the story is sudden focal change and CT/CTA unrevealing: MRI DWI or admit for observation — DO NOT discharge.</div>
+      <div class="mimic-banner" style="padding:12px; border-radius:10px; background:var(--red-dark); color:#fff; margin-bottom:12px; font-weight:600">Strokes can look like mimics. If the story is sudden focal change and CT/CTA unrevealing: MRI DWI or admit for observation — DO NOT discharge.</div>
       ${camCards}
-      <div class="card" style="background:#7f1d1d; color:#fff">
+      <div class="card" style="background:var(--red-dark); color:#fff">
         <div class="card-title" style="color:#fff">🛡 Safety-net</div>
         <p class="text-sm">Key chameleons: isolated vertigo (posterior circulation), isolated limb shaking (limb-shaking TIA), confusional state (thalamic / bilateral PCA), pure sensory loss, post-ictal Todd's presenting after unwitnessed seizure. When the story is sudden and stereotyped — do not discharge. MRI DWI or admit for observation.</p>
       </div>`;
