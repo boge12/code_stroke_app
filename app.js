@@ -114,6 +114,7 @@ function newSession() {
     posteriorScreen: { fiveD: null, vertigoFocal: null, gaitAtaxia: null, verticalGazeSkew: null },
     relevantHistory: {}, // id -> { val: 'yes'|'no'|null|string|number, detail: string }
     nihssReassess: null,
+    workupDone: {},
   };
 }
 
@@ -1406,6 +1407,16 @@ document.addEventListener('click', (e) => {
 });
 
 // ── Post-Stroke Admission Management ─────────────────────────
+// Admission labs & workup — tickable, persisted, printed in the note
+const ADMIT_WORKUP_ITEMS = [
+  { id: 'bloodwork', label: 'Bloodwork: CBC, lytes, Cr, glucose, lipid panel, HbA1c, TSH, troponin' },
+  { id: 'ecg', label: 'ECG (if not already done) — look for AFib' },
+  { id: 'holter', label: 'Extended cardiac monitoring (Holter or telemetry × 48–72h) — AFib screening' },
+  { id: 'echo', label: 'Echocardiogram (TTE; consider TEE if young or cryptogenic)' },
+  { id: 'carotid', label: 'Carotid Doppler / CTA neck (if not done with initial CTA)' },
+  { id: 'mri', label: 'MRI brain with DWI (if diagnosis uncertain or to define territory)' },
+];
+
 function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
   const total = getNIHSSTotal(s.nihss);
   // Prefer the recorded administration over the predicted eligibility
@@ -1518,15 +1529,7 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
   }
 
   // Common investigations and nursing for all scenarios
-  investigationItems = [
-    'Bloodwork: CBC, lytes, Cr, glucose, lipid panel, HbA1c, TSH, troponin',
-    'ECG (if not already done) — look for AFib',
-    'Extended cardiac monitoring (Holter or telemetry × 48–72h) — AFib screening',
-    'Echocardiogram (TTE; consider TEE if young or cryptogenic)',
-    'Carotid Doppler / CTA neck (if not done with initial CTA)',
-    'MRI brain with DWI (if diagnosis uncertain or to define stroke territory)',
-    'Fasting lipids + HbA1c if not recent',
-  ];
+  investigationItems = ADMIT_WORKUP_ITEMS;
 
   nursingItems = [
     'Swallowing screen before any PO intake (risk of aspiration)',
@@ -1560,7 +1563,20 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
 
     ${section('📊', 'Monitoring', 'var(--blue)', monitoringItems, true)}
     ${section('💊', 'Medications', 'var(--yellow)', medItems, false)}
-    ${section('🔬', 'Investigations', 'var(--purple)', investigationItems, false)}
+    ${(() => {
+      const wd = s.workupDone = s.workupDone || {};
+      return `
+    <details class="card card-collapse" open>
+      <summary style="color:var(--purple)">🔬 Admission Labs & Workup</summary>
+      <div id="workup-checklist">
+        ${investigationItems.map(it => `
+        <div class="checklist-action">
+          <div class="action-checkbox${wd[it.id] ? ' done' : ''}" data-workup="${it.id}">${wd[it.id] ? '✓' : ''}</div>
+          <div class="action-text">${it.label}</div>
+        </div>`).join('')}
+      </div>
+    </details>`;
+    })()}
     ${section('🩺', 'Nursing / Allied Health', 'var(--green)', nursingItems, false)}
   `;
 }
@@ -1622,6 +1638,16 @@ function renderAdmit() {
   }
 
   host.innerHTML = buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) + bpHtml;
+
+  host.querySelectorAll('[data-workup]').forEach(box => {
+    box.onclick = () => {
+      const wd = STATE.current.workupDone;
+      wd[box.dataset.workup] = !wd[box.dataset.workup];
+      saveCurrentSession();
+      box.classList.toggle('done', wd[box.dataset.workup]);
+      box.textContent = wd[box.dataset.workup] ? '✓' : '';
+    };
+  });
 }
 
 // "Is the deficit disabling?" framework card — shared by the Syndrome,
@@ -2364,6 +2390,9 @@ PLAN:
   - OTN Telestroke: ${otnDone}
   - EVT centre: ${evtCentre}
   - EPIC orders: Phase 1 (ED) + Phase 2 (physician)
+
+ADMISSION WORKUP:
+${ADMIT_WORKUP_ITEMS.map(it => `  [${(s.workupDone || {})[it.id] ? 'x' : ' '}] ${it.label}`).join('\n')}
 
 CONSENT:
   ${consentLine}
