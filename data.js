@@ -1377,6 +1377,36 @@ window.PARALLEL_HISTORY_QUESTIONS = [
 // SYNDROME DETAILS — expanded reference by id
 // ============================================================
 
+// Display names for SYNDROME_DETAILS keys (entries themselves carry no name)
+window.SYNDROME_NAMES = {
+  lmca_upper: 'Left MCA — superior division',
+  rmca_upper: 'Right MCA — superior division',
+  lmca_lower: 'Left MCA — inferior division',
+  rmca_lower: 'Right MCA — inferior division',
+  mca_m1: 'MCA — M1 occlusion (complete MCA)',
+  aca: 'ACA — anterior cerebral artery',
+  ant_choroidal: 'Anterior choroidal artery',
+  gerstmann: 'Gerstmann syndrome (dominant parietal)',
+  pca: 'PCA — posterior cerebral artery',
+  top_basilar: 'Top-of-the-basilar syndrome',
+  bao: 'Basilar artery occlusion',
+  anton: 'Anton syndrome (cortical blindness)',
+  balint: 'Bálint syndrome (bilateral parieto-occipital)',
+  lacunar_pure_motor: 'Pure motor lacunar (internal capsule / pons)',
+  lacunar_pure_sensory: 'Pure sensory lacunar (thalamus)',
+  lacunar_sensorimotor: 'Sensorimotor lacunar (thalamocapsular)',
+  dysarthria_clumsy_hand: 'Dysarthria–clumsy hand syndrome',
+  ataxic_hemiparesis: 'Ataxic hemiparesis',
+  wallenberg: 'Wallenberg — lateral medullary',
+  medial_medullary: 'Medial medullary (Déjerine)',
+  foville: 'Foville — dorsal pontine',
+  marie_foix: 'Marie–Foix — lateral pontine',
+  weber: 'Weber — midbrain (CN III + hemiparesis)',
+  claude: 'Claude — midbrain (CN III + ataxia)',
+  benedikt: 'Benedikt — midbrain (CN III + movement disorder)',
+  ant_spinal: 'Anterior spinal artery',
+};
+
 window.SYNDROME_DETAILS = {
   // ─── Anterior circulation ───
   lmca_upper: { anatomy: 'Left MCA superior division (frontal operculum, precentral, postcentral)', vascularSupply: 'Left MCA (M2 superior division)', featuresTable: [

@@ -32,6 +32,13 @@ const NIHSS_ORDER = ['1a','1b','1c','2','3','4','5a','5b','6a','6b','7','8','9',
 const SIDE_SCREENS = ['step-mimics','step-syndrome-ref','step-nihss-ref','step-algorithm'];
 let SIDE_RETURN_TO = null;
 
+const SIDE_TITLES = {
+  'step-mimics': 'Mimics & Chameleons',
+  'step-syndrome-ref': 'Stroke Syndromes',
+  'step-nihss-ref': 'NIHSS Reference',
+  'step-algorithm': 'Bedside Algorithm',
+};
+
 window.goToSide = function(sideId) {
   SIDE_RETURN_TO = (STATE.current && STATE.current.currentStep) || (document.querySelector('.screen.active') || {id:'home'}).id.replace('screen-','') || 'home';
   // hide all screens, show side screen
@@ -40,6 +47,11 @@ window.goToSide = function(sideId) {
   if (!screen) return;
   screen.classList.add('active');
   window.scrollTo(0,0);
+  // Sync main header: reference title, working back button, no progress bar
+  document.getElementById('header-title').textContent = SIDE_TITLES[sideId] || 'Reference';
+  document.getElementById('back-btn').style.display = '';
+  const track = document.getElementById('progress-track');
+  if (track) track.style.display = 'none';
   // render content
   if (sideId === 'step-mimics') renderMimics('mimics');
   else if (sideId === 'step-syndrome-ref') renderSyndromeRef();
@@ -1202,9 +1214,6 @@ function renderSyndrome() {
   const total = getNIHSSTotal(STATE.current.nihss);
   const severity = window.getNIHSSSeverity(total);
 
-  const minorNote = total <= 5
-    ? `<div class="status-detail" style="margin-top:4px; font-size:13px">Consider TNK if deficit is disabling: hand weakness, aphasia, hemianopia, or functionally significant to the patient.</div>`
-    : '';
   const severeNote = total >= 22
     ? `<div class="status-detail" style="margin-top:4px; font-size:13px; color:#ef9a9a">🚨 Severe — confirm no extensive early infarct on CT. EVT critical.</div>`
     : '';
@@ -1214,12 +1223,15 @@ function renderSyndrome() {
       <span class="status-icon">🧠</span>
       <div class="status-body">
         <div class="status-title">NIHSS ${total} — ${severity.label}</div>
-        ${total <= 5 ? '<div class="status-detail">≤5 mild — consider TNK only if deficit is disabling.</div>' : ''}
-        ${severeNote}${minorNote}
+        ${total <= 5 ? '<div class="status-detail">≤5 mild — TNK only if the deficit is disabling. Run the checklist below.</div>' : ''}
+        ${severeNote}
       </div>
     </div>
-    ${total <= 5 ? buildDisablingCard(false) : ''}
+    ${total <= 5 ? buildDisablingChecklist() : ''}
   `;
+  if (total <= 5) {
+    wireDisablingChecklist(document.getElementById('syndrome-nihss-total'), renderSyndrome);
+  }
 
   const container = document.getElementById('syndrome-list');
   container.innerHTML = '';
@@ -1275,18 +1287,42 @@ function renderSyndrome() {
   renderSyndromeSanityCheck();
 }
 
+// Persisted self-check — tap the box to tick, tap → to open the reference
 function renderSyndromeSanityCheck() {
   const host = document.getElementById('single-territory-sanity-check');
   if (!host) return;
+  const s = STATE.current;
+  s.syndromeSelfCheck = s.syndromeSelfCheck || { territory: false, functional: false, sudden: false };
+  const sc = s.syndromeSelfCheck;
+  const items = [
+    { id: 'territory', label: 'Signs fit ONE vascular territory', side: 'step-syndrome-ref' },
+    { id: 'functional', label: 'Functional-weakness clues checked', side: 'step-nihss-ref', anchor: 'nihss-ref-functional-clues' },
+    { id: 'sudden', label: 'Sudden onset, maximal at start — else think mimic', side: 'step-mimics' },
+  ];
   host.innerHTML = `
-    <div class="sanity-check-card card" style="margin-top:12px">
-      <div class="card-title">🧐 Self-check</div>
-      <ul style="padding-left:18px; font-size:14px; line-height:1.8; color:var(--text-dim)">
-        <li>Do the signs fit a single vascular territory? <a href="#" onclick="event.preventDefault(); goToSide('step-syndrome-ref');" style="color:var(--blue); text-decoration:underline">Review syndromes →</a></li>
-        <li>Have I checked for functional clues? <a href="#" onclick="event.preventDefault(); goToSide('step-nihss-ref'); setTimeout(()=>{ var el=document.getElementById('nihss-ref-functional-clues'); if(el) el.scrollIntoView({behavior:'smooth'}); },100);" style="color:var(--blue); text-decoration:underline">Functional clues →</a></li>
-        <li>Was the deficit sudden + maximal at onset? <a href="#" onclick="event.preventDefault(); goToSide('step-mimics');" style="color:var(--blue); text-decoration:underline">Mimics to consider →</a></li>
-      </ul>
+    <div class="card" style="margin-top:12px; padding:12px 16px">
+      <div class="card-title" style="margin-bottom:4px">🧐 Self-check</div>
+      ${items.map(it => `
+        <div class="checklist-action">
+          <div class="action-checkbox${sc[it.id] ? ' done' : ''}" data-sc-id="${it.id}">${sc[it.id] ? '✓' : ''}</div>
+          <div class="action-text">${it.label}</div>
+          <button class="sc-link" data-sc-link="${it.side}" data-sc-anchor="${it.anchor || ''}" aria-label="Open reference">→</button>
+        </div>`).join('')}
     </div>`;
+  host.querySelectorAll('[data-sc-id]').forEach(box => {
+    box.onclick = () => {
+      sc[box.dataset.scId] = !sc[box.dataset.scId];
+      saveCurrentSession();
+      renderSyndromeSanityCheck();
+    };
+  });
+  host.querySelectorAll('[data-sc-link]').forEach(btn => {
+    btn.onclick = () => {
+      const anchor = btn.dataset.scAnchor;
+      goToSide(btn.dataset.scLink);
+      if (anchor) setTimeout(() => { const el = document.getElementById(anchor); if (el) el.scrollIntoView({ behavior: 'smooth' }); }, 120);
+    };
+  });
 }
 
 // ── Step: CT ──────────────────────────────────────────────────
@@ -1635,6 +1671,93 @@ function buildEligibilityCard() {
     </details>`;
 }
 
+// ── Disabling-deficit checklist (interactive, low-NIHSS cases) ──
+// Six taps → verdict. Prose framework stays one tap away.
+const DISABLING_CHECK_ITEMS = [
+  { id: 'aphasia', label: 'Aphasia — any language deficit?', hint: 'wrecks communication / return to work' },
+  { id: 'hemianopia', label: 'Hemianopia / visual field cut?', hint: "can't drive, can't read" },
+  { id: 'hand', label: 'Hand weakness — dominant hand or occupation-critical?', hint: 'career-ending for a surgeon or musician' },
+  { id: 'ataxia', label: 'Ataxia — cannot walk / stand unaided?', hint: 'falls, loss of independence' },
+  { id: 'swallow', label: 'Dysphagia, or facial droop affecting swallow / speech?', hint: '' },
+  { id: 'independence', label: 'Deficit takes away something THIS patient needs?', hint: 'job, driving, living alone — anchor to their baseline' },
+];
+
+function disablingVerdict(dc) {
+  const vals = DISABLING_CHECK_ITEMS.map(it => dc[it.id]);
+  const answered = vals.filter(v => v === true || v === false).length;
+  if (vals.some(v => v === true)) return 'disabling';
+  if (answered === DISABLING_CHECK_ITEMS.length) return 'nondisabling';
+  return answered === 0 ? 'empty' : 'partial';
+}
+
+function buildDisablingChecklist() {
+  const s = STATE.current;
+  s.disablingCheck = s.disablingCheck || {};
+  const dc = s.disablingCheck;
+  const verdict = disablingVerdict(dc);
+
+  let verdictHtml = '';
+  if (verdict === 'disabling') {
+    const hits = DISABLING_CHECK_ITEMS.filter(it => dc[it.id] === true).map(it => it.label.split(' — ')[0].replace('?', ''));
+    verdictHtml = `<div class="status-banner status-green" style="margin-top:10px">
+      <span class="status-icon">✅</span>
+      <div class="status-body">
+        <div class="status-title">DISABLING deficit — treat as thrombolysis-eligible</div>
+        <div class="status-detail">${hits.join(' · ')}. Low NIHSS does not exclude treatment.</div>
+      </div>
+    </div>`;
+  } else if (verdict === 'nondisabling') {
+    verdictHtml = `<div class="status-banner status-yellow" style="margin-top:10px">
+      <span class="status-icon">🤔</span>
+      <div class="status-body">
+        <div class="status-title">Likely NON-disabling</div>
+        <div class="status-detail">Re-examine serially — and call OTN Telestroke before withholding if any doubt.</div>
+      </div>
+    </div>`;
+  }
+
+  const rows = DISABLING_CHECK_ITEMS.map(it => {
+    const val = dc[it.id];
+    return `
+      <div class="qs-toggle-row">
+        <div class="qs-toggle-label">${it.label}${it.hint ? `<div style="font-size:12px; color:var(--text-dim); margin-top:2px">${it.hint}</div>` : ''}</div>
+        <div class="qs-toggle-pills">
+          <button class="qs-toggle-pill yes${val === true ? ' active' : ''}" data-dc-id="${it.id}" data-dc-val="yes">Yes</button>
+          <button class="qs-toggle-pill no${val === false ? ' active' : ''}" data-dc-id="${it.id}" data-dc-val="no">No</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const d = window.DISABLING_DEFICIT || {};
+  return `
+    <div class="card qs-card">
+      <div class="qs-card-title">🎯 Is the deficit disabling?</div>
+      <div class="qs-card-sub">If permanent, would it stop this patient's normal daily activities or independent living? Any YES = disabling.</div>
+      ${rows}
+      ${verdictHtml}
+      <div class="nihss-note" style="margin-top:10px">⚠️ Before committing: not rapidly improving on serial exam, and not a mimic (post-ictal, hypoglycemia).</div>
+      <details class="nihss-exam-details" style="margin-top:8px; margin-bottom:0">
+        <summary>Full framework (CSBPR)</summary>
+        <p style="margin:8px 0; font-size:13px; color:var(--text-dim)">${d.proxyNote || ''}</p>
+        <p style="margin:8px 0; font-size:13px; color:var(--text-dim)">${d.nonDisabling || ''}</p>
+        <p style="margin:8px 0; font-size:13px; color:var(--text-dim)"><strong>Practical rule:</strong> ${d.practicalRule || ''}</p>
+        <p style="margin:8px 0; font-size:13px; color:var(--blue)"><strong>Borderline:</strong> ${d.borderline || ''}</p>
+      </details>
+    </div>`;
+}
+
+function wireDisablingChecklist(host, rerender) {
+  host.querySelectorAll('[data-dc-id]').forEach(btn => {
+    btn.onclick = () => {
+      const dc = STATE.current.disablingCheck;
+      const val = btn.dataset.dcVal === 'yes';
+      dc[btn.dataset.dcId] = dc[btn.dataset.dcId] === val ? null : val;
+      saveCurrentSession();
+      rerender();
+    };
+  });
+}
+
 // ── Step: Decision ───────────────────────────────────────────
 function renderDecision() {
   const s = STATE.current;
@@ -1782,7 +1905,7 @@ function renderDecision() {
       </div>
     </div>
 
-    ${total <= 5 ? buildDisablingCard(true) : ''}
+    ${total <= 5 ? buildDisablingChecklist() : ''}
 
     ${evtBanner}
 
@@ -1832,6 +1955,10 @@ function renderDecision() {
   }
 
   setupActionChecklist();
+
+  if (total <= 5) {
+    wireDisablingChecklist(document.getElementById('decision-content'), renderDecision);
+  }
 
   // LVO banner: fires when any cortical flag + NIHSS ≥ 6
   updateLvoBanner();
@@ -2046,6 +2173,13 @@ function collectGaps() {
   const unscored = NIHSS_ORDER.filter(id => s.nihss[id] === undefined);
   if (unscored.length) gaps.push({ label: `NIHSS item${unscored.length > 1 ? 's' : ''} ${unscored.join(', ')} not scored`, step: 'step-nihss' });
 
+  if (!unscored.length && getNIHSSTotal(s.nihss) <= 5) {
+    const dv = disablingVerdict(s.disablingCheck || {});
+    if (dv === 'empty' || dv === 'partial') {
+      gaps.push({ label: 'Disabling-deficit checklist not completed (NIHSS ≤5)', step: 'step-decision' });
+    }
+  }
+
   const ps = s.posteriorScreen || {};
   const postOpen = ['fiveD', 'vertigoFocal', 'gaitAtaxia', 'verticalGazeSkew'].filter(k => ps[k] === null || ps[k] === undefined).length;
   if (postOpen) gaps.push({ label: `Posterior circulation check — ${postOpen} question${postOpen > 1 ? 's' : ''} unanswered`, step: 'step-posterior' });
@@ -2166,6 +2300,14 @@ NIHSS SCORE: ${total} — ${severity.label}
     const yes = Object.keys(ps).filter(k => ps[k] === true);
     if (yes.length) return `\n  Posterior red flags: ${yes.join(', ')}`;
     return '';
+  })()}${(() => {
+    const dc = s.disablingCheck || {};
+    const v = disablingVerdict(dc);
+    if (v === 'empty') return '';
+    const yes = DISABLING_CHECK_ITEMS.filter(it => dc[it.id] === true).map(it => it.label.split(' — ')[0].replace('?', ''));
+    if (v === 'disabling') return `\n  Disabling deficit: YES — ${yes.join(', ')}`;
+    if (v === 'nondisabling') return '\n  Disabling deficit: assessed as non-disabling';
+    return '\n  Disabling deficit: assessment incomplete';
   })()}${(s.nihssReassess !== null && s.nihssReassess !== undefined)
     ? `\n  Reassessment NIHSS: ${s.nihssReassess} (baseline ${total}) — delta Δ ${s.nihssReassess - total}`
     : ''}
@@ -2290,12 +2432,13 @@ function renderSyndromeRef() {
   if (!host) return;
   const details = window.SYNDROME_DETAILS || {};
 
-  function synCard(syn) {
+  function synCard(syn, id) {
     if (!syn) return '';
+    const name = syn.name || (window.SYNDROME_NAMES || {})[id] || id.replace(/_/g, ' ').toUpperCase();
     const table = Array.isArray(syn.featuresTable)
-      ? `<table class="finding-table"><thead><tr><th>Finding</th><th>Explanation</th></tr></thead><tbody>${syn.featuresTable.map(r => {
+      ? `<table class="finding-table"><thead><tr><th>Finding</th><th>Side</th></tr></thead><tbody>${syn.featuresTable.map(r => {
           const a = r.finding || r.sign || r[0] || '';
-          const b = r.explanation || r.detail || r.mechanism || r[1] || '';
+          const b = r.side || r.explanation || r.detail || r.mechanism || r[1] || '';
           return `<tr><td>${a}</td><td>${b}</td></tr>`;
         }).join('')}</tbody></table>`
       : '';
@@ -2305,7 +2448,7 @@ function renderSyndromeRef() {
     const note = syn.sourceNote ? `<div class="text-sm" style="color:var(--text-dim); margin-top:6px; font-style:italic">${syn.sourceNote}</div>` : '';
     return `
       <details class="check-item" style="margin-bottom:8px">
-        <summary style="font-weight:700; cursor:pointer; padding:10px 0">${syn.name || ''}</summary>
+        <summary style="font-weight:700; cursor:pointer; padding:10px 0">${name}</summary>
         <div class="check-detail open" style="padding:6px 0 10px">
           ${syn.anatomy ? `<div><strong>Anatomy:</strong> ${syn.anatomy}</div>` : ''}
           ${syn.vascularSupply ? `<div style="margin-top:4px"><strong>Vascular supply:</strong> ${syn.vascularSupply}</div>` : ''}
@@ -2324,7 +2467,7 @@ function renderSyndromeRef() {
       const syn = details[id];
       if (!syn || seen.has(syn)) continue;
       seen.add(syn);
-      out.push(synCard(syn));
+      out.push(synCard(syn, id));
     }
     return out.join('');
   }
@@ -2595,6 +2738,12 @@ function init() {
 
   // Back button (header) + bottom nav back buttons
   function handleBack() {
+    // On a reference side screen, back returns to where the user came from
+    const active = document.querySelector('.screen.active');
+    if (active && SIDE_SCREENS.includes(active.id.replace('screen-', ''))) {
+      window.goBackFromSide();
+      return;
+    }
     const currentStep = STATE.current ? STATE.current.currentStep : 'home';
     const idx = STEPS.indexOf(currentStep);
     if (idx <= 0) { goTo('home'); renderHome(); }

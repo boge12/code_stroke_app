@@ -236,15 +236,8 @@
     <div id="syndrome-nihss-total"></div>
     <div id="empty-match-hint"></div>
 
-    <p class="section-title">Suggested Stroke Syndrome(s)</p>
-    <p class="text-sm" style="margin-bottom:14px; color:var(--text-dim)">Based on NIHSS pattern. These are clinical suggestions — always use your full clinical judgment.</p>
-
+    <p class="section-title">Suggested syndrome — from NIHSS pattern</p>
     <div id="syndrome-list"></div>
-
-    <div style="margin:12px 0;display:flex;gap:8px;flex-wrap:wrap;">
-      <button class="btn btn-ghost" onclick="goToSide('step-mimics')">🧠 Rule out mimics / Chameleons</button>
-      <button class="btn btn-ghost" onclick="goToSide('step-syndrome-ref')">🗺️ Full syndrome reference</button>
-    </div>
     <div id="single-territory-sanity-check"></div>
 
     <div class="nav-footer">
@@ -472,10 +465,6 @@
        SIDE SCREEN: Mimics & Chameleons
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-mimics">
-    <div class="screen-header">
-      <button class="btn-back" onclick="goBackFromSide()">← Back</button>
-      <h2>Stroke Mimics & Chameleons</h2>
-    </div>
     <div class="tabs">
       <button class="tab active" data-tab="mimics" onclick="switchMimicsTab('mimics')">Mimics</button>
       <button class="tab" data-tab="chameleons" onclick="switchMimicsTab('chameleons')">Chameleons</button>
@@ -487,10 +476,6 @@
        SIDE SCREEN: Syndrome Reference
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-syndrome-ref">
-    <div class="screen-header">
-      <button class="btn-back" onclick="goBackFromSide()">← Back</button>
-      <h2>Stroke Syndromes — Reference</h2>
-    </div>
     <div id="syndrome-ref-content"></div>
   </div>
 
@@ -498,10 +483,6 @@
        SIDE SCREEN: NIHSS Reference
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-nihss-ref">
-    <div class="screen-header">
-      <button class="btn-back" onclick="goBackFromSide()">← Back</button>
-      <h2>NIHSS Reference</h2>
-    </div>
     <div id="nihss-ref-content"></div>
   </div>
 
@@ -509,10 +490,6 @@
        SIDE SCREEN: Bedside Algorithm
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-algorithm">
-    <div class="screen-header">
-      <button class="btn-back" onclick="goBackFromSide()">← Back</button>
-      <h2>Code Stroke Bedside Algorithm</h2>
-    </div>
     <div id="algorithm-content"></div>
   </div>
 
