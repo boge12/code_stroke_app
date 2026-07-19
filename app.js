@@ -16,7 +16,6 @@ const STEPS = [
   'step-timing',
   'step-abs-contra',
   'step-rel-contra',
-  'step-quick-screen',
   'step-nihss',
   'step-posterior',
   'step-syndrome',
@@ -235,20 +234,21 @@ function updateHeader(stepId) {
   const title = document.getElementById('header-title');
   const badge = document.getElementById('nihss-badge');
 
+  // Titles are phases matching the real workflow: at the bedside →
+  // patient in the scanner → results back, decide → document.
   const titles = {
     'home': 'Code Stroke',
-    'step-label': 'Step 1 — Patient',
-    'step-timing': 'Step 2 — Timing',
-    'step-abs-contra': 'Step 3 — Absolute CIs',
-    'step-rel-contra': 'Step 4 — Relative CIs',
-    'step-quick-screen': 'Step 5 — Cortical / LVO Screen',
-    'step-nihss': 'Step 6 — NIHSS Assessment',
-    'step-posterior': 'Step 7 — Posterior Circulation',
-    'step-syndrome': 'Step 8 — Syndrome',
-    'step-ct': 'Step 9 — CT Results',
-    'step-decision': 'Step 10 — Decision',
-    'step-consent': 'Step 11 — Consent',
-    'step-note': 'Step 12 — EMR Note',
+    'step-label': 'Bedside · Patient',
+    'step-timing': 'Bedside · Timing',
+    'step-abs-contra': 'Bedside · Absolute CIs',
+    'step-rel-contra': 'Bedside · Relative CIs',
+    'step-nihss': 'Bedside · NIHSS',
+    'step-posterior': 'Scanner · Posterior Check',
+    'step-syndrome': 'Scanner · Syndrome',
+    'step-ct': 'Decide · CT Results',
+    'step-decision': 'Decide · TNK / EVT',
+    'step-consent': 'Document · Consent',
+    'step-note': 'Document · EMR Note',
   };
 
   title.textContent = titles[stepId] || 'Code Stroke';
@@ -842,92 +842,29 @@ function renderNIHSS() {
   renderNIHSSTabs();
 }
 
-// ── Quick Screen step (pre-NIHSS: cortical, NIHSS-style cards) ──
-function renderQuickScreen() {
-  const host = document.getElementById('quick-screen-content');
-  if (!host) return;
-  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false, hemiparesisSide: null };
-  if (!('hemiparesisSide' in STATE.current.corticalScreen)) STATE.current.corticalScreen.hemiparesisSide = null;
-
-  const rule = window.CORTICAL_LVO_RULE || 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.';
-  const items = window.CORTICAL_LVO_SCREEN || [];
-  const cs = STATE.current.corticalScreen;
-
-  const ruleBanner = `
-    <div class="qs-rule-banner">
-      <span class="qs-rule-icon">⚡</span>
-      <span>${rule}</span>
-    </div>
-  `;
-
-  const cards = items.map(item => {
-    const id = item.id;
-    const active = !!cs[id];
-    const exam = Array.isArray(item.howToExamine) ? item.howToExamine : [];
-    const examHtml = exam.length
-      ? `<details class="nihss-exam-details">
-          <summary>How to examine</summary>
-          <ul class="nihss-instructions">${exam.map(s => `<li>${s}</li>`).join('')}</ul>
-          ${item.lookFor ? `<p class="nihss-look-for"><strong>Look for:</strong> ${item.lookFor}</p>` : ''}
-        </details>`
-      : '';
-    const pearlHtml = item.pearl
-      ? `<details class="nihss-extras">
-          <summary>💡 Localization pearl</summary>
-          <div style="margin-top:6px; font-size:13px; line-height:1.6; color:var(--text-dim)">${item.pearl}</div>
-        </details>`
-      : '';
-
-    let sidePickerHtml = '';
-    let sideWarningHtml = '';
-    if (item.hasSidePicker) {
-      const side = cs.hemiparesisSide;
-      sidePickerHtml = `
-        <div class="corti-side-picker" role="group" aria-label="Affected side">
-          <button class="corti-side-btn${side === 'L' ? ' active' : ''}" data-side="L">Left</button>
-          <button class="corti-side-btn${side === 'R' ? ' active' : ''}" data-side="R">Right</button>
-        </div>`;
-      if (active && !side) {
-        sideWarningHtml = `<div class="corti-side-warning">Pick a side to finalize.</div>`;
-      }
-    }
-
-    return `
-      <div class="card qs-card corti-card${active ? ' present' : ''}">
-        <div class="qs-card-title">⚡ ${item.label}${item.hasSidePicker && cs.hemiparesisSide ? ` — ${cs.hemiparesisSide === 'L' ? 'Left' : 'Right'}` : ''}</div>
-        <div class="qs-card-sub">${item.description || ''}</div>
-        ${examHtml}
-        ${pearlHtml}
-        ${sidePickerHtml}
-        <button class="corti-present-btn${active ? ' active' : ''}" data-cortical="${id}">
-          ${active ? '✓ Present — LVO flag set' : 'Mark present'}
-        </button>
-        ${sideWarningHtml}
-      </div>
-    `;
-  }).join('');
-
-  host.innerHTML = ruleBanner + cards;
-
-  host.querySelectorAll('[data-cortical]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const k = btn.dataset.cortical;
-      STATE.current.corticalScreen[k] = !STATE.current.corticalScreen[k];
-      if (k === 'hemiparesis' && !STATE.current.corticalScreen[k]) {
-        STATE.current.corticalScreen.hemiparesisSide = null;
-      }
-      saveCurrentSession();
-      renderQuickScreen();
-    });
-  });
-
-  host.querySelectorAll('[data-side]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      STATE.current.corticalScreen.hemiparesisSide = btn.dataset.side;
-      saveCurrentSession();
-      renderQuickScreen();
-    });
-  });
+// ── Live LVO banner on the NIHSS screen ───────────────────────
+// The former standalone cortical screen's job, done automatically:
+// flags sync from NIHSS scores, and the EVT alert fires the moment
+// a cortical sign + NIHSS ≥ 6 coexist.
+function updateNihssLvoBanner() {
+  const host = document.getElementById('nihss-lvo-banner');
+  if (!host || !STATE.current) return;
+  syncCorticalFromNIHSS();
+  const total = getNIHSSTotal(STATE.current.nihss);
+  const cs = STATE.current.corticalScreen || {};
+  const anyCortical = ['gaze', 'aphasia', 'neglect', 'hemiparesis'].some(k => cs[k] === true);
+  if (anyCortical && total >= 6) {
+    host.innerHTML = `
+      <div class="status-banner status-red" style="margin-bottom:10px">
+        <span class="status-icon">🚨</span>
+        <div class="status-body">
+          <div class="status-title">Presumed LVO — activate EVT pathway now</div>
+          <div class="status-detail">Cortical sign + NIHSS ≥6. Do not wait for CTA to make the call.</div>
+        </div>
+      </div>`;
+  } else {
+    host.innerHTML = `<div class="qs-rule-banner" style="margin-bottom:10px"><span class="qs-rule-icon">⚡</span><span>${window.CORTICAL_LVO_RULE || 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.'}</span></div>`;
+  }
 }
 
 // ── Posterior Circulation step (post-NIHSS) ───────────────────
@@ -1062,6 +999,8 @@ function renderNIHSSTabs() {
       currentTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }, 50);
   }
+
+  updateNihssLvoBanner();
 }
 
 function renderNIHSSItem() {
@@ -2820,11 +2759,6 @@ function init() {
   });
 
   document.getElementById('rel-next').addEventListener('click', () => {
-    renderQuickScreen();
-    goTo('step-quick-screen');
-  });
-
-  document.getElementById('quick-screen-next').addEventListener('click', () => {
     renderNIHSS();
     goTo('step-nihss');
   });
@@ -2911,15 +2845,14 @@ function goToStep(stepId) {
     window.goToSide(stepId);
     return;
   }
-  // Sessions saved before the Relevant History step was removed
-  if (stepId === 'step-history') stepId = 'step-quick-screen';
+  // Sessions saved before the Relevant History / Cortical Screen steps were removed
+  if (stepId === 'step-history' || stepId === 'step-quick-screen') stepId = 'step-nihss';
   switch(stepId) {
     case 'home': renderHome(); break;
     case 'step-label': renderLabel(); break;
     case 'step-timing': renderTiming(); break;
     case 'step-abs-contra': renderAbsContra(); break;
     case 'step-rel-contra': renderRelContra(); break;
-    case 'step-quick-screen': renderQuickScreen(); break;
     case 'step-nihss': renderNIHSS(); break;
     case 'step-posterior': renderPosterior(); break;
     case 'step-syndrome': renderSyndrome(); break;

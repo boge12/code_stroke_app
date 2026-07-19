@@ -182,22 +182,7 @@
 
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
-      <button class="btn-nav btn-nav-next" id="rel-next">Next: Cortical Screen →</button>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════════════════════
-       SCREEN: Cortical / LVO Quick Screen (pre-NIHSS)
-  ══════════════════════════════════════════════════════ -->
-  <div class="screen" id="screen-step-quick-screen">
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-title">30-Second Cortical Screen</div>
-      <p class="text-sm">Tap any cortical / LVO sign that's present before full NIHSS. Shapes imaging and activation priority.</p>
-    </div>
-    <div id="quick-screen-content"></div>
-    <div class="nav-footer">
-      <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
-      <button class="btn-nav btn-nav-next" id="quick-screen-next">Next: NIHSS →</button>
+      <button class="btn-nav btn-nav-next" id="rel-next">Next: NIHSS →</button>
     </div>
   </div>
 
@@ -205,6 +190,7 @@
        SCREEN: NIHSS
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-nihss">
+    <div id="nihss-lvo-banner"></div>
     <div class="step-tabs" id="nihss-tabs"></div>
     <div id="nihss-item-container"></div>
 
