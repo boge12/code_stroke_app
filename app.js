@@ -351,11 +351,16 @@ function renderTiming() {
       badge.innerHTML = isWakeup
         ? `✅ TNK WINDOW OPEN — ${elapsedLabel(wakeMin)} since found/woke`
         : `✅ TNK WINDOW OPEN — ${elapsedLabel(lsnMin)} from LKN`;
+    } else if (windowMin <= 540) {
+      badge.className = 'time-window-badge window-close';
+      badge.innerHTML = isWakeup
+        ? `⚠️ >4.5h since found (${elapsedLabel(wakeMin)}) — TNK needs imaging selection (DWI-FLAIR / CTP)`
+        : `⚠️ Standard TNK window closed (${elapsedLabel(lsnMin)}) — 4.5–9h: imaging-based selection with stroke expert; EVT ≤24h`;
     } else if (windowMin <= 1440) {
       badge.className = 'time-window-badge window-close';
       badge.innerHTML = isWakeup
         ? `⚠️ >4.5h since found (${elapsedLabel(wakeMin)}) — standard TNK closed`
-        : `⚠️ TNK WINDOW CLOSED (${elapsedLabel(lsnMin)}) — EVT may still be possible`;
+        : `⚠️ TNK WINDOW CLOSED (${elapsedLabel(lsnMin)}) — EVT may still be possible ≤24h`;
     } else {
       badge.className = 'time-window-badge window-expired';
       badge.innerHTML = `🚫 >24 hours — likely outside treatment windows`;
@@ -597,7 +602,7 @@ function renderRelContra() {
   mrsCard.style.marginTop = '14px';
   mrsCard.innerHTML = `
     <div class="qs-card-title">Baseline function / pre-stroke mRS</div>
-    <div class="qs-card-sub">EVT requires pre-stroke mRS ≤ 2. Shapes goals-of-care discussion.</div>
+    <div class="qs-card-sub">EVT criteria require pre-stroke mRS ≤ 2. Not independent at baseline? Treatment may still be considered case-by-case — review risks/benefits and goals of care with a stroke expert (CSBPR).</div>
     <div class="mrs-grid">
       ${mrsChoices.map(c => `<button class="mrs-pill${mrsVal === c.v ? ' active' : ''}" data-val="${c.v}">${c.lbl}</button>`).join('')}
     </div>`;
@@ -1288,14 +1293,15 @@ function renderSyndromeSanityCheck() {
 function renderCT() {
   const s = STATE.current;
 
-  // CT clear buttons
+  // CT clear buttons (onclick assignment — renderCT re-runs on every click,
+  // so addEventListener here would stack duplicate handlers)
   document.querySelectorAll('.ct-clear-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.val === s.ctClear);
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       s.ctClear = btn.dataset.val;
       saveCurrentSession();
       renderCT();
-    });
+    };
   });
 
   document.getElementById('ct-hemorrhage-section').style.display = s.ctClear === 'no' ? '' : 'none';
@@ -1303,51 +1309,61 @@ function renderCT() {
   // ASPECTS
   const aspInp = document.getElementById('aspects-input');
   aspInp.value = s.aspects !== null ? s.aspects : '';
-  aspInp.addEventListener('change', () => {
+  aspInp.onchange = () => {
     const v = parseInt(aspInp.value);
     s.aspects = isNaN(v) ? null : Math.max(0, Math.min(10, v));
     saveCurrentSession();
     refreshAspects();
-  });
+  };
   refreshAspects();
 
   // CTA
   document.querySelectorAll('.cta-done-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.val === s.ctaDone);
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       s.ctaDone = btn.dataset.val;
       saveCurrentSession();
       renderCT();
-    });
+    };
   });
 
   document.getElementById('lvo-section').style.display = s.ctaDone === 'yes' ? '' : 'none';
 
   document.querySelectorAll('.lvo-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.val === s.lvo);
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       s.lvo = btn.dataset.val;
       saveCurrentSession();
       renderCT();
-    });
+    };
   });
 
   document.getElementById('lvo-vessel-section').style.display = s.lvo === 'yes' ? '' : 'none';
 
   document.querySelectorAll('.vessel-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.vessel === s.lvoVessel);
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       s.lvoVessel = btn.dataset.vessel;
       saveCurrentSession();
-    });
+      renderCT();
+    };
   });
+
+  // Medium-vessel occlusions: EVT not uniformly supported (CSBPR 5.4.1 CC6)
+  const mvNote = document.getElementById('medium-vessel-note');
+  if (mvNote) {
+    mvNote.innerHTML = ['M2', 'A2', 'P2'].includes(s.lvoVessel)
+      ? `<div class="nihss-note" style="margin-bottom:12px">⚠️ Medium-vessel occlusion (${s.lvoVessel}) — EVT not uniformly supported by trials. Decide after consultation between stroke expert and neurointerventionalist (CSBPR 2025).</div>`
+      : '';
+  }
 
   document.querySelectorAll('.collateral-btn').forEach(btn => {
     btn.classList.toggle('selected', btn.dataset.val === s.collaterals);
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       s.collaterals = btn.dataset.val;
       saveCurrentSession();
-    });
+      renderCT();
+    };
   });
 }
 
@@ -1382,6 +1398,32 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
   let medItems = [];
   let investigationItems = [];
   let nursingItems = [];
+  let evtCareHtml = '';
+
+  // CSBPR Box 5D — pre-EVT / transfer management + post-EVT care
+  const buildEvtCare = () => `
+    <div style="margin-bottom:14px">
+      <div style="font-size:14px; font-weight:700; color:#ef9a9a; margin-bottom:6px">🚑 Pre-EVT / Transfer (CSBPR Box 5D)</div>
+      <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
+        <li>Maintain O₂ sat >92%; intubate only if reduced oxygenation, vomiting, or heavy sedation needed</li>
+        <li>Avoid aggressive BP lowering before reperfusion is achieved</li>
+        <li>Aim for euthermia and normoglycemia (hyperglycemia is harmful in acute stroke)</li>
+        <li>Contrast allergy is NOT an absolute CI — pre-treat: diphenhydramine 50 mg IV + methylprednisolone 40 mg IV (or hydrocortisone 200 mg IV) + famotidine 20 mg IV</li>
+        <li>Foley only if essential to reduce movement — never delay reperfusion for it</li>
+      </ul>
+      <details class="nihss-exam-details" style="margin-top:8px">
+        <summary>Post-EVT care (receiving centre / on return)</summary>
+        <ul style="padding-left:18px; font-size:13px; line-height:1.7; color:var(--text-dim); margin-top:6px">
+          <li>Supine 2–6h, head of bed ≤30°</li>
+          <li>Puncture site checks: q15min × 1h → q30min × 1h → q1h × 1–5h; assess distal pulses with vitals</li>
+          <li>Suspect site hematoma with bleeding, swelling, pain, or unexplained ↓Hb → prolonged manual compression + STAT CBC (repeat q4–6h); persistent → CTA/ultrasound ± vascular surgery</li>
+          <li>Suspect retroperitoneal hemorrhage with back pain, flank bruising (Grey Turner), periumbilical ecchymosis (Cullen), hypotension/tachycardia → 3-phase CT abdomen, resuscitate</li>
+          <li>Neurologic deterioration → STAT CT + CTA (hemorrhagic conversion vs. reocclusion — reocclusion may need repeat EVT)</li>
+          <li>Check creatinine — contrast-induced nephropathy; nephrology if identified</li>
+          <li>Post-EVT BP target is individualized (recanalization achieved, thrombolysis given, complications, baseline BP)</li>
+        </ul>
+      </details>
+    </div>`;
 
   // Determine scenario
   if (tnkGiven && lvoPresent) {
@@ -1401,6 +1443,7 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
       'Hold ASA/clopidogrel until 24h CT head confirms no hemorrhage',
       'DVT prophylaxis: SCDs only (no LMWH until 24h post-TNK + imaging clear)',
     ];
+    evtCareHtml = buildEvtCare();
   } else if (tnkGiven) {
     scenarioTitle = 'Post-TNK — No EVT Required';
     admitTo = 'ICU / Stroke Unit';
@@ -1434,6 +1477,7 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
       'Statin (atorvastatin 40–80mg)',
       'DVT prophylaxis: SCDs, LMWH per EVT centre protocol',
     ];
+    evtCareHtml = buildEvtCare();
   } else {
     scenarioTitle = 'Acute Ischemic Stroke — Medical Management';
     admitTo = total >= 5 ? 'Stroke Unit / Monitored Bed' : 'Stroke Unit / GIM Ward';
@@ -1487,6 +1531,8 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
         </div>
       </div>
 
+      ${evtCareHtml}
+
       <div style="margin-bottom:14px">
         <div style="font-size:14px; font-weight:700; color:var(--blue); margin-bottom:6px">📊 Monitoring</div>
         <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
@@ -1538,6 +1584,54 @@ function buildDisablingCard(open) {
       <div style="font-size:14px; line-height:1.6; margin-bottom:10px"><strong>Practical rule:</strong> ${d.practicalRule}</div>
       <div style="font-size:14px; line-height:1.6; margin-bottom:10px; color:var(--blue)"><strong>Borderline low-NIHSS:</strong> ${d.borderline}</div>
       <div class="nihss-note">⚠️ ${d.caution}</div>
+    </details>`;
+}
+
+// Thrombolysis complication management (CSBPR 5.2/5.6) — Decision + Consent screens
+function buildTnkComplicationsCard() {
+  const c = window.TNK_COMPLICATIONS;
+  if (!c) return '';
+  return `
+    <details class="card card-collapse">
+      <summary>🚨 Thrombolysis complications — emergency management</summary>
+      <p class="text-sm" style="margin-bottom:10px; color:var(--text-dim)">${c.intro}</p>
+      ${c.scenarios.map(sc => `
+        <div style="margin-bottom:12px">
+          <div style="font-size:14px; font-weight:700; margin-bottom:6px">${sc.title}</div>
+          <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
+            ${sc.items.map(i => `<li>${i}</li>`).join('')}
+          </ul>
+        </div>`).join('')}
+    </details>`;
+}
+
+// TNK inclusion criteria + EVT 4-criteria eligibility (CSBPR Box 5B / 5.4)
+function buildEligibilityCard() {
+  const inc = window.TNK_INCLUSION || [];
+  const evt = window.EVT_CRITERIA;
+  return `
+    <details class="card card-collapse">
+      <summary>📘 TNK / EVT eligibility criteria (CSBPR)</summary>
+      <div style="font-size:14px; font-weight:700; margin-bottom:6px">TNK inclusion (Box 5B)</div>
+      <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim); margin-bottom:8px">
+        ${inc.map(i => `<li>${i}</li>`).join('')}
+      </ul>
+      <p class="text-sm" style="margin-bottom:12px; color:var(--text-dim)">${window.EXTENDED_WINDOW_NOTE || ''}</p>
+      ${evt ? `
+        <div style="font-size:14px; font-weight:700; margin-bottom:6px; padding-top:10px; border-top:1px solid var(--border)">${evt.intro}</div>
+        ${evt.criteria.map(cr => `
+          <div style="margin-bottom:8px">
+            <div style="font-size:13px; font-weight:700; color:var(--blue)">${cr.name}</div>
+            <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
+              ${cr.items.map(i => `<li>${i}</li>`).join('')}
+            </ul>
+          </div>`).join('')}
+        <details class="nihss-exam-details" style="margin-top:8px">
+          <summary>Key EVT principles</summary>
+          <ul style="padding-left:18px; font-size:13px; line-height:1.7; color:var(--text-dim); margin-top:6px">
+            ${evt.notes.map(n => `<li>${n}</li>`).join('')}
+          </ul>
+        </details>` : ''}
     </details>`;
 }
 
@@ -1599,6 +1693,9 @@ function renderDecision() {
     else reasons.push(`Wake-up stroke found ${elapsedLabel(wakeMin)} ago — requires imaging selection (MRI DWI-FLAIR mismatch or CT perfusion)`);
   } else if (!withinWindow && tnkWindowMin !== null) {
     reasons.push(`Outside 4.5h window (${elapsedLabel(tnkWindowMin)} from ${isWakeup ? 'found/wake time' : 'LKN'})`);
+    if (tnkWindowMin <= 540) {
+      reasons.push('4.5–9h: TNK may still be possible via advanced imaging selection (CTP / MRI) with a stroke expert — do not delay EVT decisions');
+    }
   }
   if (!ctClear) reasons.push('CT not clear / hemorrhage on imaging');
   if (!aspectsOk) reasons.push(`ASPECTS ${s.aspects} < 6`);
@@ -1650,6 +1747,7 @@ function renderDecision() {
     tnkDoseBPHtml = `
     <div class="card">
       <div class="card-title">TNK Dose Calculator</div>
+      <p class="text-sm" style="margin-bottom:8px; color:var(--yellow); font-weight:600">⏱ ${window.DOOR_TO_NEEDLE || 'Door-to-needle target: ≤30 min median.'}</p>
       <label>Patient Weight (kg)</label>
       <div class="weight-row">
         <input type="number" id="weight-input" placeholder="e.g. 75" min="30" max="200" value="${s.weightKg || ''}">
@@ -1689,6 +1787,10 @@ function renderDecision() {
     ${evtBanner}
 
     ${tnkDoseBPHtml}
+
+    ${(tnkStatus === 'eligible' || tnkStatus === 'relative' || s.tnkGiven === 'yes') ? buildTnkComplicationsCard() : ''}
+
+    ${buildEligibilityCard()}
 
     <div class="card">
       <div class="card-title">Lakeridge Actions</div>
@@ -1908,6 +2010,9 @@ function renderConsent() {
     s.tnkTime = timePickerToISO(tnkTimeInp.value);
     saveCurrentSession();
   });
+
+  const compHost = document.getElementById('consent-complications');
+  if (compHost) compHost.innerHTML = buildTnkComplicationsCard();
 }
 
 // ── Step: Note ────────────────────────────────────────────────
@@ -2441,12 +2546,21 @@ function renderAlgorithm() {
   const legacyHtml = `
     <div class="card">
       <div class="card-title">📚 Legacy / international CIs (for comparison)</div>
-      <p class="text-sm" style="color:var(--text-dim)">International guidelines traditionally cite tPA (alteplase) 0.9 mg/kg (max 90 mg), 10% bolus + 90% over 60 min. This app uses <strong>tenecteplase (TNK) 0.25 mg/kg (max 25 mg) single IV bolus</strong>, now the preferred agent at Lakeridge Health and per 2022/2025 CSBPR.</p>
+      <p class="text-sm" style="color:var(--text-dim)">International guidelines traditionally cite tPA (alteplase) 0.9 mg/kg (max 90 mg), 10% bolus + 90% over 60 min. This app uses <strong>tenecteplase (TNK) 0.25 mg/kg (max 25 mg) single IV bolus over 5 seconds</strong>, now the preferred agent at Lakeridge Health and per 2022/2025 CSBPR.</p>
+      <p class="text-sm" style="color:#ef9a9a; margin-top:8px"><strong>⚠️ Caution:</strong> stroke dosing of alteplase/TNK is NOT the same as the MI or massive-PE protocols.</p>
+    </div>`;
+
+  const inHospitalHtml = `
+    <div class="card">
+      <div class="card-title">🏥 Stroke while already in hospital</div>
+      <p class="text-sm" style="color:var(--text-dim)">Patients already in hospital (ED, inpatient unit, clinic, rehab) with sudden new stroke symptoms get the <strong>same rapid pathway</strong> — evaluate without delay for TNK and EVT eligibility (CSBPR 5.3).</p>
     </div>`;
 
   host.innerHTML = `
     ${bucketHtml}
     ${buildDisablingCard(false)}
+    ${buildEligibilityCard()}
+    ${buildTnkComplicationsCard()}
     ${phqHtml}
     ${corticalHtml}
     ${bpHtml}
@@ -2454,6 +2568,7 @@ function renderAlgorithm() {
     ${postHtml}
     ${mimicHtml}
     ${r4Html}
+    ${inHospitalHtml}
     ${legacyHtml}
     <div class="card" style="background:#1e3a8a; color:#fff; text-align:center; font-weight:600">
       Mental loop: Is it a stroke? → Where is it? → Can I treat? → When? → Watch for deterioration.

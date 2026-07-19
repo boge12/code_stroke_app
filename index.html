@@ -130,12 +130,15 @@
     </div>
 
     <details class="card card-collapse">
-      <summary>Window Summary</summary>
+      <summary>Window Summary (CSBPR Box 5A)</summary>
       <div style="font-size:14px; line-height:1.8; color:var(--text-dim)">
         <div>✅ <strong>&lt;4.5h from onset/found</strong> → TNK window <span style="color:#81c784">OPEN</span></div>
-        <div>⚠️ <strong>4.5–24h</strong> → TNK closed, EVT may be possible</div>
+        <div>⚠️ <strong>4.5–6h</strong> → TNK for select patients — advanced imaging (CTP / MRI) required</div>
+        <div>⚠️ <strong>6–9h</strong> → TNK only in discussion with stroke expert, tissue-based selection</div>
+        <div>⚠️ <strong>&lt;24h + LVO</strong> → EVT window (&gt;6h requires CTA collaterals or perfusion selection)</div>
         <div>🚫 <strong>&gt;24h</strong> → Outside standard treatment windows</div>
         <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border)"><strong>Wake-up stroke:</strong> TNK window = time from waking/found. MRI DWI-FLAIR mismatch may allow treatment even if &gt;4.5h.</div>
+        <div style="margin-top:8px; padding-top:8px; border-top:1px solid var(--border)"><strong>Door-to-needle target:</strong> ≤30 min median (≤60 min in ≥90% of patients). If LVO present, late-TNK workup must NOT delay EVT decisions.</div>
       </div>
     </details>
 
@@ -340,6 +343,7 @@
               <div style="grid-column:1/-1; font-size:14px; font-weight:700">Basilar</div>
             </button>
           </div>
+          <div id="medium-vessel-note"></div>
 
           <p class="text-sm" style="margin-bottom:8px">Collaterals:</p>
           <div style="display:flex; gap:10px; margin-bottom:10px">
@@ -390,6 +394,7 @@
   <div class="screen" id="screen-step-consent">
     <div class="card">
       <div class="card-title">Consent Documentation</div>
+      <p class="text-sm" style="margin-bottom:10px">TNK and EVT are <strong>standard of care</strong> — routine emergency consent procedures apply (CSBPR 5.2).</p>
       <div id="consent-summary"></div>
 
       <label>Consent obtained with</label>
@@ -422,6 +427,7 @@
       <input type="time" id="tnk-time">
     </div>
 
+    <div id="consent-complications"></div>
 
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
