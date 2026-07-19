@@ -355,11 +355,11 @@
     <div id="decision-content"></div>
     <div id="deterioration-banner"></div>
 
-    <div class="card" id="nihss-reassess-card">
-      <h4>NIHSS reassessment (optional)</h4>
+    <details class="card card-collapse" id="nihss-reassess-card">
+      <summary>NIHSS reassessment (optional)</summary>
       <label>New NIHSS total: <input type="number" id="nihss-reassess-input" min="0" max="42" placeholder="baseline was N"></label>
       <button class="btn btn-sm" onclick="saveNihssReassess()">Save</button>
-    </div>
+    </details>
 
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>

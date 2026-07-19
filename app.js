@@ -1432,8 +1432,8 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
 
   // CSBPR Box 5D — pre-EVT / transfer management + post-EVT care
   const buildEvtCare = () => `
-    <div class="card">
-      <div style="font-size:14px; font-weight:700; color:#ef9a9a; margin-bottom:6px">🚑 Pre-EVT / Transfer (CSBPR Box 5D)</div>
+    <details class="card card-collapse">
+      <summary style="color:#ef9a9a">🚑 Pre-EVT / Transfer · 5</summary>
       <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
         <li>Maintain O₂ sat >92%; intubate only if reduced oxygenation, vomiting, or heavy sedation needed</li>
         <li>Avoid aggressive BP lowering before reperfusion is achieved</li>
@@ -1453,7 +1453,7 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
           <li>Post-EVT BP target is individualized (recanalization achieved, thrombolysis given, complications, baseline BP)</li>
         </ul>
       </details>
-    </div>`;
+    </details>`;
 
   // Determine scenario
   if (tnkGiven && lvoPresent) {
@@ -1542,13 +1542,18 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
     'Smoking cessation counseling if applicable',
   ];
 
-  const section = (icon, title, color, items, open) => `
-    <details class="card card-collapse"${open ? ' open' : ''}>
-      <summary style="color:${color}">${icon} ${title}</summary>
+  // One banner, then one-line rows — every section carries its count,
+  // nothing opens unless tapped.
+  const section = (icon, title, color, items) => `
+    <details class="card card-collapse">
+      <summary style="color:${color}">${icon} ${title} · ${items.length}</summary>
       <ul style="padding-left:18px; font-size:14px; line-height:1.7; color:var(--text-dim)">
         ${items.map(i => `<li>${i}</li>`).join('')}
       </ul>
     </details>`;
+
+  const wd = s.workupDone = s.workupDone || {};
+  const workupDoneCount = investigationItems.filter(it => wd[it.id]).length;
 
   return `
     <div class="status-banner status-blue">
@@ -1561,13 +1566,10 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
 
     ${evtCareHtml}
 
-    ${section('📊', 'Monitoring', 'var(--blue)', monitoringItems, true)}
-    ${section('💊', 'Medications', 'var(--yellow)', medItems, false)}
-    ${(() => {
-      const wd = s.workupDone = s.workupDone || {};
-      return `
-    <details class="card card-collapse" open>
-      <summary style="color:var(--purple)">🔬 Admission Labs & Workup</summary>
+    ${section('📊', 'Monitoring', 'var(--blue)', monitoringItems)}
+    ${section('💊', 'Medications', 'var(--yellow)', medItems)}
+    <details class="card card-collapse">
+      <summary style="color:var(--purple)" id="workup-summary">🔬 Labs & Workup · ${workupDoneCount}/${investigationItems.length} ordered</summary>
       <div id="workup-checklist">
         ${investigationItems.map(it => `
         <div class="checklist-action">
@@ -1575,9 +1577,8 @@ function buildPostStrokeManagement(s, tnkStatus, lvoPresent, evtStatus) {
           <div class="action-text">${it.label}</div>
         </div>`).join('')}
       </div>
-    </details>`;
-    })()}
-    ${section('🩺', 'Nursing / Allied Health', 'var(--green)', nursingItems, false)}
+    </details>
+    ${section('🩺', 'Nursing / Allied Health', 'var(--green)', nursingItems)}
   `;
 }
 
@@ -1646,6 +1647,11 @@ function renderAdmit() {
       saveCurrentSession();
       box.classList.toggle('done', wd[box.dataset.workup]);
       box.textContent = wd[box.dataset.workup] ? '✓' : '';
+      const sum = document.getElementById('workup-summary');
+      if (sum) {
+        const done = ADMIT_WORKUP_ITEMS.filter(it => wd[it.id]).length;
+        sum.textContent = `🔬 Labs & Workup · ${done}/${ADMIT_WORKUP_ITEMS.length} ordered`;
+      }
     };
   });
 }
@@ -1949,27 +1955,23 @@ function renderDecision() {
   if (tnkStatus === 'eligible' || tnkStatus === 'relative') {
     tnkDoseBPHtml = `
     <div class="card">
-      <div class="card-title">TNK Dose Calculator</div>
-      <p class="text-sm" style="margin-bottom:8px; color:var(--yellow); font-weight:600">⏱ ${window.DOOR_TO_NEEDLE || 'Door-to-needle target: ≤30 min median.'}</p>
+      <div class="card-title">TNK — Dose & BP</div>
       <label>Patient Weight (kg)</label>
       <div class="weight-row">
         <input type="number" id="weight-input" placeholder="e.g. 75" min="30" max="200" value="${s.weightKg || ''}">
         <span class="unit">kg</span>
       </div>
       <div id="dose-result" class="dose-result" style="display:none"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">BP Management</div>
-      <div style="font-size:15px; font-weight:700; margin-bottom:4px; color:var(--yellow)">Pre-TNK Target: &lt;185/110 mmHg</div>
-      <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:#81c784">Post-TNK: SBP &lt;160, DBP &lt;80 — Avoid hypotension</div>
-      <details class="nihss-exam-details" style="margin-bottom:0">
-        <summary>Drug dosing</summary>
+      <div style="font-size:15px; font-weight:700; margin:10px 0 4px; color:var(--yellow)">Pre-TNK: &lt;185/110 mmHg</div>
+      <div style="font-size:15px; font-weight:700; margin-bottom:8px; color:#81c784">Post-TNK: SBP &lt;160, DBP &lt;80 — avoid hypotension</div>
+      <details class="nihss-exam-details" style="margin-bottom:8px">
+        <summary>BP drug dosing</summary>
         ${window.BP_MEDS.map(m => `<div style="padding:8px 0; border-bottom:1px solid var(--border)">
           <span style="font-weight:700">${m.drug}:</span> ${m.dose}<br>
           <span style="font-size:13px;color:var(--text-dim)">${m.notes}</span>
         </div>`).join('')}
       </details>
+      <p class="text-sm" style="margin-bottom:0; color:var(--text-dim)">⏱ ${window.DOOR_TO_NEEDLE || 'Door-to-needle target: ≤30 min median.'}</p>
     </div>`;
   }
 
