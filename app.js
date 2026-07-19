@@ -196,6 +196,7 @@ function formatTimeValue(isoString) {
 
 // ── Navigation ───────────────────────────────────────────────
 function goTo(stepId) {
+  dcUserToggle = null; // fresh default for the disabling verdict on each navigation
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const screen = document.getElementById('screen-' + stepId);
   if (screen) {
@@ -1651,12 +1652,12 @@ function buildEligibilityCard() {
 // ── Disabling-deficit checklist (interactive, low-NIHSS cases) ──
 // Six taps → verdict. Prose framework stays one tap away.
 const DISABLING_CHECK_ITEMS = [
-  { id: 'aphasia', label: 'Aphasia — any language deficit?', hint: 'wrecks communication / return to work' },
-  { id: 'hemianopia', label: 'Hemianopia / visual field cut?', hint: "can't drive, can't read" },
-  { id: 'hand', label: 'Hand weakness — dominant hand or occupation-critical?', hint: 'career-ending for a surgeon or musician' },
-  { id: 'ataxia', label: 'Ataxia — cannot walk / stand unaided?', hint: 'falls, loss of independence' },
-  { id: 'swallow', label: 'Dysphagia, or facial droop affecting swallow / speech?', hint: '' },
-  { id: 'independence', label: 'Deficit takes away something THIS patient needs?', hint: 'job, driving, living alone — anchor to their baseline' },
+  { id: 'aphasia', short: 'aphasia', label: 'Aphasia — any language deficit?', hint: 'wrecks communication / return to work' },
+  { id: 'hemianopia', short: 'hemianopia', label: 'Hemianopia / visual field cut?', hint: "can't drive, can't read" },
+  { id: 'hand', short: 'hand weakness', label: 'Hand weakness — dominant hand or occupation-critical?', hint: 'career-ending for a surgeon or musician' },
+  { id: 'ataxia', short: 'ataxia', label: 'Ataxia — cannot walk / stand unaided?', hint: 'falls, loss of independence' },
+  { id: 'swallow', short: 'swallow/speech', label: 'Dysphagia, or facial droop affecting swallow / speech?', hint: '' },
+  { id: 'independence', short: 'patient-specific needs', label: 'Deficit takes away something THIS patient needs?', hint: 'job, driving, living alone — anchor to their baseline' },
 ];
 
 function disablingVerdict(dc) {
@@ -1667,7 +1668,11 @@ function disablingVerdict(dc) {
   return answered === 0 ? 'empty' : 'partial';
 }
 
-function buildDisablingChecklist() {
+// Inner content (rows + verdict + cautions) shared by both surfaces.
+// Full checklist lives on the Syndrome screen (scanner thinking time);
+// the Decision screen shows a collapsed one-line verdict that expands
+// only if the assessment is incomplete or the user opens it.
+function buildDisablingInner() {
   const s = STATE.current;
   s.disablingCheck = s.disablingCheck || {};
   const dc = s.disablingCheck;
@@ -1675,7 +1680,7 @@ function buildDisablingChecklist() {
 
   let verdictHtml = '';
   if (verdict === 'disabling') {
-    const hits = DISABLING_CHECK_ITEMS.filter(it => dc[it.id] === true).map(it => it.label.split(' — ')[0].replace('?', ''));
+    const hits = DISABLING_CHECK_ITEMS.filter(it => dc[it.id] === true).map(it => it.short);
     verdictHtml = `<div class="status-banner status-green" style="margin-top:10px">
       <span class="status-icon">✅</span>
       <div class="status-body">
@@ -1707,8 +1712,6 @@ function buildDisablingChecklist() {
 
   const d = window.DISABLING_DEFICIT || {};
   return `
-    <div class="card qs-card">
-      <div class="qs-card-title">🎯 Is the deficit disabling?</div>
       <div class="qs-card-sub">If permanent, would it stop this patient's normal daily activities or independent living? Any YES = disabling.</div>
       ${rows}
       ${verdictHtml}
@@ -1719,8 +1722,36 @@ function buildDisablingChecklist() {
         <p style="margin:8px 0; font-size:13px; color:var(--text-dim)">${d.nonDisabling || ''}</p>
         <p style="margin:8px 0; font-size:13px; color:var(--text-dim)"><strong>Practical rule:</strong> ${d.practicalRule || ''}</p>
         <p style="margin:8px 0; font-size:13px; color:var(--blue)"><strong>Borderline:</strong> ${d.borderline || ''}</p>
-      </details>
+      </details>`;
+}
+
+// Syndrome screen: the full interactive card
+function buildDisablingChecklist() {
+  return `
+    <div class="card qs-card">
+      <div class="qs-card-title">🎯 Is the deficit disabling?</div>
+      ${buildDisablingInner()}
     </div>`;
+}
+
+// Decision screen: one-line verdict, expanded only when incomplete
+// (or when the user opens it to change answers)
+let dcUserToggle = null; // reset on navigation in goTo()
+
+function buildDisablingCollapsed() {
+  const dc = (STATE.current.disablingCheck = STATE.current.disablingCheck || {});
+  const verdict = disablingVerdict(dc);
+  const summaryLabel = verdict === 'disabling'
+    ? `🎯 Disabling? — YES (${DISABLING_CHECK_ITEMS.filter(it => dc[it.id] === true).map(it => it.short).join(', ')})`
+    : verdict === 'nondisabling'
+      ? '🎯 Disabling? — assessed non-disabling'
+      : '🎯 Disabling? — incomplete, tap to assess';
+  const open = dcUserToggle !== null ? dcUserToggle : (verdict === 'empty' || verdict === 'partial');
+  return `
+    <details class="card card-collapse" id="dc-details"${open ? ' open' : ''}>
+      <summary>${summaryLabel}</summary>
+      ${buildDisablingInner()}
+    </details>`;
 }
 
 function wireDisablingChecklist(host, rerender) {
@@ -1882,7 +1913,7 @@ function renderDecision() {
       </div>
     </div>
 
-    ${total <= 5 ? buildDisablingChecklist() : ''}
+    ${total <= 5 ? buildDisablingCollapsed() : ''}
 
     ${Object.values(s.posteriorScreen || {}).some(v => v === true) ? `
     <div class="status-banner status-yellow">
@@ -1897,7 +1928,7 @@ function renderDecision() {
 
     ${tnkDoseBPHtml}
 
-    ${(tnkStatus === 'eligible' || tnkStatus === 'relative' || s.tnkGiven === 'yes') ? buildTnkComplicationsCard() : ''}
+    ${s.tnkGiven === 'yes' ? buildTnkComplicationsCard() : ''}
 
     ${buildEligibilityCard()}
 
@@ -1944,6 +1975,8 @@ function renderDecision() {
 
   if (total <= 5) {
     wireDisablingChecklist(document.getElementById('decision-content'), renderDecision);
+    const det = document.getElementById('dc-details');
+    if (det) det.ontoggle = () => { dcUserToggle = det.open; };
   }
 
   // LVO banner: fires when any cortical flag + NIHSS ≥ 6
@@ -2290,7 +2323,7 @@ NIHSS SCORE: ${total} — ${severity.label}
     const dc = s.disablingCheck || {};
     const v = disablingVerdict(dc);
     if (v === 'empty') return '';
-    const yes = DISABLING_CHECK_ITEMS.filter(it => dc[it.id] === true).map(it => it.label.split(' — ')[0].replace('?', ''));
+    const yes = DISABLING_CHECK_ITEMS.filter(it => dc[it.id] === true).map(it => it.short);
     if (v === 'disabling') return `\n  Disabling deficit: YES — ${yes.join(', ')}`;
     if (v === 'nondisabling') return '\n  Disabling deficit: assessed as non-disabling';
     return '\n  Disabling deficit: assessment incomplete';
