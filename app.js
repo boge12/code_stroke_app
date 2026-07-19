@@ -944,13 +944,43 @@ function renderPosterior() {
     { key: 'verticalGazeSkew', label: 'Vertical gaze palsy, skew deviation, or direction-changing nystagmus?' },
   ];
 
+  const ps = STATE.current.posteriorScreen;
+  const anyYes = Object.values(ps).some(v => v === true);
+  const allNo = ['fiveD', 'vertigoFocal', 'gaitAtaxia', 'verticalGazeSkew'].every(k => ps[k] === false);
+  const vertigoYes = ps.vertigoFocal === true;
+
+  // Verdict: a positive screen must change what happens next
+  let verdictHtml = '';
+  if (anyYes) {
+    verdictHtml = `
+      <div class="status-banner status-yellow" style="margin-top:12px; margin-bottom:0">
+        <span class="status-icon">🚨</span>
+        <div class="status-body">
+          <div class="status-title">Posterior circulation suspected — this changes 4 things</div>
+          <div class="status-detail" style="line-height:1.7">
+            1. Treat as potentially <strong>disabling even with a low NIHSS</strong> — posterior strokes under-score.<br>
+            2. Confirm CTA covers <strong>vertebrals + basilar</strong> — basilar occlusion is an EVT indication (≤24h).<br>
+            3. CT is poor in the posterior fossa — if CT/CTA unrevealing, <strong>MRI DWI or admit. Do NOT discharge.</strong><br>
+            4. Vertigo-predominant? Do the <strong>HINTS exam</strong> before calling it peripheral.
+          </div>
+          <button onclick="goToSide('step-nihss-ref'); setTimeout(()=>{const el=document.getElementById('hints-section'); if(el){el.open=true; el.scrollIntoView({behavior:'smooth'});}},120);" style="margin-top:8px; padding:10px 14px; border-radius:8px; border:1px solid currentColor; background:transparent; color:inherit; font-weight:600; cursor:pointer">📖 HINTS exam reference →</button>
+        </div>
+      </div>`;
+  } else if (allNo) {
+    verdictHtml = `
+      <div class="status-banner status-green" style="margin-top:12px; margin-bottom:0">
+        <span class="status-icon">✅</span>
+        <div class="status-body"><div class="status-title">No posterior red flags — continue</div></div>
+      </div>`;
+  }
+
   host.innerHTML = `
     <div class="card qs-card">
       <div class="qs-card-title">🧠 Posterior circulation check</div>
-      <div class="qs-card-sub">NIHSS underscores posterior strokes. Tap YES for any that apply.</div>
+      <div class="qs-card-sub">Why this step: NIHSS misses posterior strokes — a basilar occlusion can score 2. Four taps to catch what it missed.</div>
       <div id="posterior-check">
         ${posteriorItems.map(it => {
-          const val = STATE.current.posteriorScreen[it.key];
+          const val = ps[it.key];
           const yesActive = val === true;
           const noActive = val === false;
           return `
@@ -963,7 +993,7 @@ function renderPosterior() {
           </div>`;
         }).join('')}
       </div>
-      <div id="hints-prompt-qs" style="margin-top:10px"></div>
+      ${verdictHtml}
       ${posteriorRedFlags.length ? `
         <details style="margin-top:10px">
           <summary style="cursor:pointer; font-size:13px; color:var(--text-dim); font-weight:600">More posterior red flags</summary>
@@ -979,22 +1009,15 @@ function renderPosterior() {
 
 function wirePosteriorToggles() {
   document.querySelectorAll('[data-qs-key]').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       const k = btn.dataset.qsKey;
       const v = btn.dataset.qsVal === 'true';
-      STATE.current.posteriorScreen[k] = v;
+      // Tap the active pill again to clear
+      STATE.current.posteriorScreen[k] = STATE.current.posteriorScreen[k] === v ? null : v;
       saveCurrentSession();
       renderPosterior();
-    });
+    };
   });
-  const hp = document.getElementById('hints-prompt-qs');
-  if (!hp) return;
-  const anyYes = Object.values(STATE.current.posteriorScreen).some(v => v === true);
-  if (anyYes) {
-    hp.innerHTML = `<button class="hints-prompt" onclick="goToSide('step-nihss-ref'); setTimeout(()=>{const el=document.getElementById('hints-section'); if(el) el.scrollIntoView({behavior:'smooth'});},120);" style="padding:10px 14px; border-radius:8px; border:1px solid var(--blue); background:transparent; color:var(--blue); font-weight:600; cursor:pointer">📖 Open HINTS exam reference →</button>`;
-  } else {
-    hp.innerHTML = '';
-  }
 }
 
 function updateLvoBanner() {
@@ -1328,6 +1351,21 @@ function renderSyndromeSanityCheck() {
 // ── Step: CT ──────────────────────────────────────────────────
 function renderCT() {
   const s = STATE.current;
+
+  // Positive posterior screen → CTA coverage reminder
+  const postReminder = document.getElementById('ct-posterior-reminder');
+  if (postReminder) {
+    const postYes = Object.values(s.posteriorScreen || {}).some(v => v === true);
+    postReminder.innerHTML = postYes
+      ? `<div class="status-banner status-yellow">
+          <span class="status-icon">🧠</span>
+          <div class="status-body">
+            <div class="status-title">Posterior screen was positive</div>
+            <div class="status-detail">Confirm CTA covers vertebrals + basilar. If CT/CTA unrevealing → MRI DWI or admit — do not discharge.</div>
+          </div>
+        </div>`
+      : '';
+  }
 
   // CT clear buttons (onclick assignment — renderCT re-runs on every click,
   // so addEventListener here would stack duplicate handlers)
@@ -1906,6 +1944,15 @@ function renderDecision() {
     </div>
 
     ${total <= 5 ? buildDisablingChecklist() : ''}
+
+    ${Object.values(s.posteriorScreen || {}).some(v => v === true) ? `
+    <div class="status-banner status-yellow">
+      <span class="status-icon">🧠</span>
+      <div class="status-body">
+        <div class="status-title">Posterior screen was positive</div>
+        <div class="status-detail">Basilar occlusion is an EVT indication (≤24h). A low NIHSS may still be disabling. If imaging unrevealing → MRI DWI or admit.</div>
+      </div>
+    </div>` : ''}
 
     ${evtBanner}
 
