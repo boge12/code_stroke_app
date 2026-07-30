@@ -1020,131 +1020,570 @@ window.REL_CONTRA = [
 ];
 
 // ── STROKE SYNDROME RULES ────────────────────────────────────
-// Simplified to 6 clinically actionable territories.
-// Confidence: 3 = high, 2 = moderate, 1 = possible.
-// Only syndromes scoring ≥2 are shown.
+// Side-aware vascular territory matcher.
+// Confidence: 3 = high, 2 = moderate. Only syndromes scoring ≥2 are shown by the UI.
+// Laterality is inferred from: motor side (5a/6a = right body, 5b/6b = left body),
+// aphasia (dominant = left hemisphere), and neglect (nondominant = right hemisphere).
+// NIHSS does NOT encode side for gaze, facial palsy, sensory, ataxia, or visual fields,
+// so those can only reinforce a side determined by motor/aphasia/neglect.
+function _nih(s) {
+  const g = (k) => (+s[k] || 0);
+  const rArm = g('5a'), lArm = g('5b'), rLeg = g('6a'), lLeg = g('6b');
+  const rightMotor = rArm > 0 || rLeg > 0;
+  const leftMotor  = lArm > 0 || lLeg > 0;
+  return {
+    rArm, lArm, rLeg, lLeg,
+    rightMotor, leftMotor,
+    anyMotor: rightMotor || leftMotor,
+    bilateralMotor: rightMotor && leftMotor,
+    maxMotor: Math.max(rArm, lArm, rLeg, lLeg),
+    loc:     g('1a'),
+    gaze:    g('2'),
+    vf:      g('3'),
+    face:    g('4'),
+    ataxia:  g('7'),
+    sens:    g('8'),
+    aphasia: g('9'),
+    dys:     g('10'),
+    neglect: g('11'),
+  };
+}
+
 window.STROKE_SYNDROMES = [
+  // ─── Anterior circulation: MCA M1 (LVO) ───
   {
-    id: 'left_mca',
-    name: 'Left MCA',
-    subtitle: 'Dominant hemisphere',
-    territory: 'Left M1/M2 or ICA-T',
+    id: 'left_mca_m1',
+    name: 'Left MCA — M1 (LVO)',
+    subtitle: 'Dominant hemisphere — full territory',
+    territory: 'Left MCA M1 ± ICA-T',
     lvoRisk: true,
-    features: ['Right face/arm/leg weakness', 'Aphasia', 'Right gaze preference', 'Right visual field cut'],
-    ctaExpect: 'Left M1 or ICA-T occlusion. Score ASPECTS on left hemisphere.',
+    features: [
+      'Dense right face + arm + leg weakness',
+      'Global or Broca\'s aphasia',
+      'Right hemianopia',
+      'Gaze deviation toward lesion (left)',
+      'Right hemisensory loss',
+    ],
+    ctaExpect: 'Left M1 or ICA-T occlusion. Score ASPECTS on left hemisphere. EVT candidate.',
     match: (s) => {
-      const rightMotor = (s['5a'] || 0) > 0 || (s['6a'] || 0) > 0;
-      const aphasia = (s['9'] || 0) >= 1;
-      const gazeRight = (s['2'] || 0) >= 1;
-      if (rightMotor && aphasia) return 3;
-      if (rightMotor && gazeRight) return 2;
-      if (aphasia && !((s['5b'] || 0) > 0 || (s['6b'] || 0) > 0)) return 2;
+      const n = _nih(s);
+      if (!n.rightMotor || n.aphasia < 1) return 0;
+      const broad = (n.vf >= 1) + (n.gaze >= 1) + (n.sens >= 1) >= 2;
+      if (n.maxMotor >= 3 && n.aphasia >= 2 && broad) return 3;
+      if (n.rightMotor && n.aphasia >= 1 && (n.vf >= 1 || n.gaze >= 1)) return 3;
+      if (n.rightMotor && n.aphasia >= 1) return 2;
       return 0;
     },
   },
   {
-    id: 'right_mca',
-    name: 'Right MCA',
-    subtitle: 'Non-dominant hemisphere',
-    territory: 'Right M1/M2 or ICA-T',
+    id: 'right_mca_m1',
+    name: 'Right MCA — M1 (LVO)',
+    subtitle: 'Nondominant hemisphere — full territory',
+    territory: 'Right MCA M1 ± ICA-T',
     lvoRisk: true,
-    features: ['Left face/arm/leg weakness', 'Left neglect / inattention', 'Left gaze preference', 'Left visual field cut'],
-    ctaExpect: 'Right M1 or ICA-T occlusion. Score ASPECTS on right hemisphere.',
+    features: [
+      'Dense left face + arm + leg weakness',
+      'Left hemi-neglect, anosognosia',
+      'Left hemianopia',
+      'Gaze deviation toward lesion (right)',
+      'Left hemisensory loss',
+    ],
+    ctaExpect: 'Right M1 or ICA-T occlusion. Score ASPECTS on right hemisphere. EVT candidate.',
     match: (s) => {
-      const leftMotor = (s['5b'] || 0) > 0 || (s['6b'] || 0) > 0;
-      const neglect = (s['11'] || 0) >= 1;
-      const gazeLeft = (s['2'] || 0) >= 1;
-      if (leftMotor && neglect) return 3;
-      if (leftMotor && gazeLeft) return 2;
-      if (neglect && !((s['5a'] || 0) > 0 || (s['6a'] || 0) > 0)) return 2;
+      const n = _nih(s);
+      if (!n.leftMotor || n.neglect < 1) return 0;
+      const broad = (n.vf >= 1) + (n.gaze >= 1) + (n.sens >= 1) >= 2;
+      if (n.maxMotor >= 3 && n.neglect >= 1 && broad) return 3;
+      if (n.leftMotor && n.neglect >= 1 && (n.vf >= 1 || n.gaze >= 1)) return 3;
+      if (n.leftMotor && n.neglect >= 1) return 2;
+      return 0;
+    },
+  },
+
+  // ─── MCA superior (upper) division — face/arm > leg ───
+  {
+    id: 'left_mca_upper',
+    name: 'Left MCA — Superior division',
+    subtitle: 'Frontal operculum, pre/post-central (face + arm)',
+    territory: 'Left MCA M2 (superior trunk)',
+    lvoRisk: false,
+    features: [
+      'Right face + arm weakness > leg',
+      'Broca\'s (expressive, nonfluent) aphasia',
+      'Right inferior quadrantanopia',
+      'Ideomotor apraxia',
+    ],
+    ctaExpect: 'Left MCA M2 superior division. CTA may show branch cutoff.',
+    match: (s) => {
+      const n = _nih(s);
+      if (!(n.rArm >= 1 && n.rArm >= n.rLeg)) return 0;
+      if (n.aphasia < 1) return 0;
+      if (n.rArm >= 2 && n.rArm > n.rLeg && n.aphasia >= 1) return 3;
+      return 2;
+    },
+  },
+  {
+    id: 'right_mca_upper',
+    name: 'Right MCA — Superior division',
+    subtitle: 'Frontal + superior parietal (face + arm)',
+    territory: 'Right MCA M2 (superior trunk)',
+    lvoRisk: false,
+    features: [
+      'Left face + arm weakness > leg',
+      'Left hemi-neglect',
+      'Anosognosia / asomatognosia',
+      'Left inferior quadrantanopia',
+    ],
+    ctaExpect: 'Right MCA M2 superior division.',
+    match: (s) => {
+      const n = _nih(s);
+      if (!(n.lArm >= 1 && n.lArm >= n.lLeg)) return 0;
+      if (n.neglect < 1) return 0;
+      if (n.lArm >= 2 && n.lArm > n.lLeg && n.neglect >= 1) return 3;
+      return 2;
+    },
+  },
+
+  // ─── MCA inferior division — aphasia/neglect without motor ───
+  {
+    id: 'left_mca_lower',
+    name: 'Left MCA — Inferior division',
+    subtitle: 'Temporal / inferior parietal (Wernicke\'s area)',
+    territory: 'Left MCA M2 (inferior trunk)',
+    lvoRisk: false,
+    features: [
+      'Wernicke\'s (fluent, nonsensical) aphasia',
+      'Right superior quadrantanopia (Meyer\'s loop)',
+      'Usually NO motor or sensory deficit',
+      'Agitation / behavioural change (may mimic delirium)',
+    ],
+    ctaExpect: 'Left MCA M2 inferior division. Often subtle on CT; easily missed.',
+    match: (s) => {
+      const n = _nih(s);
+      if (n.anyMotor) return 0;
+      if (n.aphasia < 1) return 0;
+      if (n.aphasia >= 1 && n.vf >= 1) return 3;
+      if (n.aphasia >= 2) return 2;
       return 0;
     },
   },
   {
-    id: 'posterior',
-    name: 'Posterior Circulation',
-    subtitle: 'Basilar / brainstem / cerebellum / PCA',
-    territory: 'Basilar artery, PICA, AICA, SCA, PCA',
-    lvoRisk: true,
-    features: ['Gaze palsy or nystagmus', 'Ataxia (limb or gait)', 'Diplopia or vertigo', 'Crossed deficits (ipsi face + contra body)', 'Dysarthria or dysphagia', 'Visual field loss without motor deficit'],
-    ctaExpect: '⚠️ Check basilar artery — URGENT if suspected BAO. CT often normal early; MRI DWI most sensitive. EVT eligible in posterior circulation.',
+    id: 'right_mca_lower',
+    name: 'Right MCA — Inferior division',
+    subtitle: 'Temporal / inferior parietal',
+    territory: 'Right MCA M2 (inferior trunk)',
+    lvoRisk: false,
+    features: [
+      'Left hemi-neglect',
+      'Left superior quadrantanopia',
+      'Prosopagnosia, spatial disorientation',
+      'Usually NO motor deficit',
+    ],
+    ctaExpect: 'Right MCA M2 inferior division.',
     match: (s) => {
-      const gazeAbn = (s['2'] || 0) >= 1;
-      const ataxia = (s['7'] || 0) >= 1;
-      const dysarthria = (s['10'] || 0) >= 1;
-      const visualOnly = (s['3'] || 0) >= 1 &&
-        (s['5a'] || 0) === 0 && (s['5b'] || 0) === 0 &&
-        (s['6a'] || 0) === 0 && (s['6b'] || 0) === 0 &&
-        (s['9'] || 0) === 0 && (s['11'] || 0) === 0;
-      const bothSidesMotor = ((s['5a'] || 0) > 0) && ((s['5b'] || 0) > 0);
-      if (gazeAbn && ataxia) return 3;
-      if (gazeAbn && dysarthria) return 3;
-      if (ataxia && bothSidesMotor) return 3;
-      if (ataxia && dysarthria) return 2;
-      if (ataxia && !((s['5a'] || 0) > 0 || (s['5b'] || 0) > 0)) return 2;
-      if (visualOnly) return 2;
+      const n = _nih(s);
+      if (n.anyMotor) return 0;
+      if (n.neglect < 1) return 0;
+      if (n.neglect >= 1 && n.vf >= 1) return 3;
+      if (n.neglect >= 2) return 2;
+      return 0;
+    },
+  },
+
+  // ─── ACA — leg > arm weakness ───
+  {
+    id: 'left_aca',
+    name: 'Left ACA',
+    subtitle: 'Medial frontal / paracentral lobule (leg)',
+    territory: 'Left ACA (A2)',
+    lvoRisk: false,
+    features: [
+      'Right leg weakness > arm (inverse of MCA)',
+      'Contralateral motor neglect',
+      'Transcortical motor aphasia (SMA) — sparse speech, preserved repetition',
+      'Abulia, grasp reflex, urinary incontinence',
+    ],
+    ctaExpect: 'Left ACA A2. Consider ICA-T with combined ACA+MCA.',
+    match: (s) => {
+      const n = _nih(s);
+      if (n.bilateralMotor || n.leftMotor) return 0;
+      if (n.rLeg <= n.rArm) return 0;
+      if (n.ataxia >= 1 || n.neglect >= 1) return 0;
+      if (n.rLeg >= 2 && n.rArm <= 1) return 3;
+      return 2;
+    },
+  },
+  {
+    id: 'right_aca',
+    name: 'Right ACA',
+    subtitle: 'Medial frontal / paracentral lobule (leg)',
+    territory: 'Right ACA (A2)',
+    lvoRisk: false,
+    features: [
+      'Left leg weakness > arm (inverse of MCA)',
+      'Contralateral motor neglect',
+      'Abulia, alien hand sign',
+      'Urinary incontinence (especially bilateral ACA)',
+    ],
+    ctaExpect: 'Right ACA A2. Consider ICA-T with combined ACA+MCA.',
+    match: (s) => {
+      const n = _nih(s);
+      if (n.bilateralMotor || n.rightMotor) return 0;
+      if (n.lLeg <= n.lArm) return 0;
+      if (n.ataxia >= 1 || n.aphasia >= 1) return 0;
+      if (n.lLeg >= 2 && n.lArm <= 1) return 3;
+      return 2;
+    },
+  },
+
+  // ─── Anterior choroidal — "three H's" without cortical signs ───
+  {
+    id: 'left_ant_choroidal',
+    name: 'Left Anterior Choroidal',
+    subtitle: 'Posterior limb IC, optic tract, medial temporal',
+    territory: 'Left anterior choroidal (ICA branch)',
+    lvoRisk: false,
+    features: [
+      'Right hemiparesis (capsular)',
+      'Right hemisensory loss',
+      'Right homonymous hemianopia',
+      'NO aphasia, neglect, or apraxia (distinguishes from MCA)',
+    ],
+    ctaExpect: 'Small branch — CTA typically normal. MRI DWI needed.',
+    match: (s) => {
+      const n = _nih(s);
+      if (!n.rightMotor) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1) return 0;
+      if (n.rightMotor && n.sens >= 1 && n.vf >= 1) return 3;
+      if (n.rightMotor && n.sens >= 1) return 2;
       return 0;
     },
   },
   {
-    id: 'lacunar_motor',
+    id: 'right_ant_choroidal',
+    name: 'Right Anterior Choroidal',
+    subtitle: 'Posterior limb IC, optic tract, medial temporal',
+    territory: 'Right anterior choroidal (ICA branch)',
+    lvoRisk: false,
+    features: [
+      'Left hemiparesis (capsular)',
+      'Left hemisensory loss',
+      'Left homonymous hemianopia',
+      'NO neglect or aphasia (distinguishes from MCA)',
+    ],
+    ctaExpect: 'Small branch — CTA typically normal. MRI DWI needed.',
+    match: (s) => {
+      const n = _nih(s);
+      if (!n.leftMotor) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1) return 0;
+      if (n.leftMotor && n.sens >= 1 && n.vf >= 1) return 3;
+      if (n.leftMotor && n.sens >= 1) return 2;
+      return 0;
+    },
+  },
+
+  // ─── Posterior circulation: Basilar artery occlusion ───
+  {
+    id: 'bao',
+    name: 'Basilar Artery Occlusion (BAO)',
+    subtitle: 'Pons / midbrain / cerebellum — locked-in risk',
+    territory: 'Proximal–mid basilar artery',
+    lvoRisk: true,
+    features: [
+      'Decreased LOC / coma',
+      'Quadriparesis — may be asymmetric or "crossed"',
+      'Horizontal gaze palsy, INO, skew deviation',
+      'Bilateral bulbar signs (dysphagia, dysarthria)',
+      'Pinpoint pupils',
+      'Locked-in syndrome if untreated',
+    ],
+    ctaExpect: '🚨 URGENT — basilar thrombus on CTA. Extended treatment window. Mortality >80% without recanalization.',
+    match: (s) => {
+      const n = _nih(s);
+      if (!n.bilateralMotor) return 0;
+      if (n.loc >= 1 && (n.gaze >= 1 || n.dys >= 1)) return 3;
+      if (n.gaze >= 1 || n.dys >= 1) return 2;
+      if (n.loc >= 2) return 2;
+      return 0;
+    },
+  },
+  {
+    id: 'top_basilar',
+    name: 'Top of the Basilar',
+    subtitle: 'Rostral midbrain + thalami + occipital / medial temporal',
+    territory: 'Distal basilar / bilateral P1',
+    lvoRisk: true,
+    features: [
+      'Decreased LOC, somnolence, amnesia',
+      'Vertical gaze palsy, pupillary abnormalities',
+      'Visual field loss (may be bilateral cortical blindness)',
+      'Peduncular hallucinosis',
+      'Limited motor findings despite severe presentation (chameleon)',
+    ],
+    ctaExpect: '🚨 Chameleon — low NIHSS despite critical occlusion. CTA distal basilar / P1.',
+    match: (s) => {
+      const n = _nih(s);
+      if (n.loc >= 1 && n.vf >= 1 && n.maxMotor <= 1) return 3;
+      if (n.loc >= 2 && n.maxMotor <= 2) return 2;
+      if (n.loc >= 1 && n.gaze >= 1 && n.maxMotor <= 1) return 2;
+      return 0;
+    },
+  },
+  {
+    id: 'pca',
+    name: 'PCA (isolated)',
+    subtitle: 'Occipital ± medial temporal',
+    territory: 'PCA P2 (cortical branches)',
+    lvoRisk: false,
+    features: [
+      'Contralateral homonymous hemianopia (macular sparing)',
+      'Alexia without agraphia (dominant) — can write but not read',
+      'Memory deficit (medial temporal)',
+      'Visual agnosia / prosopagnosia',
+      'NO weakness — distinguishes from MCA',
+    ],
+    ctaExpect: 'PCA P2 occlusion. CT may be normal early; MRI DWI sensitive.',
+    match: (s) => {
+      const n = _nih(s);
+      if (n.anyMotor) return 0;
+      if (n.vf < 1) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1 || n.gaze >= 1 || n.loc >= 1) return 0;
+      return 2;
+    },
+  },
+
+  // ─── Brainstem syndromes ───
+  {
+    id: 'wallenberg',
+    name: 'Lateral Medullary (Wallenberg)',
+    subtitle: 'Lateral medulla — ipsi face + contra body',
+    territory: 'PICA or vertebral artery',
+    lvoRisk: false,
+    features: [
+      'Ipsilateral facial pain/temperature loss (CN V spinal tract)',
+      'Contralateral body pain/temperature loss (spinothalamic)',
+      'Ipsilateral Horner\'s (sympathetic chain)',
+      'Vertigo, nystagmus, ipsilateral ataxia',
+      'Dysphagia, hoarseness (nucleus ambiguus)',
+      'Motor weakness ABSENT — pyramidal tract is medial',
+    ],
+    ctaExpect: 'Vertebral or PICA occlusion. MRI DWI needed — CT often normal.',
+    match: (s) => {
+      const n = _nih(s);
+      if (n.anyMotor) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1) return 0;
+      if (n.ataxia >= 1 && (n.dys >= 1 || n.sens >= 1)) return 3;
+      if (n.ataxia >= 1 && n.loc === 0) return 2;
+      return 0;
+    },
+  },
+  {
+    id: 'medial_medullary',
+    name: 'Medial Medullary (Dejerine)',
+    subtitle: 'Medial medulla — contra body, ipsi tongue',
+    territory: 'Anterior spinal artery / vertebral branch',
+    lvoRisk: false,
+    features: [
+      'Contralateral arm + leg weakness (FACE SPARED)',
+      'Contralateral vibration/proprioception loss',
+      'Ipsilateral tongue weakness (CN XII) — deviates toward lesion',
+      'Dysarthria from tongue weakness',
+    ],
+    ctaExpect: 'Vertebral or anterior spinal artery. MRI DWI.',
+    match: (s) => {
+      const n = _nih(s);
+      const oneSide = (n.rightMotor && !n.leftMotor) || (n.leftMotor && !n.rightMotor);
+      if (!oneSide) return 0;
+      if (n.face >= 1) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1 || n.vf >= 1) return 0;
+      if (n.dys >= 1 && n.sens >= 1) return 2;
+      return 0;
+    },
+  },
+  {
+    id: 'foville',
+    name: 'Medial Pontine (Foville)',
+    subtitle: 'Inferior medial pons — ipsi gaze/face + contra body',
+    territory: 'Basilar paramedian perforators',
+    lvoRisk: false,
+    features: [
+      'Ipsilateral conjugate lateral gaze palsy (CN VI nucleus)',
+      'Ipsilateral facial weakness (CN VII fascicle)',
+      'Contralateral hemiparesis (corticospinal)',
+      'Contralateral vibration/proprioception loss (medial lemniscus)',
+    ],
+    ctaExpect: 'Basilar paramedian perforator. MRI DWI.',
+    match: (s) => {
+      const n = _nih(s);
+      const oneSide = (n.rightMotor && !n.leftMotor) || (n.leftMotor && !n.rightMotor);
+      if (!oneSide) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1) return 0;
+      if (n.gaze >= 1 && n.face >= 1) return 2;
+      return 0;
+    },
+  },
+  {
+    id: 'marie_foix',
+    name: 'Lateral Pontine (Marie-Foix)',
+    subtitle: 'Lateral pons — ipsi ataxia + contra body',
+    territory: 'AICA or long circumferential basilar branches',
+    lvoRisk: false,
+    features: [
+      'Ipsilateral limb ataxia (middle cerebellar peduncle)',
+      'Ipsilateral Horner\'s',
+      'Ipsilateral hearing loss / vertigo (AICA → labyrinthine)',
+      'Ipsilateral facial weakness + facial sensory loss',
+      'Contralateral body pain/temperature loss',
+    ],
+    ctaExpect: 'AICA territory. MRI DWI.',
+    match: (s) => {
+      const n = _nih(s);
+      const oneSide = (n.rightMotor && !n.leftMotor) || (n.leftMotor && !n.rightMotor);
+      if (!oneSide) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1 || n.vf >= 1) return 0;
+      if (n.ataxia >= 1 && n.sens >= 1) return 2;
+      return 0;
+    },
+  },
+  {
+    id: 'midbrain',
+    name: 'Midbrain (Weber / Claude / Benedikt)',
+    subtitle: 'Ipsi CN III palsy + contra deficits',
+    territory: 'PCA perforators / top-of-basilar',
+    lvoRisk: false,
+    features: [
+      'Ipsilateral CN III palsy — ptosis, "down-and-out" eye, blown pupil',
+      'Weber: + contralateral hemiparesis (cerebral peduncle)',
+      'Claude: + contralateral ataxia / tremor (red nucleus)',
+      'Benedikt: combined motor + ataxia + sensory loss',
+    ],
+    ctaExpect: 'PCA perforators or distal basilar. Assess top-of-basilar risk.',
+    match: (s) => {
+      const n = _nih(s);
+      if (n.gaze < 1) return 0;
+      if (n.face >= 1) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1) return 0;
+      const oneSide = (n.rightMotor && !n.leftMotor) || (n.leftMotor && !n.rightMotor);
+      if (oneSide && (n.ataxia >= 1 || n.sens >= 1)) return 3;
+      if (oneSide) return 2;
+      if (n.ataxia >= 1 && !n.anyMotor) return 2;
+      return 0;
+    },
+  },
+
+  // ─── Lacunar syndromes (no cortical signs, no LOC change) ───
+  {
+    id: 'lacunar_pure_motor',
     name: 'Lacunar — Pure Motor',
-    subtitle: 'Internal capsule or pons',
+    subtitle: 'Posterior limb IC, corona radiata, or basis pontis',
     territory: 'Lenticulostriate or pontine perforators',
     lvoRisk: false,
-    features: ['Hemiparesis: face + arm + leg same side', 'No aphasia, neglect, or visual field cut', 'Often gradual/stuttering onset'],
-    ctaExpect: 'CTA likely normal. MRI DWI most sensitive.',
+    features: [
+      'Unilateral face + arm + leg weakness — EQUALLY affected',
+      'No sensory loss, no cortical signs, no visual field cut',
+      'Onset may be gradual or stuttering',
+    ],
+    ctaExpect: 'CTA typically normal. MRI DWI most sensitive.',
     match: (s) => {
-      const rightMotor = (s['5a'] || 0) > 0 || (s['6a'] || 0) > 0;
-      const leftMotor = (s['5b'] || 0) > 0 || (s['6b'] || 0) > 0;
-      const noAphasia = (s['9'] || 0) === 0;
-      const noNeglect = (s['11'] || 0) === 0;
-      const noVisual = (s['3'] || 0) === 0;
-      const noSensory = (s['8'] || 0) === 0;
-      const noGaze = (s['2'] || 0) === 0;
-      const oneSide = (rightMotor && !leftMotor) || (leftMotor && !rightMotor);
-      if (oneSide && noAphasia && noNeglect && noVisual && noSensory && noGaze) return 2;
+      const n = _nih(s);
+      const oneSide = (n.rightMotor && !n.leftMotor) || (n.leftMotor && !n.rightMotor);
+      if (!oneSide) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1 || n.vf >= 1) return 0;
+      if (n.sens >= 1 || n.gaze >= 1 || n.ataxia >= 1 || n.dys >= 1 || n.loc >= 1) return 0;
+      const arm = n.rightMotor ? n.rArm : n.lArm;
+      const leg = n.rightMotor ? n.rLeg : n.lLeg;
+      const equal = Math.abs(arm - leg) <= 1;
+      if (equal && arm >= 1 && leg >= 1) return 3;
+      if (equal) return 2;
       return 0;
     },
   },
   {
-    id: 'lacunar_sensory',
+    id: 'lacunar_pure_sensory',
     name: 'Lacunar — Pure Sensory',
-    subtitle: 'Thalamus (VPL nucleus)',
-    territory: 'Thalamic perforators (PCA branch)',
+    subtitle: 'Thalamus (VPL / VPM nucleus)',
+    territory: 'Thalamogeniculate artery (PCA branch)',
     lvoRisk: false,
-    features: ['Hemisensory loss: face + arm + leg same side', 'No motor weakness, no aphasia, no visual field cut'],
-    ctaExpect: 'CTA likely normal. MRI DWI needed.',
+    features: [
+      'Unilateral sensory loss: face + arm + leg',
+      'No motor weakness, no cortical signs, no visual field cut',
+    ],
+    ctaExpect: 'CTA typically normal. MRI DWI needed.',
     match: (s) => {
-      const sensory = (s['8'] || 0) >= 1;
-      const noMotor = (s['5a'] || 0) === 0 && (s['5b'] || 0) === 0 &&
-                      (s['6a'] || 0) === 0 && (s['6b'] || 0) === 0;
-      const noAphasia = (s['9'] || 0) === 0;
-      const noVisual = (s['3'] || 0) === 0;
-      const noNeglect = (s['11'] || 0) === 0;
-      if (sensory && noMotor && noAphasia && noVisual && noNeglect) return 2;
+      const n = _nih(s);
+      if (n.anyMotor) return 0;
+      if (n.sens < 1) return 0;
+      if (n.ataxia >= 1 || n.dys >= 1) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1 || n.vf >= 1 || n.gaze >= 1 || n.loc >= 1) return 0;
+      if (n.sens >= 2) return 3;
+      return 2;
+    },
+  },
+  {
+    id: 'lacunar_sensorimotor',
+    name: 'Lacunar — Sensorimotor',
+    subtitle: 'Thalamocapsular / lateral pons',
+    territory: 'Lenticulostriate or thalamoperforator',
+    lvoRisk: false,
+    features: [
+      'Unilateral motor + sensory loss (face + arm + leg)',
+      'No aphasia, neglect, visual field cut, or LOC change',
+    ],
+    ctaExpect: 'Small vessel disease. CTA typically normal.',
+    match: (s) => {
+      const n = _nih(s);
+      const oneSide = (n.rightMotor && !n.leftMotor) || (n.leftMotor && !n.rightMotor);
+      if (!oneSide) return 0;
+      if (n.sens < 1) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1 || n.vf >= 1 || n.gaze >= 1 || n.loc >= 1) return 0;
+      return 2;
+    },
+  },
+  {
+    id: 'lacunar_ataxic_hemiparesis',
+    name: 'Lacunar — Ataxic Hemiparesis',
+    subtitle: 'Posterior limb IC or basis pontis',
+    territory: 'Lenticulostriate or pontine perforator',
+    lvoRisk: false,
+    features: [
+      'Unilateral weakness (leg > arm typically) + ipsilateral limb ataxia',
+      'Ataxia out of proportion to weakness',
+      'No aphasia, neglect, sensory loss, or visual field cut',
+    ],
+    ctaExpect: 'Small vessel disease. CTA typically normal.',
+    match: (s) => {
+      const n = _nih(s);
+      const oneSide = (n.rightMotor && !n.leftMotor) || (n.leftMotor && !n.rightMotor);
+      if (!oneSide) return 0;
+      if (n.ataxia < 1) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1 || n.vf >= 1 || n.sens >= 1 || n.gaze >= 1 || n.loc >= 1) return 0;
+      if (n.maxMotor <= 2) return 2;
       return 0;
     },
   },
   {
-    id: 'lacunar_mixed',
-    name: 'Lacunar — Sensorimotor / Ataxic',
-    subtitle: 'Thalamocapsular or deep perforators',
-    territory: 'Internal capsule / corona radiata',
+    id: 'lacunar_dysarthria_clumsy_hand',
+    name: 'Lacunar — Dysarthria / Clumsy Hand',
+    subtitle: 'Genu of IC or basis pontis',
+    territory: 'Small perforator',
     lvoRisk: false,
-    features: ['Motor + sensory loss same side', 'OR unilateral weakness + ataxia out of proportion', 'No aphasia, neglect, or visual field cut'],
-    ctaExpect: 'Small vessel disease. CTA often normal. MRI DWI most sensitive.',
+    features: [
+      'Dysarthria + mild unilateral hand/facial weakness',
+      'Fine-motor clumsiness out of proportion to weakness',
+      'No aphasia, neglect, sensory loss, visual field cut, or ataxia',
+    ],
+    ctaExpect: 'Small vessel disease. CTA typically normal.',
     match: (s) => {
-      const motor = (s['5a'] || 0) > 0 || (s['5b'] || 0) > 0 || (s['6a'] || 0) > 0 || (s['6b'] || 0) > 0;
-      const sensory = (s['8'] || 0) >= 1;
-      const ataxia = (s['7'] || 0) >= 1;
-      const noAphasia = (s['9'] || 0) === 0;
-      const noVisual = (s['3'] || 0) === 0;
-      const noNeglect = (s['11'] || 0) === 0;
-      const noGaze = (s['2'] || 0) === 0;
-      if (motor && sensory && noAphasia && noVisual && noNeglect) return 2;
-      if (motor && ataxia && noAphasia && noVisual && noNeglect && noGaze) return 2;
-      return 0;
+      const n = _nih(s);
+      if (n.dys < 1) return 0;
+      const oneSideArm = (n.rArm >= 1 && n.lArm === 0) || (n.lArm >= 1 && n.rArm === 0);
+      if (!oneSideArm) return 0;
+      const armScore = Math.max(n.rArm, n.lArm);
+      const legScore = Math.max(n.rLeg, n.lLeg);
+      if (armScore > 2) return 0;
+      if (legScore > 1) return 0;
+      if (n.aphasia >= 1 || n.neglect >= 1 || n.vf >= 1 || n.sens >= 1 || n.ataxia >= 1 || n.gaze >= 1 || n.loc >= 1) return 0;
+      return 2;
     },
   },
 ];
@@ -1769,3 +2208,207 @@ window.NIHSS_LIMITATIONS = [
 ];
 
 
+
+// ── RAPID STROKE LOCALIZATION EXAM ───────────────────────────
+// 2–3 minute systematic bedside exam: language → dysarthria → fields
+// → neglect → strength → ataxia. Each test has verbatim clinician
+// prompts, how-to-test, normal / abnormal, and a teaching pearl.
+// mapsToNihss lists NIHSS item IDs that should get a minimum-plausible
+// score suggestion when this test is marked abnormal.
+window.LOCALIZATION_EXAM = {
+  intro: 'Is this weakness, language, vision, coordination, or brainstem? Ask: cortex? subcortical? brainstem? cerebellum?',
+  tests: [
+    {
+      id: 'fluency',
+      section: 'Language',
+      title: 'Fluency — spontaneous speech',
+      prompt: '“Tell me what happened today.”',
+      howToTest: [
+        'Listen for complete grammatical sentences and connecting words.',
+        'Don\'t focus on speed — slow speech can still be fluent.',
+        'Ask: are they forming normal sentences?',
+      ],
+      normal: [
+        'Complete grammatical sentences',
+        'Appropriate words',
+        'Makes sense',
+      ],
+      abnormal: [
+        'Short phrases, telegraphic speech',
+        'Missing connecting words',
+        'e.g. “Arm… weak… hospital.”',
+      ],
+      pearl: 'Nonfluent aphasia → dominant hemisphere cortex (usually left MCA).',
+      mapsToNihss: ['9'],
+    },
+    {
+      id: 'comprehension',
+      section: 'Language',
+      title: 'Comprehension',
+      prompt: 'Avoid yes/no questions. Give simple commands.',
+      howToTest: [
+        '“Close your eyes.”',
+        '“Stick out your tongue.”',
+        '“Touch your left ear with your right hand.”',
+      ],
+      normal: [
+        'Follows commands correctly',
+      ],
+      abnormal: [
+        'Cannot follow commands despite being awake and able to hear',
+      ],
+      pearl: 'Comprehension deficit alone → posterior dominant hemisphere (Wernicke\'s area).',
+      mapsToNihss: ['9', '1c'],
+    },
+    {
+      id: 'naming',
+      section: 'Language',
+      title: 'Naming',
+      prompt: 'Show common objects: “What is this?”',
+      howToTest: [
+        'Show a pen — “What is this?”',
+        'Show a watch — “What is this?”',
+        'Show a stethoscope — “What is this?”',
+      ],
+      normal: [
+        'Names each object correctly',
+      ],
+      abnormal: [
+        '“I know what it is…”',
+        '“The thing you write with…”',
+        'Cannot retrieve the word (anomia)',
+      ],
+      pearl: 'Anomia is the most sensitive language sign — present in almost all aphasias.',
+      mapsToNihss: ['9'],
+    },
+    {
+      id: 'repetition',
+      section: 'Language',
+      title: 'Repetition',
+      prompt: '“Repeat after me: No ifs, ands, or buts.”',
+      howToTest: [
+        'Say the phrase clearly once.',
+        'Listen for word substitutions, omissions, or rearrangements.',
+      ],
+      normal: [
+        'Repeats accurately',
+      ],
+      abnormal: [
+        'Leaves words out',
+        'Rearranges words',
+        'e.g. “No ifs… and buts.”',
+      ],
+      pearl: 'Impaired repetition with preserved fluency and comprehension → conduction aphasia (arcuate fasciculus).',
+      mapsToNihss: ['9'],
+    },
+    {
+      id: 'dysarthria',
+      section: 'Speech (not language)',
+      title: 'Dysarthria',
+      prompt: 'Language is normal — muscles producing speech are abnormal.',
+      howToTest: [
+        'Listen for slurred articulation, thick speech, poor pronunciation.',
+        'The words are correct — it\'s HOW they say them that\'s wrong.',
+      ],
+      normal: [
+        'Clear articulation',
+      ],
+      abnormal: [
+        'Slurred but correct words',
+        'e.g. “No ifs, ands, or buts” pronounced correctly but slurred',
+      ],
+      pearl: 'Language = WHAT they say. Dysarthria = HOW they say it. Can localize to cortex, IC, brainstem, cerebellum, or CN VII/XII.',
+      mapsToNihss: ['10'],
+    },
+    {
+      id: 'fields',
+      section: 'Vision',
+      title: 'Visual Fields',
+      prompt: '“Look at my nose.” Confront each field.',
+      howToTest: [
+        'Test left alone — wiggle fingers in left field.',
+        'Test right alone — wiggle fingers in right field.',
+        'Then test both sides simultaneously (see Neglect).',
+      ],
+      normal: [
+        'Detects finger movement in every field',
+      ],
+      abnormal: [
+        'Consistently misses one side even when tested alone → visual field cut',
+      ],
+      pearl: 'Field cut = the camera is broken. That half of vision never arrives.',
+      mapsToNihss: ['3'],
+    },
+    {
+      id: 'neglect',
+      section: 'Attention',
+      title: 'Neglect (extinction)',
+      prompt: 'Vision is intact — attention is impaired.',
+      howToTest: [
+        'Visual extinction: wiggle right fingers, then left, then BOTH at once.',
+        'Tactile extinction: eyes closed, touch right hand, then left, then both.',
+        'Personal neglect: “Whose arm is this?” — do they ignore their left arm?',
+      ],
+      normal: [
+        'Attends to both sides even during double simultaneous stimulation',
+      ],
+      abnormal: [
+        'Sees / feels each side alone',
+        'Misses left when both sides presented together (extinction)',
+      ],
+      pearl: 'The camera works, the spotlight of attention is broken. Classic right parietal stroke.',
+      mapsToNihss: ['11'],
+    },
+    {
+      id: 'strength',
+      section: 'Motor',
+      title: 'Strength — before coordination',
+      prompt: 'Test power first. Weakness can mimic ataxia.',
+      howToTest: [
+        'Pronator drift with arms outstretched, palms up.',
+        'Test face, arm, leg on both sides.',
+      ],
+      normal: [
+        'Full power throughout, no drift',
+      ],
+      abnormal: [
+        'Any drift, any focal weakness',
+      ],
+      pearl: 'Only assess coordination if strength is adequate — weakness distorts finger-to-nose and heel-to-shin.',
+      mapsToNihss: ['5a', '5b', '6a', '6b'],
+    },
+    {
+      id: 'ataxia',
+      section: 'Coordination',
+      title: 'Ataxia — coordination',
+      prompt: 'Is this a power problem or a coordination problem?',
+      howToTest: [
+        'Finger-to-nose (both sides).',
+        'Heel-to-shin (both sides).',
+        'Rapid alternating movements.',
+      ],
+      normal: [
+        'Smooth, accurate trajectory',
+        'No overshoot or repeated corrections',
+      ],
+      abnormal: [
+        'Overshoot (dysmetria)',
+        'Repeated corrections, intention tremor near the target',
+        'Irregular rapid alternating movements (dysdiadochokinesia)',
+      ],
+      pearl: 'NIHSS scores limb ataxia only when it is out of proportion to weakness. Don\'t call it ataxia if weakness explains the miss.',
+      mapsToNihss: ['7'],
+    },
+  ],
+  threeRules: [
+    { term: 'Aphasia',          rule: 'WHAT they say is abnormal.' },
+    { term: 'Dysarthria',       rule: 'HOW they say it is abnormal.' },
+    { term: 'Neglect',          rule: 'They can see it — they just don\'t attend to it when attention is divided.' },
+    { term: 'Visual field cut', rule: 'They truly cannot see that side, even when it\'s presented alone.' },
+    { term: 'Ataxia',           rule: 'Not “I can\'t move.” “I can\'t guide the movement smoothly.”' },
+  ],
+  fieldVsNeglect: [
+    { sign: 'Visual field cut', leftAlone: 'Misses ❌', bothTogether: 'Misses ❌', vision: 'Absent' },
+    { sign: 'Neglect',          leftAlone: 'Sees ✅',   bothTogether: 'Misses ❌', vision: 'Intact — attention impaired' },
+  ],
+};
