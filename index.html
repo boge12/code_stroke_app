@@ -55,10 +55,10 @@
     <div class="card" id="home-reference-index">
       <h3>📖 Reference</h3>
       <div class="ref-index-grid">
-        <button class="ref-cell" onclick="goToSide('step-mimics')"><div class="ref-emoji">🧠</div><div class="ref-title">Mimics & Chameleons</div><div class="ref-subtitle">Rule in / rule out</div></button>
-        <button class="ref-cell" onclick="goToSide('step-syndrome-ref')"><div class="ref-emoji">🗺️</div><div class="ref-title">Stroke Syndromes</div><div class="ref-subtitle">Vascular territories</div></button>
-        <button class="ref-cell" onclick="goToSide('step-nihss-ref')"><div class="ref-emoji">🔢</div><div class="ref-title">NIHSS Reference</div><div class="ref-subtitle">Rubric, caveats, pearls</div></button>
-        <button class="ref-cell" onclick="goToSide('step-algorithm')"><div class="ref-emoji">📋</div><div class="ref-title">Bedside Algorithm</div><div class="ref-subtitle">Time-anchored cognitive aid</div></button>
+        <button class="ref-cell" aria-label="Mimics and Chameleons reference" onclick="goToSide('step-mimics')"><div class="ref-emoji" aria-hidden="true">🧠</div><div class="ref-title">Mimics & Chameleons</div><div class="ref-subtitle">Rule in / rule out</div></button>
+        <button class="ref-cell" aria-label="Stroke Syndromes reference" onclick="goToSide('step-syndrome-ref')"><div class="ref-emoji" aria-hidden="true">🗺️</div><div class="ref-title">Stroke Syndromes</div><div class="ref-subtitle">Vascular territories</div></button>
+        <button class="ref-cell" aria-label="NIHSS Reference" onclick="goToSide('step-nihss-ref')"><div class="ref-emoji" aria-hidden="true">🔢</div><div class="ref-title">NIHSS Reference</div><div class="ref-subtitle">Rubric, caveats, pearls</div></button>
+        <button class="ref-cell" aria-label="Bedside Algorithm reference" onclick="goToSide('step-algorithm')"><div class="ref-emoji" aria-hidden="true">📋</div><div class="ref-title">Bedside Algorithm</div><div class="ref-subtitle">Time-anchored cognitive aid</div></button>
       </div>
     </div>
   </div>
@@ -70,7 +70,7 @@
     <div class="card">
       <div class="card-title">Case Label (Optional)</div>
       <p class="text-sm" style="margin-bottom:10px">Enter initials, room number, or any label — no full names needed.</p>
-      <label>Case label</label>
+      <label for="label-input">Case label</label>
       <input type="text" id="label-input" placeholder="e.g. J.S. · Rm 4 · ER1" autocomplete="off" autocorrect="off" spellcheck="false">
     </div>
 
@@ -110,14 +110,14 @@
       </div>
 
       <div id="onset-time-section">
-        <label id="lkn-label">Last Known Normal (LKN)</label>
+        <label id="lkn-label" for="onset-time-input">Last Known Normal (LKN)</label>
         <p class="text-sm" id="lkn-hint" style="margin-bottom:6px; color:var(--text-dim)">When was the patient last known to be at their baseline / symptom-free?</p>
         <input type="time" id="onset-time-input">
         <p class="text-sm mt-8">LKN: <span id="elapsed-lsn">–</span></p>
       </div>
 
       <div id="wake-time-section" style="display:none; margin-top:12px; padding-top:12px; border-top:1px solid var(--border)">
-        <label>Time Found / Woke Up</label>
+        <label for="wake-time-input">Time Found / Woke Up</label>
         <p class="text-sm" style="margin-bottom:6px; color:var(--text-dim)">When did the patient wake up or when were they found with symptoms?</p>
         <input type="time" id="wake-time-input">
         <p class="text-sm mt-8">Found: <span id="elapsed-wake">–</span></p>
@@ -203,14 +203,15 @@
   </div>
 
   <!-- ══════════════════════════════════════════════════════
-       SCREEN: Cortical / LVO Quick Screen (pre-NIHSS)
+       SCREEN: Rapid Localization Exam (pre-NIHSS)
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-quick-screen">
-    <div class="card" style="margin-bottom:14px">
-      <div class="card-title">30-Second Cortical Screen</div>
-      <p class="text-sm">Tap any cortical / LVO sign that's present before full NIHSS. Shapes imaging and activation priority.</p>
+    <div class="card" style="margin-bottom:10px">
+      <div class="card-title">Rapid Localization Exam · 2–3 min</div>
+      <p class="text-sm" id="localization-intro"></p>
     </div>
-    <div id="quick-screen-content"></div>
+    <div class="step-tabs" id="localization-tabs" role="tablist" aria-label="Localization exam tests"></div>
+    <div id="localization-item-container"></div>
     <div class="nav-footer">
       <button class="btn-nav btn-nav-back nav-back-btn">← Back</button>
       <button class="btn-nav btn-nav-next" id="quick-screen-next">Next: NIHSS →</button>
@@ -302,7 +303,7 @@
     <div class="card">
       <div class="card-title">ASPECTS Score</div>
       <p class="text-sm" style="margin-bottom:8px">Alberta Stroke Program Early CT Score (0–10). Score ≥6 required for TNK eligibility.</p>
-      <label>ASPECTS (0–10)</label>
+      <label for="aspects-input">ASPECTS (0–10)</label>
       <input type="number" id="aspects-input" placeholder="Enter 0–10" min="0" max="10">
       <p id="aspects-msg" class="text-sm mt-8"></p>
       <p class="text-sm" style="margin-top:8px; color:var(--text-dim)">10 = normal. Each of 10 MCA territory regions scores 1 point. Score of 0 = complete MCA infarct.</p>
@@ -425,7 +426,7 @@
         </button>
       </div>
 
-      <label>SDM Name (if applicable)</label>
+      <label for="sdm-name">SDM Name (if applicable)</label>
       <input type="text" id="sdm-name" placeholder="SDM name" autocomplete="off">
     </div>
 
@@ -441,7 +442,7 @@
         </button>
       </div>
 
-      <label>Time TNK administered</label>
+      <label for="tnk-time">Time TNK administered</label>
       <input type="time" id="tnk-time">
     </div>
 
@@ -479,7 +480,7 @@
   <div id="cookie-overlay" class="fullscreen-overlay" style="display:none">
     <div class="overlay-header">
       <span style="font-size:14px; color:var(--text-dim)">Show to patient — "Tell me everything you see."</span>
-      <button class="overlay-close-btn" id="cookie-overlay-close">✕ Close</button>
+      <button class="overlay-close-btn" id="cookie-overlay-close" aria-label="Close aphasia picture">✕ Close</button>
     </div>
     <div class="overlay-content" id="cookie-overlay-content"></div>
   </div>

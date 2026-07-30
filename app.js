@@ -216,7 +216,7 @@ function updateHeader(stepId) {
     'step-abs-contra': 'Step 3 — Absolute CIs',
     'step-rel-contra': 'Step 4 — Relative CIs',
     'step-history': 'Step 5 — Relevant History',
-    'step-quick-screen': 'Step 6 — Cortical / LVO Screen',
+    'step-quick-screen': 'Step 6 — Localization Exam',
     'step-nihss': 'Step 7 — NIHSS Assessment',
     'step-posterior': 'Step 8 — Posterior Circulation',
     'step-syndrome': 'Step 9 — Syndrome',
@@ -824,102 +824,180 @@ function renderNIHSS() {
   nihssCurrentIdx = STATE.current.nihssCurrentIdx || 0;
   STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false, hemiparesisSide: null };
   if (!('hemiparesisSide' in STATE.current.corticalScreen)) STATE.current.corticalScreen.hemiparesisSide = null;
+  applyLocalizationToNIHSS();
+  syncCorticalFromNIHSS();
   renderNIHSSItem();
   renderNIHSSTabs();
 }
 
-// ── Quick Screen step (pre-NIHSS: cortical, NIHSS-style cards) ──
+// ── Rapid Localization Exam (pre-NIHSS, guided walkthrough) ──
+// Replaces the older "30-second cortical/LVO screen" with a systematic
+// 2–3 minute exam tabbed like NIHSS: one test at a time, tap
+// Normal / Abnormal / Skip, auto-advances. Abnormal findings can
+// pre-fill NIHSS defaults via mapsToNihss.
+let localizationCurrentIdx = 0;
+
+function ensureLocalizationState() {
+  const s = STATE.current;
+  if (!s) return null;
+  if (!s.localization) s.localization = {};
+  if (!s.corticalScreen) {
+    s.corticalScreen = { gaze: false, aphasia: false, neglect: false, hemiparesis: false, hemiparesisSide: null };
+  }
+  return s.localization;
+}
+
 function renderQuickScreen() {
-  const host = document.getElementById('quick-screen-content');
-  if (!host) return;
-  STATE.current.corticalScreen = STATE.current.corticalScreen || { gaze: false, aphasia: false, neglect: false, hemiparesis: false, hemiparesisSide: null };
-  if (!('hemiparesisSide' in STATE.current.corticalScreen)) STATE.current.corticalScreen.hemiparesisSide = null;
+  const tabsHost = document.getElementById('localization-tabs');
+  const bodyHost = document.getElementById('localization-item-container');
+  const intro = document.getElementById('localization-intro');
+  if (!tabsHost || !bodyHost) return;
+  const exam = window.LOCALIZATION_EXAM;
+  if (!exam) return;
 
-  const rule = window.CORTICAL_LVO_RULE || 'Any one cortical sign + NIHSS ≥ 6 → presume LVO.';
-  const items = window.CORTICAL_LVO_SCREEN || [];
-  const cs = STATE.current.corticalScreen;
+  const store = ensureLocalizationState();
+  if (intro) intro.textContent = exam.intro;
 
-  const ruleBanner = `
-    <div class="qs-rule-banner">
-      <span class="qs-rule-icon">⚡</span>
-      <span>${rule}</span>
+  const total = exam.tests.length + 1; // +1 for summary tab
+  if (localizationCurrentIdx >= total) localizationCurrentIdx = total - 1;
+  if (localizationCurrentIdx < 0) localizationCurrentIdx = 0;
+
+  // Tab strip
+  tabsHost.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const isSummary = i === total - 1;
+    const test = isSummary ? null : exam.tests[i];
+    const answered = test ? !!store[test.id] : false;
+    const tab = document.createElement('button');
+    tab.type = 'button';
+    tab.className = `step-tab${i === localizationCurrentIdx ? ' current' : ''}${answered ? ' done' : ''}`;
+    tab.textContent = isSummary ? '✓' : String(i + 1);
+    tab.setAttribute('role', 'tab');
+    tab.setAttribute('aria-label', isSummary ? 'Summary' : test.title);
+    tab.addEventListener('click', () => {
+      localizationCurrentIdx = i;
+      renderQuickScreen();
+    });
+    tabsHost.appendChild(tab);
+  }
+  const currentTab = tabsHost.children[localizationCurrentIdx];
+  if (currentTab) setTimeout(() => currentTab.scrollIntoView({behavior:'smooth', block:'nearest', inline:'center'}), 40);
+
+  // Body
+  if (localizationCurrentIdx === total - 1) {
+    bodyHost.innerHTML = renderLocalizationSummary(exam, store);
+    bodyHost.querySelectorAll('[data-jump-idx]').forEach(el => {
+      el.addEventListener('click', () => {
+        localizationCurrentIdx = parseInt(el.dataset.jumpIdx, 10) || 0;
+        renderQuickScreen();
+      });
+    });
+    return;
+  }
+
+  const test = exam.tests[localizationCurrentIdx];
+  const selected = store[test.id] || null;
+  const li = (arr) => (arr || []).map(x => `<li>${x}</li>`).join('');
+  bodyHost.innerHTML = `
+    <div class="card exam-card">
+      <div class="exam-section-chip">${test.section}</div>
+      <h3 class="exam-title">${test.title}</h3>
+      <p class="exam-prompt">${test.prompt}</p>
+      <div class="exam-how">
+        <div class="exam-how-title">How to test</div>
+        <ul>${li(test.howToTest)}</ul>
+      </div>
+      <div class="exam-columns">
+        <div class="exam-col exam-col-normal">
+          <div class="exam-col-title">Normal</div>
+          <ul>${li(test.normal)}</ul>
+        </div>
+        <div class="exam-col exam-col-abnormal">
+          <div class="exam-col-title">Abnormal</div>
+          <ul>${li(test.abnormal)}</ul>
+        </div>
+      </div>
+      ${test.pearl ? `<div class="exam-pearl">💡 ${test.pearl}</div>` : ''}
+      <div class="exam-choice" role="group" aria-label="${test.title} finding">
+        <button type="button" class="exam-btn exam-btn-normal${selected==='normal'?' active':''}" data-choice="normal" aria-pressed="${selected==='normal'}">Normal</button>
+        <button type="button" class="exam-btn exam-btn-abnormal${selected==='abnormal'?' active':''}" data-choice="abnormal" aria-pressed="${selected==='abnormal'}">Abnormal</button>
+        <button type="button" class="exam-btn exam-btn-skip${selected==='skip'?' active':''}" data-choice="skip" aria-pressed="${selected==='skip'}">Skip</button>
+      </div>
     </div>
   `;
 
-  const cards = items.map(item => {
-    const id = item.id;
-    const active = !!cs[id];
-    const exam = Array.isArray(item.howToExamine) ? item.howToExamine : [];
-    const examHtml = exam.length
-      ? `<details class="nihss-exam-details" open>
-          <summary>How to examine</summary>
-          <ul class="nihss-instructions">${exam.map(s => `<li>${s}</li>`).join('')}</ul>
-          ${item.lookFor ? `<p class="nihss-look-for"><strong>Look for:</strong> ${item.lookFor}</p>` : ''}
-        </details>`
-      : '';
-    const pearlHtml = item.pearl
-      ? `<details class="nihss-extras">
-          <summary>💡 Localization pearl</summary>
-          <div style="margin-top:6px; font-size:13px; line-height:1.6; color:var(--text-dim)">${item.pearl}</div>
-        </details>`
-      : '';
+  bodyHost.querySelectorAll('[data-choice]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const choice = btn.dataset.choice;
+      store[test.id] = choice;
+      saveCurrentSession();
+      if (localizationCurrentIdx < total - 1) {
+        localizationCurrentIdx++;
+      }
+      renderQuickScreen();
+    });
+  });
+}
 
-    let sidePickerHtml = '';
-    let sideWarningHtml = '';
-    if (item.hasSidePicker) {
-      const side = cs.hemiparesisSide;
-      sidePickerHtml = `
-        <div class="corti-side-picker" role="group" aria-label="Affected side">
-          <button class="corti-side-btn${side === 'L' ? ' active' : ''}" data-side="L">Left</button>
-          <button class="corti-side-btn${side === 'R' ? ' active' : ''}" data-side="R">Right</button>
-        </div>`;
-      if (active && !side) {
-        sideWarningHtml = `<div class="corti-side-warning">Pick a side to finalize.</div>`;
+function renderLocalizationSummary(exam, store) {
+  const rowFor = (t, i) => {
+    const v = store[t.id];
+    const chip = v === 'abnormal' ? '<span class="exam-summary-chip chip-abn">Abnormal</span>'
+              : v === 'normal'   ? '<span class="exam-summary-chip chip-nor">Normal</span>'
+              : v === 'skip'     ? '<span class="exam-summary-chip chip-skip">Skipped</span>'
+                                 : '<span class="exam-summary-chip chip-none">Not tested</span>';
+    return `
+      <li class="exam-summary-row">
+        <button class="exam-summary-jump" data-jump-idx="${i}">${t.title}</button>
+        ${chip}
+      </li>`;
+  };
+  const rows = exam.tests.map((t, i) => rowFor(t, i)).join('');
+  const rules = (exam.threeRules || []).map(r => `<li><b>${r.term}:</b> ${r.rule}</li>`).join('');
+  const fvn = (exam.fieldVsNeglect || []).map(r => `
+    <tr><td>${r.sign}</td><td>${r.leftAlone}</td><td>${r.bothTogether}</td><td>${r.vision}</td></tr>
+  `).join('');
+  return `
+    <div class="card">
+      <div class="card-title">Exam summary</div>
+      <ul class="exam-summary-list">${rows}</ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Three rules to remember</div>
+      <ul class="exam-rules-list">${rules}</ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Field cut vs neglect</div>
+      <div style="overflow-x:auto"><table class="finding-table">
+        <thead><tr><th>Sign</th><th>Side tested alone</th><th>Both together</th><th>Vision</th></tr></thead>
+        <tbody>${fvn}</tbody>
+      </table></div>
+    </div>
+    <div class="text-sm" style="color:var(--text-dim); margin-top:6px; text-align:center">
+      Abnormal findings will pre-fill matching NIHSS items (still editable).
+    </div>
+  `;
+}
+
+// Apply localization findings as suggested minimum NIHSS scores.
+// Called once when the user first enters NIHSS. Non-destructive:
+// only fills items that are currently unset.
+function applyLocalizationToNIHSS() {
+  const s = STATE.current;
+  if (!s || !s.localization) return;
+  const exam = window.LOCALIZATION_EXAM;
+  if (!exam) return;
+  s.nihss = s.nihss || {};
+  s.nihssPrefilled = s.nihssPrefilled || {};
+  for (const t of exam.tests) {
+    if (s.localization[t.id] !== 'abnormal') continue;
+    for (const nid of (t.mapsToNihss || [])) {
+      if (s.nihss[nid] === undefined) {
+        s.nihss[nid] = 1;
+        s.nihssPrefilled[nid] = true;
       }
     }
-
-    return `
-      <div class="card qs-card corti-card${active ? ' present' : ''}">
-        <div class="qs-card-title">⚡ ${item.label}${item.hasSidePicker && cs.hemiparesisSide ? ` — ${cs.hemiparesisSide === 'L' ? 'Left' : 'Right'}` : ''}</div>
-        <div class="qs-card-sub">${item.description || ''}</div>
-        ${examHtml}
-        ${pearlHtml}
-        ${sidePickerHtml}
-        <div class="corti-segment" role="group" aria-label="${item.label} finding">
-          <button class="corti-seg-btn corti-absent-btn${!active ? ' active' : ''}" data-cortical-set="${id}" data-value="0" aria-pressed="${!active}">
-            Not present
-          </button>
-          <button class="corti-seg-btn corti-present-btn${active ? ' active' : ''}" data-cortical-set="${id}" data-value="1" aria-pressed="${active}">
-            Present — LVO flag
-          </button>
-        </div>
-        ${sideWarningHtml}
-      </div>
-    `;
-  }).join('');
-
-  host.innerHTML = ruleBanner + cards;
-
-  host.querySelectorAll('[data-cortical-set]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const k = btn.dataset.corticalSet;
-      const setTo = btn.dataset.value === '1';
-      STATE.current.corticalScreen[k] = setTo;
-      if (k === 'hemiparesis' && !setTo) {
-        STATE.current.corticalScreen.hemiparesisSide = null;
-      }
-      saveCurrentSession();
-      renderQuickScreen();
-    });
-  });
-
-  host.querySelectorAll('[data-side]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      STATE.current.corticalScreen.hemiparesisSide = btn.dataset.side;
-      saveCurrentSession();
-      renderQuickScreen();
-    });
-  });
+  }
 }
 
 // ── Posterior Circulation step (post-NIHSS) ───────────────────
@@ -1192,10 +1270,14 @@ function renderNIHSSItem() {
     }
   }
 
+  const prefilledChip = (STATE.current.nihssPrefilled && STATE.current.nihssPrefilled[item.id])
+    ? `<span class="prefill-chip" title="Suggested from localization exam — edit as needed">Pre-filled from exam</span>`
+    : '';
+
   container.innerHTML = `
     <div class="nihss-item-header">
       <div class="nihss-item-number">Item ${nihssCurrentIdx + 1} of ${NIHSS_ORDER.length}</div>
-      <div class="nihss-item-name">${item.shortName}</div>
+      <div class="nihss-item-name">${item.shortName}${prefilledChip}</div>
     </div>
 
     ${corticalHintHtml}
@@ -1222,6 +1304,7 @@ function renderNIHSSItem() {
       let val = btn.dataset.value;
       if (val !== 'UN') val = parseFloat(val);
       STATE.current.nihss[item.id] = val;
+      if (STATE.current.nihssPrefilled) delete STATE.current.nihssPrefilled[item.id];
       STATE.current.nihssCurrentIdx = nihssCurrentIdx;
       syncCorticalFromNIHSS();
       saveCurrentSession();
@@ -1730,7 +1813,7 @@ function renderDecision() {
     tnkDoseBPHtml = `
     <div class="card">
       <div class="card-title">TNK Dose Calculator</div>
-      <label>Patient Weight (kg)</label>
+      <label for="weight-input">Patient Weight (kg)</label>
       <div class="weight-row">
         <input type="number" id="weight-input" placeholder="e.g. 75" min="30" max="200" value="${s.weightKg || ''}">
         <span class="unit">kg</span>
@@ -2552,6 +2635,7 @@ function init() {
   });
 
   document.getElementById('history-next').addEventListener('click', () => {
+    localizationCurrentIdx = 0;
     renderQuickScreen();
     goTo('step-quick-screen');
   });
