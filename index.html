@@ -55,6 +55,7 @@
         <button class="ref-cell" onclick="goToSide('step-syndrome-ref')"><div class="ref-emoji">🗺️</div><div class="ref-title">Stroke Syndromes</div><div class="ref-subtitle">Vascular territories</div></button>
         <button class="ref-cell" onclick="goToSide('step-nihss-ref')"><div class="ref-emoji">🔢</div><div class="ref-title">NIHSS Reference</div><div class="ref-subtitle">Rubric, caveats, pearls</div></button>
         <button class="ref-cell" onclick="goToSide('step-algorithm')"><div class="ref-emoji">📋</div><div class="ref-title">Bedside Algorithm</div><div class="ref-subtitle">Time-anchored cognitive aid</div></button>
+        <button class="ref-cell" onclick="goToSide('step-localization-exam')"><div class="ref-emoji">🩺</div><div class="ref-title">Localization Exam</div><div class="ref-subtitle">2–3 min systematic walkthrough</div></button>
       </div>
     </div>
   </div>
@@ -191,6 +192,7 @@
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-nihss">
     <div id="nihss-lvo-banner"></div>
+    <a class="exam-inline-link" href="#" onclick="event.preventDefault(); goToSide('step-localization-exam');">🩺 Rapid Localization Exam →</a>
     <div class="step-tabs" id="nihss-tabs"></div>
     <div id="nihss-item-container"></div>
 
@@ -499,6 +501,13 @@
   ══════════════════════════════════════════════════════ -->
   <div class="screen" id="screen-step-algorithm">
     <div id="algorithm-content"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       SIDE SCREEN: Rapid Localization Exam (2–3 min reference)
+  ══════════════════════════════════════════════════════ -->
+  <div class="screen" id="screen-step-localization-exam">
+    <div id="localization-exam-content"></div>
   </div>
 
 </div><!-- #app -->

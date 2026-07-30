@@ -1684,3 +1684,103 @@ label {
   border: 1px solid var(--yellow); color: var(--yellow);
   font-size: 13px; font-weight: 600; text-align: center;
 }
+
+/* ── Rapid Localization Exam (reference side screen) ─────── */
+.exam-ref-card { padding: 14px 16px; }
+.exam-ref-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.exam-ref-summary::-webkit-details-marker { display: none; }
+.exam-ref-section {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue);
+}
+.exam-ref-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.exam-ref-body {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.exam-ref-prompt {
+  font-size: 15px;
+  font-style: italic;
+  color: var(--text);
+  padding: 10px 12px;
+  background: var(--surface2);
+  border-left: 3px solid var(--blue);
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+.exam-ref-block { margin-bottom: 12px; }
+.exam-ref-block-title {
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.exam-ref-block ul,
+.exam-ref-col ul {
+  padding-left: 18px;
+  line-height: 1.55;
+  font-size: 14px;
+}
+.exam-ref-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.exam-ref-col {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+.exam-ref-col-title {
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.exam-ref-normal .exam-ref-col-title { color: var(--green); }
+.exam-ref-abnormal .exam-ref-col-title { color: var(--red); }
+.exam-ref-pearl {
+  background: rgba(255, 214, 10, 0.10);
+  border: 1px solid rgba(255, 214, 10, 0.35);
+  color: var(--yellow);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.exam-ref-rules {
+  padding-left: 18px;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.exam-inline-link {
+  display: block;
+  margin: 0 0 10px;
+  padding: 8px 12px;
+  background: rgba(10, 132, 255, 0.08);
+  border: 1px solid rgba(10, 132, 255, 0.3);
+  border-radius: 8px;
+  color: var(--blue);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+  text-decoration: none;
+}

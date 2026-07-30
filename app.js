@@ -30,7 +30,7 @@ const STEPS = [
 const NIHSS_ORDER = ['1a','1b','1c','2','3','4','5a','5b','6a','6b','7','8','9','10','11'];
 
 // ── Side Screens (reference material; not part of linear flow) ──
-const SIDE_SCREENS = ['step-mimics','step-syndrome-ref','step-nihss-ref','step-algorithm'];
+const SIDE_SCREENS = ['step-mimics','step-syndrome-ref','step-nihss-ref','step-algorithm','step-localization-exam'];
 let SIDE_RETURN_TO = null;
 
 const SIDE_TITLES = {
@@ -58,6 +58,7 @@ window.goToSide = function(sideId) {
   else if (sideId === 'step-syndrome-ref') renderSyndromeRef();
   else if (sideId === 'step-nihss-ref') renderNihssRef();
   else if (sideId === 'step-algorithm') renderAlgorithm();
+  else if (sideId === 'step-localization-exam') renderLocalizationExam();
 };
 
 window.goBackFromSide = function() {
@@ -2756,6 +2757,75 @@ function renderAlgorithm() {
     <div class="card" style="background:#1e3a8a; color:#fff; text-align:center; font-weight:600">
       Mental loop: Is it a stroke? → Where is it? → Can I treat? → When? → Watch for deterioration.
     </div>`;
+}
+
+// ── Rapid Localization Exam (2–3 min reference) ─────────────
+// Renders window.LOCALIZATION_EXAM as a read-only teaching reference:
+// one card per test (prompt / how-to / normal vs abnormal / pearl),
+// then the three never-forget rules, then a field-cut vs neglect
+// comparison table.
+function renderLocalizationExam() {
+  const host = document.getElementById('localization-exam-content');
+  if (!host) return;
+  const exam = window.LOCALIZATION_EXAM;
+  if (!exam) { host.innerHTML = '<p class="text-sm">Reference unavailable.</p>'; return; }
+
+  const li = (arr) => (arr || []).map(x => `<li>${x}</li>`).join('');
+
+  const intro = `
+    <div class="card">
+      <div class="card-title">Rapid Localization Exam · 2–3 min</div>
+      <p class="text-sm">${exam.intro || ''}</p>
+    </div>`;
+
+  const tests = (exam.tests || []).map(t => `
+    <details class="card exam-ref-card" open>
+      <summary class="exam-ref-summary">
+        <span class="exam-ref-section">${t.section}</span>
+        <span class="exam-ref-title">${t.title}</span>
+      </summary>
+      <div class="exam-ref-body">
+        <p class="exam-ref-prompt">${t.prompt}</p>
+        ${t.howToTest && t.howToTest.length ? `
+          <div class="exam-ref-block">
+            <div class="exam-ref-block-title">How to test</div>
+            <ul>${li(t.howToTest)}</ul>
+          </div>` : ''}
+        <div class="exam-ref-columns">
+          <div class="exam-ref-col exam-ref-normal">
+            <div class="exam-ref-col-title">Normal</div>
+            <ul>${li(t.normal)}</ul>
+          </div>
+          <div class="exam-ref-col exam-ref-abnormal">
+            <div class="exam-ref-col-title">Abnormal</div>
+            <ul>${li(t.abnormal)}</ul>
+          </div>
+        </div>
+        ${t.pearl ? `<div class="exam-ref-pearl">💡 ${t.pearl}</div>` : ''}
+      </div>
+    </details>`).join('');
+
+  const rules = (exam.threeRules || []).map(r =>
+    `<li><b>${r.term}:</b> ${r.rule}</li>`).join('');
+  const rulesCard = rules ? `
+    <div class="card">
+      <div class="card-title">Three rules to remember</div>
+      <ul class="exam-ref-rules">${rules}</ul>
+    </div>` : '';
+
+  const fvn = (exam.fieldVsNeglect || []).map(r => `
+    <tr><td>${r.sign}</td><td>${r.leftAlone}</td><td>${r.bothTogether}</td><td>${r.vision}</td></tr>
+  `).join('');
+  const fvnCard = fvn ? `
+    <div class="card">
+      <div class="card-title">Field cut vs neglect</div>
+      <div style="overflow-x:auto"><table class="finding-table">
+        <thead><tr><th>Sign</th><th>Side tested alone</th><th>Both together</th><th>Vision</th></tr></thead>
+        <tbody>${fvn}</tbody>
+      </table></div>
+    </div>` : '';
+
+  host.innerHTML = intro + tests + rulesCard + fvnCard;
 }
 
 // ── Init ──────────────────────────────────────────────────────
