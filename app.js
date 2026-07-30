@@ -2837,6 +2837,15 @@ function init() {
   // Keep the header LKN clock ticking
   setInterval(updateLknChip, 30000);
 
+  // Offline chip — reflects navigator.onLine
+  const offlineChip = document.getElementById('offline-chip');
+  if (offlineChip) {
+    const setChip = () => { offlineChip.hidden = navigator.onLine; };
+    window.addEventListener('online', setChip);
+    window.addEventListener('offline', setChip);
+    setChip();
+  }
+
   // New case button
   document.getElementById('new-case-btn').addEventListener('click', () => {
     STATE.current = newSession();
