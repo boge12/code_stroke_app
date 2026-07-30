@@ -41,6 +41,7 @@ window.goToSide = function(sideId) {
   if (!screen) return;
   screen.classList.add('active');
   window.scrollTo(0,0);
+  updateHeader(sideId); // hide progress strip on side screens
   // render content
   if (sideId === 'step-mimics') renderMimics('mimics');
   else if (sideId === 'step-syndrome-ref') renderSyndromeRef();
@@ -196,14 +197,17 @@ function goTo(stepId) {
     STATE.current.currentStep = stepId;
     saveCurrentSession();
   }
+  clearGateHint();
   updateHeader(stepId);
 }
 
 function updateHeader(stepId) {
-  const header = document.getElementById('main-header');
   const backBtn = document.getElementById('back-btn');
   const title = document.getElementById('header-title');
   const badge = document.getElementById('nihss-badge');
+  const counter = document.getElementById('step-counter');
+  const fill = document.getElementById('progress-fill');
+  const bar = document.getElementById('progress-bar');
 
   const titles = {
     'home': 'Code Stroke',
@@ -231,6 +235,23 @@ function updateHeader(stepId) {
     badge.style.display = '';
   } else {
     badge.style.display = 'none';
+  }
+
+  // Progress cue — main flow only (hide on home and side screens)
+  const isSide = SIDE_SCREENS.indexOf(stepId) !== -1;
+  const idx = STEPS.indexOf(stepId);
+  const totalSteps = STEPS.length - 1; // exclude 'home'
+  if (counter && fill && bar) {
+    if (!isSide && idx > 0) {
+      counter.textContent = `${idx}/${totalSteps}`;
+      counter.style.display = '';
+      fill.style.width = (idx / totalSteps * 100) + '%';
+      bar.style.display = '';
+    } else {
+      counter.style.display = 'none';
+      fill.style.width = '0%';
+      bar.style.display = 'none';
+    }
   }
 }
 
@@ -383,12 +404,60 @@ function renderTiming() {
   }
 
   refresh();
+  const applyGate = () => setNextGate('timing-next', 'step-timing');
+  applyGate();
+  onsetBtns.forEach(b => b.addEventListener('click', applyGate));
+  onsetInp.addEventListener('change', applyGate);
+  if (wakeInp) wakeInp.addEventListener('change', applyGate);
 
   // Live update every 30 seconds
   const interval = setInterval(() => {
     if (document.getElementById('screen-step-timing').classList.contains('active')) refresh();
     else clearInterval(interval);
   }, 30000);
+}
+
+// ── Next-button gating ──────────────────────────────────────
+// canAdvance(stepId) → {ok, reason} — required-field gate for wizard.
+function canAdvance(stepId) {
+  const s = STATE.current;
+  if (!s) return {ok: true};
+  if (stepId === 'step-timing') {
+    if (!s.onsetKnown) return {ok: false, reason: 'Select onset category to continue.'};
+    if (!s.lsn) return {ok: false, reason: s.onsetKnown === 'wakeup' ? 'Enter bedtime / last seen well.' : 'Enter last known normal time.'};
+    if (s.onsetKnown === 'wakeup' && !s.wakeTime) return {ok: false, reason: 'Enter wake/found time.'};
+    return {ok: true};
+  }
+  if (stepId === 'step-decision') {
+    const eligible = s.decisionStatus === 'eligible' || s.decisionStatus === 'relative';
+    if (eligible && !s.weightKg) return {ok: false, reason: 'Enter weight to finalize TNK dose.'};
+    return {ok: true};
+  }
+  return {ok: true};
+}
+
+// setNextGate — disables/enables the Next button for a given step and
+// mirrors the reason to a single global hint strip pinned above the footer.
+function setNextGate(btnId, stepId) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  const {ok, reason} = canAdvance(stepId);
+  btn.disabled = !ok;
+  btn.setAttribute('aria-disabled', ok ? 'false' : 'true');
+  btn.classList.toggle('btn-nav-locked', !ok);
+  if (reason) btn.title = reason;
+  else btn.removeAttribute('title');
+  const hint = document.getElementById('nav-gate-hint');
+  if (hint) {
+    hint.textContent = ok ? '' : (reason || '');
+    hint.hidden = ok;
+  }
+}
+
+// Clear the shared gate hint when leaving any gated step.
+function clearGateHint() {
+  const hint = document.getElementById('nav-gate-hint');
+  if (hint) { hint.textContent = ''; hint.hidden = true; }
 }
 
 // ── Step: Absolute Contraindications ─────────────────────────
@@ -1726,6 +1795,7 @@ function renderDecision() {
       STATE.current.weightKg = parseFloat(e.target.value) || null;
       saveCurrentSession();
       refreshDose();
+      setNextGate('decision-next', 'step-decision');
     });
   }
 
@@ -1767,6 +1837,48 @@ function renderDecision() {
       reassessInp.value = s.nihssReassess;
     }
     reassessInp.onchange = window.saveNihssReassess;
+  }
+
+  setNextGate('decision-next', 'step-decision');
+
+  // Deterioration mini-strip (sticky above decision content)
+  const strip = document.getElementById('nihss-quick-reassess');
+  if (strip) {
+    if (total > 0) {
+      const reassess = s.nihssReassess;
+      const hasReassess = typeof reassess === 'number' && !isNaN(reassess);
+      const delta = hasReassess ? reassess - total : null;
+      let deltaHtml = '';
+      if (hasReassess) {
+        const arrow = delta > 0 ? '↑' : delta < 0 ? '↓' : '·';
+        const cls = delta >= 4 ? 'delta-danger' : delta >= 1 ? 'delta-warn' : 'delta-ok';
+        deltaHtml = `<span class="reassess-delta ${cls}">Δ ${delta > 0 ? '+' : ''}${delta} ${arrow}</span>`;
+      }
+      strip.hidden = false;
+      strip.innerHTML = `
+        <div class="reassess-row">
+          <span class="reassess-label">NIHSS baseline <b>${total}</b></span>
+          <label class="reassess-now" for="nihss-reassess-now">
+            <span>Now</span>
+            <input type="number" id="nihss-reassess-now" min="0" max="42" inputmode="numeric" value="${hasReassess ? reassess : ''}" placeholder="—">
+          </label>
+          <button type="button" class="btn btn-sm reassess-update" id="nihss-reassess-update">Update</button>
+          ${deltaHtml}
+        </div>`;
+      const nowInp = document.getElementById('nihss-reassess-now');
+      const updBtn = document.getElementById('nihss-reassess-update');
+      const commit = () => {
+        const v = parseInt(nowInp.value, 10);
+        STATE.current.nihssReassess = isNaN(v) ? null : v;
+        saveCurrentSession();
+        renderDecision();
+      };
+      nowInp.addEventListener('change', commit);
+      updBtn.addEventListener('click', commit);
+    } else {
+      strip.hidden = true;
+      strip.innerHTML = '';
+    }
   }
 
   // Deterioration banner

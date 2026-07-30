@@ -61,15 +61,42 @@ body {
 .app-header {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  padding: 0 16px;
+  padding: 0;
   padding-top: env(safe-area-inset-top, 0px);
   position: sticky;
   top: 0;
   z-index: 100;
   display: flex;
+  flex-direction: column;
+}
+.app-header-row {
+  display: flex;
   align-items: center;
-  min-height: calc(56px + env(safe-area-inset-top, 0px));
+  min-height: 56px;
   gap: 12px;
+  padding: 0 16px;
+}
+.step-counter {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.progress-bar {
+  height: 3px;
+  width: 100%;
+  background: rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.progress-fill {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--blue);
+  transition: width 0.2s ease;
 }
 
 .app-header .back-btn {
@@ -109,7 +136,7 @@ body {
 /* ── Main Content ─────────────────────────────────────────── */
 .screen {
   flex: 1;
-  padding: 20px 16px 100px;
+  padding: 20px 16px calc(100px + env(safe-area-inset-bottom, 0px));
   display: none;
 }
 .screen.active { display: block; }
@@ -792,11 +819,94 @@ label {
   flex: 2;
 }
 
-.btn-nav-next:disabled {
+.btn-nav-next:disabled,
+.btn-nav-next.btn-nav-locked {
   background: var(--border);
   color: var(--text-dim);
   cursor: not-allowed;
+  opacity: 0.75;
 }
+
+/* Gate hint (single fixed strip pinned above the nav footer) */
+.nav-gate-hint {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  max-width: min(560px, 100vw);
+  width: 100%;
+  padding: 6px 16px;
+  background: rgba(239, 83, 80, 0.12);
+  color: #ffb4b0;
+  font-size: 13px;
+  text-align: center;
+  z-index: 199;
+  border-top: 1px solid rgba(239, 83, 80, 0.3);
+}
+.nav-gate-hint[hidden] { display: none; }
+
+/* Deterioration mini-strip on decision screen */
+.reassess-strip {
+  position: sticky;
+  top: calc(56px + 3px + env(safe-area-inset-top, 0px));
+  z-index: 90;
+  margin: -20px -16px 14px;
+  padding: 10px 16px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+.reassess-strip[hidden] { display: none; }
+.reassess-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.reassess-label {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+.reassess-label b {
+  color: var(--text);
+  font-size: 16px;
+}
+.reassess-now {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.reassess-now input {
+  width: 64px;
+  min-height: 40px;
+  padding: 4px 8px;
+  font-size: 16px;
+  text-align: center;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.reassess-update {
+  min-height: 40px;
+  padding: 4px 12px;
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.reassess-delta {
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+}
+.reassess-delta.delta-ok    { background: rgba(76,175,80,0.18);  color: #a5d6a7; }
+.reassess-delta.delta-warn  { background: rgba(255,213,79,0.18); color: var(--yellow); }
+.reassess-delta.delta-danger{ background: rgba(239,83,80,0.22);  color: #ffb4b0; }
 
 /* ── Recent Cases ─────────────────────────────────────────── */
 .case-item {
