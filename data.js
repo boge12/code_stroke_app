@@ -2208,3 +2208,207 @@ window.NIHSS_LIMITATIONS = [
 ];
 
 
+
+// ── RAPID STROKE LOCALIZATION EXAM ───────────────────────────
+// 2–3 minute systematic bedside exam: language → dysarthria → fields
+// → neglect → strength → ataxia. Each test has verbatim clinician
+// prompts, how-to-test, normal / abnormal, and a teaching pearl.
+// mapsToNihss lists NIHSS item IDs that should get a minimum-plausible
+// score suggestion when this test is marked abnormal.
+window.LOCALIZATION_EXAM = {
+  intro: 'Is this weakness, language, vision, coordination, or brainstem? Ask: cortex? subcortical? brainstem? cerebellum?',
+  tests: [
+    {
+      id: 'fluency',
+      section: 'Language',
+      title: 'Fluency — spontaneous speech',
+      prompt: '“Tell me what happened today.”',
+      howToTest: [
+        'Listen for complete grammatical sentences and connecting words.',
+        'Don\'t focus on speed — slow speech can still be fluent.',
+        'Ask: are they forming normal sentences?',
+      ],
+      normal: [
+        'Complete grammatical sentences',
+        'Appropriate words',
+        'Makes sense',
+      ],
+      abnormal: [
+        'Short phrases, telegraphic speech',
+        'Missing connecting words',
+        'e.g. “Arm… weak… hospital.”',
+      ],
+      pearl: 'Nonfluent aphasia → dominant hemisphere cortex (usually left MCA).',
+      mapsToNihss: ['9'],
+    },
+    {
+      id: 'comprehension',
+      section: 'Language',
+      title: 'Comprehension',
+      prompt: 'Avoid yes/no questions. Give simple commands.',
+      howToTest: [
+        '“Close your eyes.”',
+        '“Stick out your tongue.”',
+        '“Touch your left ear with your right hand.”',
+      ],
+      normal: [
+        'Follows commands correctly',
+      ],
+      abnormal: [
+        'Cannot follow commands despite being awake and able to hear',
+      ],
+      pearl: 'Comprehension deficit alone → posterior dominant hemisphere (Wernicke\'s area).',
+      mapsToNihss: ['9', '1c'],
+    },
+    {
+      id: 'naming',
+      section: 'Language',
+      title: 'Naming',
+      prompt: 'Show common objects: “What is this?”',
+      howToTest: [
+        'Show a pen — “What is this?”',
+        'Show a watch — “What is this?”',
+        'Show a stethoscope — “What is this?”',
+      ],
+      normal: [
+        'Names each object correctly',
+      ],
+      abnormal: [
+        '“I know what it is…”',
+        '“The thing you write with…”',
+        'Cannot retrieve the word (anomia)',
+      ],
+      pearl: 'Anomia is the most sensitive language sign — present in almost all aphasias.',
+      mapsToNihss: ['9'],
+    },
+    {
+      id: 'repetition',
+      section: 'Language',
+      title: 'Repetition',
+      prompt: '“Repeat after me: No ifs, ands, or buts.”',
+      howToTest: [
+        'Say the phrase clearly once.',
+        'Listen for word substitutions, omissions, or rearrangements.',
+      ],
+      normal: [
+        'Repeats accurately',
+      ],
+      abnormal: [
+        'Leaves words out',
+        'Rearranges words',
+        'e.g. “No ifs… and buts.”',
+      ],
+      pearl: 'Impaired repetition with preserved fluency and comprehension → conduction aphasia (arcuate fasciculus).',
+      mapsToNihss: ['9'],
+    },
+    {
+      id: 'dysarthria',
+      section: 'Speech (not language)',
+      title: 'Dysarthria',
+      prompt: 'Language is normal — muscles producing speech are abnormal.',
+      howToTest: [
+        'Listen for slurred articulation, thick speech, poor pronunciation.',
+        'The words are correct — it\'s HOW they say them that\'s wrong.',
+      ],
+      normal: [
+        'Clear articulation',
+      ],
+      abnormal: [
+        'Slurred but correct words',
+        'e.g. “No ifs, ands, or buts” pronounced correctly but slurred',
+      ],
+      pearl: 'Language = WHAT they say. Dysarthria = HOW they say it. Can localize to cortex, IC, brainstem, cerebellum, or CN VII/XII.',
+      mapsToNihss: ['10'],
+    },
+    {
+      id: 'fields',
+      section: 'Vision',
+      title: 'Visual Fields',
+      prompt: '“Look at my nose.” Confront each field.',
+      howToTest: [
+        'Test left alone — wiggle fingers in left field.',
+        'Test right alone — wiggle fingers in right field.',
+        'Then test both sides simultaneously (see Neglect).',
+      ],
+      normal: [
+        'Detects finger movement in every field',
+      ],
+      abnormal: [
+        'Consistently misses one side even when tested alone → visual field cut',
+      ],
+      pearl: 'Field cut = the camera is broken. That half of vision never arrives.',
+      mapsToNihss: ['3'],
+    },
+    {
+      id: 'neglect',
+      section: 'Attention',
+      title: 'Neglect (extinction)',
+      prompt: 'Vision is intact — attention is impaired.',
+      howToTest: [
+        'Visual extinction: wiggle right fingers, then left, then BOTH at once.',
+        'Tactile extinction: eyes closed, touch right hand, then left, then both.',
+        'Personal neglect: “Whose arm is this?” — do they ignore their left arm?',
+      ],
+      normal: [
+        'Attends to both sides even during double simultaneous stimulation',
+      ],
+      abnormal: [
+        'Sees / feels each side alone',
+        'Misses left when both sides presented together (extinction)',
+      ],
+      pearl: 'The camera works, the spotlight of attention is broken. Classic right parietal stroke.',
+      mapsToNihss: ['11'],
+    },
+    {
+      id: 'strength',
+      section: 'Motor',
+      title: 'Strength — before coordination',
+      prompt: 'Test power first. Weakness can mimic ataxia.',
+      howToTest: [
+        'Pronator drift with arms outstretched, palms up.',
+        'Test face, arm, leg on both sides.',
+      ],
+      normal: [
+        'Full power throughout, no drift',
+      ],
+      abnormal: [
+        'Any drift, any focal weakness',
+      ],
+      pearl: 'Only assess coordination if strength is adequate — weakness distorts finger-to-nose and heel-to-shin.',
+      mapsToNihss: ['5a', '5b', '6a', '6b'],
+    },
+    {
+      id: 'ataxia',
+      section: 'Coordination',
+      title: 'Ataxia — coordination',
+      prompt: 'Is this a power problem or a coordination problem?',
+      howToTest: [
+        'Finger-to-nose (both sides).',
+        'Heel-to-shin (both sides).',
+        'Rapid alternating movements.',
+      ],
+      normal: [
+        'Smooth, accurate trajectory',
+        'No overshoot or repeated corrections',
+      ],
+      abnormal: [
+        'Overshoot (dysmetria)',
+        'Repeated corrections, intention tremor near the target',
+        'Irregular rapid alternating movements (dysdiadochokinesia)',
+      ],
+      pearl: 'NIHSS scores limb ataxia only when it is out of proportion to weakness. Don\'t call it ataxia if weakness explains the miss.',
+      mapsToNihss: ['7'],
+    },
+  ],
+  threeRules: [
+    { term: 'Aphasia',          rule: 'WHAT they say is abnormal.' },
+    { term: 'Dysarthria',       rule: 'HOW they say it is abnormal.' },
+    { term: 'Neglect',          rule: 'They can see it — they just don\'t attend to it when attention is divided.' },
+    { term: 'Visual field cut', rule: 'They truly cannot see that side, even when it\'s presented alone.' },
+    { term: 'Ataxia',           rule: 'Not “I can\'t move.” “I can\'t guide the movement smoothly.”' },
+  ],
+  fieldVsNeglect: [
+    { sign: 'Visual field cut', leftAlone: 'Misses ❌', bothTogether: 'Misses ❌', vision: 'Absent' },
+    { sign: 'Neglect',          leftAlone: 'Sees ✅',   bothTogether: 'Misses ❌', vision: 'Intact — attention impaired' },
+  ],
+};
