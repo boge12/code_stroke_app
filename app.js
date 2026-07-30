@@ -885,9 +885,14 @@ function renderQuickScreen() {
         ${examHtml}
         ${pearlHtml}
         ${sidePickerHtml}
-        <button class="corti-present-btn${active ? ' active' : ''}" data-cortical="${id}">
-          ${active ? '✓ Present — LVO flag set' : 'Mark present'}
-        </button>
+        <div class="corti-segment" role="group" aria-label="${item.label} finding">
+          <button class="corti-seg-btn corti-absent-btn${!active ? ' active' : ''}" data-cortical-set="${id}" data-value="0" aria-pressed="${!active}">
+            Not present
+          </button>
+          <button class="corti-seg-btn corti-present-btn${active ? ' active' : ''}" data-cortical-set="${id}" data-value="1" aria-pressed="${active}">
+            Present — LVO flag
+          </button>
+        </div>
         ${sideWarningHtml}
       </div>
     `;
@@ -895,11 +900,12 @@ function renderQuickScreen() {
 
   host.innerHTML = ruleBanner + cards;
 
-  host.querySelectorAll('[data-cortical]').forEach(btn => {
+  host.querySelectorAll('[data-cortical-set]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const k = btn.dataset.cortical;
-      STATE.current.corticalScreen[k] = !STATE.current.corticalScreen[k];
-      if (k === 'hemiparesis' && !STATE.current.corticalScreen[k]) {
+      const k = btn.dataset.corticalSet;
+      const setTo = btn.dataset.value === '1';
+      STATE.current.corticalScreen[k] = setTo;
+      if (k === 'hemiparesis' && !setTo) {
         STATE.current.corticalScreen.hemiparesisSide = null;
       }
       saveCurrentSession();
@@ -2491,6 +2497,15 @@ function init() {
   loadState();
   renderHome();
   goTo('home');
+
+  // Offline chip — reflects navigator.onLine
+  const offlineChip = document.getElementById('offline-chip');
+  if (offlineChip) {
+    const setChip = () => { offlineChip.hidden = navigator.onLine; };
+    window.addEventListener('online', setChip);
+    window.addEventListener('offline', setChip);
+    setChip();
+  }
 
   // New case button
   document.getElementById('new-case-btn').addEventListener('click', () => {
