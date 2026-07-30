@@ -887,10 +887,12 @@ label {
   flex: 2;
 }
 
-.btn-nav-next:disabled {
+.btn-nav-next:disabled,
+.btn-nav-next.btn-nav-locked {
   background: var(--border);
   color: var(--text-dim);
   cursor: not-allowed;
+  opacity: 0.75;
 }
 
 /* ── Recent Cases ─────────────────────────────────────────── */
@@ -1797,3 +1799,21 @@ label {
   white-space: nowrap;
 }
 .offline-chip[hidden] { display: none; }
+
+/* Shared gate-hint strip pinned above the fixed nav footer */
+.nav-gate-hint {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  max-width: 480px;
+  width: 100%;
+  padding: 6px 16px;
+  background: rgba(255, 69, 58, 0.12);
+  color: #ffb4b0;
+  font-size: 13px;
+  text-align: center;
+  z-index: 199;
+  border-top: 1px solid rgba(255, 69, 58, 0.3);
+}
+.nav-gate-hint[hidden] { display: none; }

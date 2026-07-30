@@ -199,8 +199,43 @@ function formatTimeValue(isoString) {
 }
 
 // ── Navigation ───────────────────────────────────────────────
+// Next-button gating: returns {ok, reason} for a given step.
+function canAdvance(stepId) {
+  const s = STATE.current;
+  if (!s) return { ok: true };
+  if (stepId === 'step-timing') {
+    if (!s.onsetKnown) return { ok: false, reason: 'Select onset category to continue.' };
+    if (!s.lsn) return { ok: false, reason: s.onsetKnown === 'wakeup' ? 'Enter bedtime / last seen well.' : 'Enter last known normal time.' };
+    if (s.onsetKnown === 'wakeup' && !s.wakeTime) return { ok: false, reason: 'Enter wake/found time.' };
+  }
+  return { ok: true };
+}
+
+// Disable/enable a Next button and surface the reason in the shared
+// #nav-gate-hint strip above the footer.
+function setNextGate(btnId, stepId) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  const { ok, reason } = canAdvance(stepId);
+  btn.disabled = !ok;
+  btn.setAttribute('aria-disabled', ok ? 'false' : 'true');
+  btn.classList.toggle('btn-nav-locked', !ok);
+  if (reason) btn.title = reason; else btn.removeAttribute('title');
+  const hint = document.getElementById('nav-gate-hint');
+  if (hint) {
+    hint.textContent = ok ? '' : (reason || '');
+    hint.hidden = ok;
+  }
+}
+
+function clearGateHint() {
+  const hint = document.getElementById('nav-gate-hint');
+  if (hint) { hint.textContent = ''; hint.hidden = true; }
+}
+
 function goTo(stepId) {
   dcUserToggle = null; // fresh default for the disabling verdict on each navigation
+  clearGateHint();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const screen = document.getElementById('screen-' + stepId);
   if (screen) {
@@ -440,7 +475,12 @@ function renderTiming() {
     });
   }
 
+  const applyGate = () => setNextGate('timing-next', 'step-timing');
   refresh();
+  applyGate();
+  onsetBtns.forEach(b => b.addEventListener('click', applyGate));
+  onsetInp.addEventListener('change', applyGate);
+  if (wakeInp) wakeInp.addEventListener('change', applyGate);
 
   // Live update every 30 seconds
   const interval = setInterval(() => {
