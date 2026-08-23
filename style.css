@@ -742,6 +742,70 @@ button { all: unset; }
   color: var(--dim);
 }
 
+/* ── Home: patient list ────────────────────────────────────── */
+.case-list { border-top: 2px solid var(--ink); }
+.case-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--line2);
+}
+.case-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 4px;
+  min-height: 56px;
+}
+@media (hover: hover) { .case-open:hover { background: var(--line2); } }
+.case-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.case-name { font: 800 15px/1.2 Archivo, sans-serif; }
+.case-chip {
+  font: 700 9px/1 Archivo, sans-serif;
+  letter-spacing: .08em;
+  padding: 4px 6px;
+  border: 1px solid var(--line);
+  color: var(--dim);
+}
+.case-chip--ok { border-color: transparent; background: var(--ok); color: #fff; }
+.case-chip--acc { border-color: transparent; background: var(--acc); color: #fff; }
+.case-chip--warn { border-color: transparent; background: var(--warn); color: #fff; }
+.case-del {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  color: var(--dim2);
+  font-size: 14px;
+}
+@media (hover: hover) { .case-del:hover { color: var(--accT); background: var(--line2); } }
+.case-empty {
+  border: 1px solid var(--line);
+  padding: 16px 14px;
+  font: 400 13px/1.5 Archivo, sans-serif;
+  color: var(--dim);
+}
+
+/* Patient label input (Timing) */
+.input-label {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 16px; /* ≥16px so iOS doesn't zoom on focus */
+  font-weight: 700;
+}
+.input-label::placeholder { color: var(--dim2); font-weight: 400; }
+
+.hub-bar .brand { flex: 1; min-width: 0; }
+.back-btn--hub { margin-left: -10px; }
+
 /* ── Welcome ───────────────────────────────────────────────── */
 .body--welcome { padding: 28px 20px 20px; display: flex; flex-direction: column; }
 .wel-rule { width: 44px; height: 6px; background: var(--acc); }

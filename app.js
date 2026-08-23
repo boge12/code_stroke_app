@@ -60,7 +60,11 @@ const DISABLING_CRITERIA = [
 const VESSELS = ['ICA-T', 'M1', 'M2', 'ACA/A1', 'A2', 'P1', 'P2', 'Basilar'];
 
 // ── State ────────────────────────────────────────────────────
-const STORAGE_KEY = 'codeStroke.case.v1';
+// Cases live in a list so multiple patients can run in parallel; the
+// active case's fields are flattened onto S while it's open.
+const STORAGE_KEY = 'codeStroke.cases.v1';
+const LEGACY_KEY = 'codeStroke.case.v1';
+const MAX_CASES = 30;
 
 function defaultLkw() {
   // Seed with the current time (clock reads 0:00) — the first act of a new
@@ -71,6 +75,7 @@ function defaultLkw() {
 
 function blankCase() {
   return {
+    label: '',
     lkw: defaultLkw(),
     onset: 'yes',
     contra: {},
@@ -89,48 +94,106 @@ function blankCase() {
   };
 }
 
-const S = Object.assign({ screen: 'welcome', theme: 'light', folds: {}, hasCase: false }, blankCase());
+const CASE_FIELDS = Object.keys(blankCase());
+let CASES = [];
 
-function save() {
+const S = Object.assign({ screen: 'home', theme: 'light', folds: {}, caseId: null }, blankCase());
+
+function persist() {
   try {
-    const { screen, folds, hasCase, ...rest } = S; // eslint-disable-line no-unused-vars
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
-    S.hasCase = true;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ theme: S.theme, cases: CASES }));
   } catch (e) { /* private mode / quota — the app still works, it just won't persist */ }
 }
 
-function load() {
-  // The app always opens on the welcome screen; a saved case adds a
-  // Resume card there.
-  S.screen = 'welcome';
-  let raw = null;
-  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return; }
-  if (!raw) return;
-  let saved;
-  try { saved = JSON.parse(raw); } catch (e) { return; }
-  if (!saved || typeof saved !== 'object') return;
-  S.hasCase = true;
-  const shape = Object.assign({ theme: 'light' }, blankCase());
-  for (const k of Object.keys(shape)) {
-    const v = saved[k];
+function save() {
+  // Copy the active case's fields from S back into its list entry.
+  const entry = CASES.find(c => c.id === S.caseId);
+  if (entry) for (const k of CASE_FIELDS) entry[k] = S[k];
+  persist();
+}
+
+function sanitizeCase(raw) {
+  if (!raw || typeof raw !== 'object') return null;
+  const shape = blankCase();
+  const out = Object.assign({}, shape);
+  for (const k of CASE_FIELDS) {
+    const v = raw[k];
     if (v === undefined) continue;
     const wantsObject = shape[k] !== null && typeof shape[k] === 'object';
     const isObject = v !== null && typeof v === 'object' && !Array.isArray(v);
     if (wantsObject !== isObject) continue; // shape drifted — keep the default
-    S[k] = v;
+    out[k] = v;
   }
-  if (S.theme !== 'dark') S.theme = 'light';
-  if (typeof S.idx !== 'number' || S.idx < 0 || S.idx > 14) S.idx = 0;
+  out.id = typeof raw.id === 'string' ? raw.id : 'c' + Date.now() + Math.random().toString(36).slice(2, 7);
+  out.createdAt = typeof raw.createdAt === 'number' ? raw.createdAt : Date.now();
+  if (typeof out.idx !== 'number' || out.idx < 0 || out.idx > 14) out.idx = 0;
+  return out;
 }
 
-function newCase(keepWeight) {
-  // A fresh case starts on Timing with LKW re-seeded to now; RESET on the
-  // hub keeps the entered weight, the welcome button starts fully clean.
-  const { weight } = S;
-  Object.assign(S, blankCase(), { screen: 'timing' });
-  if (keepWeight) S.weight = weight;
+function load() {
+  // The app always opens on the home screen with the case list.
+  S.screen = 'home';
+  let raw = null, legacy = null;
+  try {
+    raw = localStorage.getItem(STORAGE_KEY);
+    legacy = localStorage.getItem(LEGACY_KEY);
+  } catch (e) { return; }
+  if (raw) {
+    try {
+      const saved = JSON.parse(raw);
+      if (saved && typeof saved === 'object') {
+        if (saved.theme === 'dark') S.theme = 'dark';
+        if (Array.isArray(saved.cases)) CASES = saved.cases.map(sanitizeCase).filter(Boolean);
+      }
+    } catch (e) { /* corrupted list — start empty */ }
+  }
+  if (legacy) {
+    // Migrate the old single-case store into the list once.
+    try {
+      const one = sanitizeCase(JSON.parse(legacy));
+      if (one && !CASES.length) { CASES.push(one); persist(); }
+    } catch (e) { /* ignore */ }
+    try { localStorage.removeItem(LEGACY_KEY); } catch (e) { /* ignore */ }
+  }
+}
+
+function openCase(id) {
+  const entry = CASES.find(c => c.id === id);
+  if (!entry) return;
+  for (const k of CASE_FIELDS) S[k] = entry[k];
+  S.caseId = id;
   S.folds = {};
+}
+
+function newCase() {
+  // A fresh case starts on Timing with LKW seeded to now.
+  const entry = Object.assign(blankCase(), {
+    id: 'c' + Date.now() + Math.random().toString(36).slice(2, 7),
+    createdAt: Date.now(),
+  });
+  CASES.unshift(entry);
+  if (CASES.length > MAX_CASES) CASES.length = MAX_CASES;
+  openCase(entry.id);
+  S.screen = 'timing';
+  persist();
+}
+
+function resetCase() {
+  // RESET clears the active case's workup in place, keeping its identity
+  // (id, created time, label) and the entered weight.
+  const { label, weight } = S;
+  for (const k of CASE_FIELDS) S[k] = blankCase()[k];
+  S.label = label;
+  S.weight = weight;
+  S.folds = {};
+  S.screen = 'timing';
   save();
+}
+
+function deleteCase(id) {
+  CASES = CASES.filter(c => c.id !== id);
+  if (S.caseId === id) S.caseId = null;
+  persist();
 }
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -140,8 +203,8 @@ function esc(v) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function elapsedMin() {
-  const parts = String(S.lkw || '').split(':');
+function elapsedMinFor(lkwStr) {
+  const parts = String(lkwStr || '').split(':');
   const h = Number(parts[0]);
   const m = Number(parts[1]);
   if (isNaN(h) || isNaN(m)) return null;
@@ -151,6 +214,26 @@ function elapsedMin() {
   let d = Math.round((now - lkw) / 60000);
   if (d < 0) d += 1440;
   return d;
+}
+
+function elapsedMin() { return elapsedMinFor(S.lkw); }
+
+function fmtDate(ts) {
+  const d = new Date(ts);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate() + ' · ' +
+    String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+// Home-list summary of a stored case: status word + tone for the chip.
+function caseStatus(c) {
+  const absYes = CONTRA[0].items.some(it => c.contra[it.id] === 'yes');
+  const relYes = CONTRA.slice(1).flatMap(g => g.items).filter(it => c.contra[it.id] === 'yes').length;
+  if (c.tnk === 'yes') return { word: 'TNK GIVEN', tone: 'ok' };
+  if (c.tnk === 'no') return { word: 'NO TNK', tone: 'dim' };
+  if (absYes || c.ct === 'hem') return { word: 'CONTRAINDICATED', tone: 'acc' };
+  if (relYes) return { word: relYes + ' FLAG' + (relYes > 1 ? 'S' : ''), tone: 'warn' };
+  return { word: 'IN PROGRESS', tone: 'dim' };
 }
 
 function fmt(min) {
@@ -306,7 +389,7 @@ function screenHeader(c) {
   const showBadge = c.scored > 0 && ['nihss', 'syndrome', 'ct', 'decision', 'consent'].includes(S.screen);
   // Browsing the indications reference from the welcome screen goes back
   // there; everywhere else, back means the timeline hub.
-  const backTo = (S.screen === 'indications' && S.prev === 'welcome') ? 'welcome' : 'hub';
+  const backTo = (S.screen === 'indications' && S.prev === 'home') ? 'home' : 'hub';
   return '' +
     '<div class="sc-bar">' +
       '<button class="back-btn" data-act="go" data-arg="' + backTo + '" aria-label="Back">' + ICON_BACK + '</button>' +
@@ -339,16 +422,32 @@ function segRow(items, current, act, extraClass) {
 }
 
 // ── Screens ──────────────────────────────────────────────────
-function viewWelcome(c) {
-  // Resume card: the saved case, summarized — LKW, elapsed, where it left off.
-  const currentIdx = c.steps.findIndex(st => !st.done);
-  const nextStep = c.steps[currentIdx === -1 ? c.steps.length - 1 : currentIdx];
-  const caseMeta = [
-    'LKW ' + S.lkw,
-    fmt(c.min) + ' elapsed',
-    c.scored > 0 ? 'NIHSS ' + c.tot : null,
-    S.tnk === 'yes' ? 'TNK given' : null,
-  ].filter(Boolean).join(' · ');
+function viewHome() {
+  const rows = CASES.map(cs => {
+    const min = elapsedMinFor(cs.lkw) ?? 0;
+    const scored = ORDER.filter(id => cs.nihss[id] !== undefined).length;
+    const tot = ORDER.reduce((t, id) => t + (typeof cs.nihss[id] === 'number' ? cs.nihss[id] : 0), 0);
+    const st = caseStatus(cs);
+    const meta = [
+      'LKW ' + cs.lkw,
+      fmt(min) + ' elapsed',
+      scored > 0 ? 'NIHSS ' + tot : null,
+      cs.tnk === 'yes' && cs.tnkTime ? 'TNK ' + cs.tnkTime : null,
+    ].filter(Boolean).join(' · ');
+    return '' +
+      '<div class="case-row">' +
+        '<button class="case-open" data-act="open-case" data-arg="' + esc(cs.id) + '">' +
+          '<span class="tl-label">' +
+            '<span class="case-top">' +
+              '<span class="case-name">' + esc(cs.label || 'Unlabelled patient') + '</span>' +
+              '<span class="case-chip case-chip--' + st.tone + '">' + esc(st.word) + '</span>' +
+            '</span>' +
+            '<span class="tl-sub">' + esc(fmtDate(cs.createdAt) + ' — ' + meta) + '</span>' +
+          '</span>' +
+        '</button>' +
+        '<button class="case-del" data-act="del-case" data-arg="' + esc(cs.id) + '" aria-label="Delete case">&#x2715;</button>' +
+      '</div>';
+  }).join('');
 
   return '' +
     '<div class="hub-bar">' +
@@ -365,16 +464,10 @@ function viewWelcome(c) {
         '<h1 class="wel-title">Code<br>Stroke</h1>' +
         '<div class="wel-sub">Bedside thrombolysis pathway — last known well to TNK / EVT decision. CSBPR 2022/2025.</div>' +
       '</div>' +
-      (S.hasCase
-        ? '<div class="eyebrow eyebrow--section">CASE IN PROGRESS</div>' +
-          '<button class="wel-resume" data-act="go" data-arg="hub">' +
-            '<span class="tl-label">' +
-              '<span class="wel-resume-name">Resume — ' + esc(nextStep.name) + '</span>' +
-              '<span class="tl-sub">' + esc(caseMeta) + '</span>' +
-            '</span>' +
-            chevRight(18, 'currentColor', 'chev') +
-          '</button>'
-        : '') +
+      '<div class="eyebrow eyebrow--section">PATIENTS</div>' +
+      (CASES.length
+        ? '<div class="case-list">' + rows + '</div>'
+        : '<div class="case-empty">No cases yet. Tap "New code stroke" to begin.</div>') +
       '<div class="eyebrow eyebrow--section">REFERENCE</div>' +
       '<button class="ref-row ref-row--flat" data-act="go" data-arg="indications">TNK indications' + chevRightThin(16) + '</button>' +
       '<div class="wel-disclaimer">This tool does not replace clinical judgement.</div>' +
@@ -412,9 +505,10 @@ function viewHub(c) {
 
   return '' +
     '<div class="hub-bar">' +
+      '<button class="back-btn back-btn--hub" data-act="go" data-arg="home" aria-label="All patients">' + ICON_BACK + '</button>' +
       '<span class="brand">CODE STROKE</span>' +
       '<div class="hub-actions">' +
-        '<span class="pt-chip">J.S. · RM 4</span>' +
+        (S.label ? '<span class="pt-chip">' + esc(S.label) + '</span>' : '') +
         '<button class="icon-btn" data-act="toggleTheme" aria-label="Toggle dark mode">' +
           (S.theme === 'dark' ? ICON_SUN : ICON_MOON) +
         '</button>' +
@@ -468,7 +562,9 @@ function viewTiming(c) {
 
   return screenHeader(c) +
     '<div class="body body--timing">' +
-      '<div class="eyebrow">ONSET</div>' +
+      '<div class="eyebrow">PATIENT</div>' +
+      '<input class="input-label" type="text" maxlength="24" placeholder="Initials · room (optional)" value="' + esc(S.label) + '" data-field="label" data-focus="label" aria-label="Patient label">' +
+      '<div class="eyebrow" style="margin-top:18px">ONSET</div>' +
       '<h2 class="screen-h2">When was the patient last normal?</h2>' +
       '<div class="stack">' +
         opts.map(o =>
@@ -766,7 +862,7 @@ let resetScroll = false;
 let advTimer = null;
 
 const VIEWS = {
-  welcome: viewWelcome,
+  home: viewHome,
   hub: viewHub,
   timing: viewTiming,
   contra: viewContra,
@@ -792,7 +888,9 @@ function render() {
   }
 
   root.setAttribute('data-theme', S.theme);
-  root.innerHTML = (VIEWS[S.screen] || viewHub)(c);
+  // A case screen with no open case (e.g. after a delete) falls back home.
+  if (S.screen !== 'home' && S.screen !== 'indications' && !S.caseId) S.screen = 'home';
+  root.innerHTML = (VIEWS[S.screen] || viewHome)(c);
 
   const nextBody = root.querySelector('.body, .tl-scroll');
   if (nextBody) nextBody.scrollTop = resetScroll ? 0 : prevScroll;
@@ -836,14 +934,27 @@ root.addEventListener('click', e => {
       break;
 
     case 'reset':
-      newCase(true);
+      resetCase();
       resetScroll = true;
       break;
 
     case 'new-case':
-      newCase(false);
+      newCase();
       resetScroll = true;
       break;
+
+    case 'open-case':
+      openCase(arg);
+      navigate('hub');
+      return;
+
+    case 'del-case': {
+      const entry = CASES.find(cs => cs.id === arg);
+      const who = entry && entry.label ? entry.label : 'this patient';
+      if (!window.confirm('Delete ' + who + '? This cannot be undone.')) return;
+      deleteCase(arg);
+      break;
+    }
 
     case 'onset':
       S.onset = arg;
@@ -930,6 +1041,7 @@ root.addEventListener('input', e => {
   if (!el) return;
   const field = el.dataset.field;
   if (field === 'lkw') S.lkw = el.value || S.lkw;
+  else if (field === 'label') S.label = el.value;
   else if (field === 'aspects') S.aspects = el.value;
   else if (field === 'weight') S.weight = el.value;
   else if (field === 'tnkTime') S.tnkTime = el.value;
