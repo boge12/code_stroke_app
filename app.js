@@ -63,7 +63,9 @@ const VESSELS = ['ICA-T', 'M1', 'M2', 'ACA/A1', 'A2', 'P1', 'P2', 'Basilar'];
 const STORAGE_KEY = 'codeStroke.case.v1';
 
 function defaultLkw() {
-  const d = new Date(Date.now() - 65 * 60000);
+  // Seed with the current time (clock reads 0:00) — the first act of a new
+  // case is documenting the real last-known-well time on the Timing screen.
+  const d = new Date();
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
@@ -97,12 +99,14 @@ function save() {
 }
 
 function load() {
+  // A brand-new case (nothing saved) starts on the Timing screen — the
+  // first thing to capture is last known well.
   let raw = null;
-  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return; }
-  if (!raw) return;
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { S.screen = 'timing'; return; }
+  if (!raw) { S.screen = 'timing'; return; }
   let saved;
-  try { saved = JSON.parse(raw); } catch (e) { return; }
-  if (!saved || typeof saved !== 'object') return;
+  try { saved = JSON.parse(raw); } catch (e) { S.screen = 'timing'; return; }
+  if (!saved || typeof saved !== 'object') { S.screen = 'timing'; return; }
   const shape = Object.assign({ theme: 'light' }, blankCase());
   for (const k of Object.keys(shape)) {
     const v = saved[k];
@@ -117,9 +121,10 @@ function load() {
 }
 
 function resetCase() {
-  // Faithful to the prototype: RESET clears the workup but keeps LKW and weight.
-  const { lkw, weight } = S;
-  Object.assign(S, blankCase(), { screen: 'hub', lkw, weight });
+  // RESET starts a fresh case: back to the Timing screen with LKW re-seeded
+  // to now, keeping only the entered weight.
+  const { weight } = S;
+  Object.assign(S, blankCase(), { screen: 'timing', weight });
   S.folds = {};
   save();
 }
