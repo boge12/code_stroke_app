@@ -762,9 +762,9 @@ window.NIHSS_ITEMS = [
 </div>`,
     scores: [
       { value: 0, label: 'No aphasia', description: 'Normal. Fluent speech, correct naming, reads and understands normally.' },
-      { value: 1, label: 'Mild-moderate aphasia', description: 'Some obvious loss of fluency OR comprehension — word-finding pauses, some paraphasias — but patient can get ideas across. Examiner can identify the picture or sentences from the response.' },
-      { value: 2, label: 'Severe aphasia', description: 'Very fragmented communication. Examiner must guess what the patient is trying to say. Or patient is mute with severe expressive aphasia.' },
-      { value: 3, label: 'Mute / global aphasia', description: 'Reserved for patient with NO usable speech AND unable to follow any one-step command. Global aphasia.' },
+      { value: 1, label: 'Mild-moderate aphasia', description: 'Speech or understanding is clearly off — pauses, wrong words — but you can still follow what they mean.' },
+      { value: 2, label: 'Severe aphasia', description: 'You have to guess what they mean. Only fragments come through — or they are mute but still understand some.' },
+      { value: 3, label: 'Mute / global aphasia', description: 'No usable speech AND cannot follow any one-step command.' },
     ],
     caveats: [
       'This tests LANGUAGE, not speech clarity. Slurred-but-correct words = dysarthria (item 10), not aphasia.',
