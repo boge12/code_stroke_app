@@ -728,6 +728,46 @@ button { all: unset; }
   color: var(--dim);
 }
 
+/* ── Welcome ───────────────────────────────────────────────── */
+.body--welcome { padding: 28px 20px 20px; display: flex; flex-direction: column; }
+.wel-rule { width: 44px; height: 6px; background: var(--acc); }
+.wel-title {
+  margin: 16px 0 0;
+  font: 800 54px/0.95 Archivo, sans-serif;
+  letter-spacing: -.02em;
+  text-transform: uppercase;
+}
+.wel-sub {
+  font: 400 13.5px/1.55 Archivo, sans-serif;
+  color: var(--dim);
+  margin-top: 12px;
+  max-width: 320px;
+}
+.wel-resume {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  padding: 14px 16px;
+  min-height: 52px;
+}
+.wel-resume-name { display: block; font: 800 15px/1.2 Archivo, sans-serif; color: var(--accT); }
+@media (hover: hover) { .wel-resume:hover { background: var(--line2); } }
+.ref-row--flat { width: 100%; border-bottom: 1px solid var(--line2); }
+.wel-disclaimer {
+  margin-top: auto;
+  padding-top: 20px;
+  font: 400 11px/1.5 Archivo, sans-serif;
+  color: var(--dim2);
+}
+@media (max-height: 700px) {
+  .wel-title { font-size: 44px; }
+  .body--welcome { padding-top: 20px; }
+}
+
 /* ── Short screens (phones with browser chrome) ────────────── */
 /* Compress the hub's fixed sections so the timeline keeps real estate. */
 @media (max-height: 760px) {

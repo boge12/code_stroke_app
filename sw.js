@@ -1,7 +1,7 @@
 // Service Worker — Code Stroke Triage App
 // Cache-first strategy for offline use
 
-const CACHE_NAME = 'codestroke-v25';
+const CACHE_NAME = 'codestroke-v26';
 const ASSETS = [
   './',
   './index.html',

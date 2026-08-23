@@ -89,24 +89,27 @@ function blankCase() {
   };
 }
 
-const S = Object.assign({ screen: 'hub', theme: 'light', folds: {} }, blankCase());
+const S = Object.assign({ screen: 'welcome', theme: 'light', folds: {}, hasCase: false }, blankCase());
 
 function save() {
   try {
-    const { screen, folds, ...rest } = S; // eslint-disable-line no-unused-vars
+    const { screen, folds, hasCase, ...rest } = S; // eslint-disable-line no-unused-vars
     localStorage.setItem(STORAGE_KEY, JSON.stringify(rest));
+    S.hasCase = true;
   } catch (e) { /* private mode / quota — the app still works, it just won't persist */ }
 }
 
 function load() {
-  // A brand-new case (nothing saved) starts on the Timing screen — the
-  // first thing to capture is last known well.
+  // The app always opens on the welcome screen; a saved case adds a
+  // Resume card there.
+  S.screen = 'welcome';
   let raw = null;
-  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { S.screen = 'timing'; return; }
-  if (!raw) { S.screen = 'timing'; return; }
+  try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return; }
+  if (!raw) return;
   let saved;
-  try { saved = JSON.parse(raw); } catch (e) { S.screen = 'timing'; return; }
-  if (!saved || typeof saved !== 'object') { S.screen = 'timing'; return; }
+  try { saved = JSON.parse(raw); } catch (e) { return; }
+  if (!saved || typeof saved !== 'object') return;
+  S.hasCase = true;
   const shape = Object.assign({ theme: 'light' }, blankCase());
   for (const k of Object.keys(shape)) {
     const v = saved[k];
@@ -120,11 +123,12 @@ function load() {
   if (typeof S.idx !== 'number' || S.idx < 0 || S.idx > 14) S.idx = 0;
 }
 
-function resetCase() {
-  // RESET starts a fresh case: back to the Timing screen with LKW re-seeded
-  // to now, keeping only the entered weight.
+function newCase(keepWeight) {
+  // A fresh case starts on Timing with LKW re-seeded to now; RESET on the
+  // hub keeps the entered weight, the welcome button starts fully clean.
   const { weight } = S;
-  Object.assign(S, blankCase(), { screen: 'timing', weight });
+  Object.assign(S, blankCase(), { screen: 'timing' });
+  if (keepWeight) S.weight = weight;
   S.folds = {};
   save();
 }
@@ -300,9 +304,12 @@ function foldOpen(id) { return S.folds[id] ? ' open' : ''; }
 
 function screenHeader(c) {
   const showBadge = c.scored > 0 && ['nihss', 'syndrome', 'ct', 'decision', 'consent'].includes(S.screen);
+  // Browsing the indications reference from the welcome screen goes back
+  // there; everywhere else, back means the timeline hub.
+  const backTo = (S.screen === 'indications' && S.prev === 'welcome') ? 'welcome' : 'hub';
   return '' +
     '<div class="sc-bar">' +
-      '<button class="back-btn" data-act="go" data-arg="hub" aria-label="Back to timeline">' + ICON_BACK + '</button>' +
+      '<button class="back-btn" data-act="go" data-arg="' + backTo + '" aria-label="Back">' + ICON_BACK + '</button>' +
       '<span class="sc-title">' + esc(STEP_TITLES[S.screen] || '') + '</span>' +
       (showBadge ? '<span class="nihss-badge">NIHSS ' + c.tot + '</span>' : '') +
       '<span class="clk-chip">' + esc(fmt(c.min)) + '</span>' +
@@ -332,6 +339,51 @@ function segRow(items, current, act, extraClass) {
 }
 
 // ── Screens ──────────────────────────────────────────────────
+function viewWelcome(c) {
+  // Resume card: the saved case, summarized — LKW, elapsed, where it left off.
+  const currentIdx = c.steps.findIndex(st => !st.done);
+  const nextStep = c.steps[currentIdx === -1 ? c.steps.length - 1 : currentIdx];
+  const caseMeta = [
+    'LKW ' + S.lkw,
+    fmt(c.min) + ' elapsed',
+    c.scored > 0 ? 'NIHSS ' + c.tot : null,
+    S.tnk === 'yes' ? 'TNK given' : null,
+  ].filter(Boolean).join(' · ');
+
+  return '' +
+    '<div class="hub-bar">' +
+      '<span class="brand">CODE STROKE</span>' +
+      '<div class="hub-actions">' +
+        '<button class="icon-btn" data-act="toggleTheme" aria-label="Toggle dark mode">' +
+          (S.theme === 'dark' ? ICON_SUN : ICON_MOON) +
+        '</button>' +
+      '</div>' +
+    '</div>' +
+    '<div class="body body--welcome">' +
+      '<div class="wel-hero">' +
+        '<div class="wel-rule"></div>' +
+        '<h1 class="wel-title">Code<br>Stroke</h1>' +
+        '<div class="wel-sub">Bedside thrombolysis pathway — last known well to TNK / EVT decision. CSBPR 2022/2025.</div>' +
+      '</div>' +
+      (S.hasCase
+        ? '<div class="eyebrow eyebrow--section">CASE IN PROGRESS</div>' +
+          '<button class="wel-resume" data-act="go" data-arg="hub">' +
+            '<span class="tl-label">' +
+              '<span class="wel-resume-name">Resume — ' + esc(nextStep.name) + '</span>' +
+              '<span class="tl-sub">' + esc(caseMeta) + '</span>' +
+            '</span>' +
+            chevRight(18, 'currentColor', 'chev') +
+          '</button>'
+        : '') +
+      '<div class="eyebrow eyebrow--section">REFERENCE</div>' +
+      '<button class="ref-row ref-row--flat" data-act="go" data-arg="indications">TNK indications' + chevRightThin(16) + '</button>' +
+      '<div class="wel-disclaimer">This tool does not replace clinical judgement.</div>' +
+    '</div>' +
+    '<div class="footer footer--hub">' +
+      '<button class="btn-primary btn-primary--lg" data-act="new-case">New code stroke' + arrowRight(20, '#fff') + '</button>' +
+    '</div>';
+}
+
 function viewHub(c) {
   const currentIdx = c.steps.findIndex(st => !st.done);
   const activeIdx = currentIdx === -1 ? c.steps.length - 1 : currentIdx;
@@ -714,6 +766,7 @@ let resetScroll = false;
 let advTimer = null;
 
 const VIEWS = {
+  welcome: viewWelcome,
   hub: viewHub,
   timing: viewTiming,
   contra: viewContra,
@@ -756,6 +809,7 @@ function render() {
 
 function navigate(screen) {
   clearTimeout(advTimer);
+  S.prev = S.screen;
   S.screen = screen;
   resetScroll = true;
   window.scrollTo(0, 0);
@@ -782,7 +836,12 @@ root.addEventListener('click', e => {
       break;
 
     case 'reset':
-      resetCase();
+      newCase(true);
+      resetScroll = true;
+      break;
+
+    case 'new-case':
+      newCase(false);
       resetScroll = true;
       break;
 
