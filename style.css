@@ -74,6 +74,17 @@ a:hover { color: #ec3013; }
 .app input[type="text"] {
   font-family: 'Archivo', sans-serif;
   border-radius: 0;
+  /* iOS renders native-styled inputs in a fixed-height control that clips
+     large text — take over the appearance entirely. */
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* iOS wraps the time value in this pseudo-element, centered in a pill by
+   default; left-align it and let it take the input's font metrics. */
+.app input[type="time"]::-webkit-date-and-time-value {
+  text-align: left;
+  min-height: 1.2em;
+  margin: 0;
 }
 .app details > summary { list-style: none; cursor: pointer; }
 .app details > summary::-webkit-details-marker { display: none; }
@@ -332,6 +343,9 @@ button { all: unset; }
   font-size: 22px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  min-height: 58px;
+  text-align: left;
 }
 
 .window-card {
