@@ -1,7 +1,7 @@
 // Service Worker — Code Stroke Triage App
 // Cache-first strategy for offline use
 
-const CACHE_NAME = 'codestroke-v28';
+const CACHE_NAME = 'codestroke-v29';
 const ASSETS = [
   './',
   './index.html',
@@ -11,7 +11,8 @@ const ASSETS = [
   './manifest.json',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './aphasia-image.png',
+  './nihss-picture.png',
+  './nihss-naming.png',
 ];
 
 self.addEventListener('install', (event) => {
