@@ -2,7 +2,7 @@
 // app.js — Code Stroke
 // Timeline-anchored bedside flow: LKW clock drives the nav.
 // Screens: hub · timing · indications · contraindications ·
-//          NIHSS (one item per page) · syndrome · CT/CTA ·
+//          NIHSS (one item per page, + patient cards) · syndrome · CT/CTA ·
 //          decision · consent
 // Clinical content lives in data.js; this file is UI + state only.
 // ============================================================
@@ -97,7 +97,7 @@ function blankCase() {
 const CASE_FIELDS = Object.keys(blankCase());
 let CASES = [];
 
-const S = Object.assign({ screen: 'home', theme: 'light', folds: {}, caseId: null }, blankCase());
+const S = Object.assign({ screen: 'home', theme: 'light', folds: {}, caseId: null, card: null, cardRot: false }, blankCase());
 
 function persist() {
   try {
@@ -283,6 +283,7 @@ function chevDown(size) {
 const ICON_BACK = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"></path></svg>';
 const ICON_SUN = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"></path></svg>';
 const ICON_MOON = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+const ICON_ROTATE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 13a8.5 8.5 0 1 1-2.5-7"></path><path d="M20 3v4h-4"></path></svg>';
 
 // ── Derived case values ──────────────────────────────────────
 function compute() {
@@ -671,6 +672,16 @@ function viewNihss(c) {
       '</div>' +
     '</details>';
 
+  // Items 9 + 10 carry printed stimuli — open them full-screen for the patient.
+  const cards = (window.NIHSS_CARDS || []).filter(k => k.item === id);
+  const cardBtn = cards.length
+    ? '<button class="card-btn" data-act="cards" data-arg="' + esc(cards[0].id) + '">' +
+        '<span><span class="card-btn-l">SHOW TO PATIENT</span>' +
+        '<span class="card-btn-t">' + esc(cards.map(k => k.tab).join(' · ')) + '</span></span>' +
+        chevRightThin(18, 'chev') +
+      '</button>'
+    : '';
+
   const scores = (it.scores || []).map(sc =>
     '<button class="score-btn" data-act="score" data-arg="' + esc(sc.value) + '" aria-pressed="' + (val === sc.value) + '">' +
       '<span class="score-val">' + esc(sc.value) + '</span>' +
@@ -687,6 +698,7 @@ function viewNihss(c) {
           '<h3 class="item-name">' + esc(it.shortName || id) + '</h3></div>' +
           (val !== undefined ? '<span class="item-score">+' + esc(val) + '</span>' : '') +
         '</div>' +
+        cardBtn +
         guide +
         (it.note ? '<div class="item-note">' + esc(it.note) + '</div>' : '') +
         '<div class="scores">' + scores + '</div>' +
@@ -697,6 +709,50 @@ function viewNihss(c) {
       '<button class="nf-prev" data-act="nihss-prev">‹ ' + esc(S.idx === 0 ? 'Back' : ORDER[S.idx - 1]) + '</button>' +
       '<button class="nf-next" data-act="nihss-next">' +
         esc(S.idx < 14 ? 'Next — ' + ORDER[S.idx + 1] : 'Syndrome') + arrowRight(18, 'currentColor') +
+      '</button>' +
+    '</div>';
+}
+
+// Full-screen NIHSS stimuli for items 9 + 10. The sheet stays white in both
+// themes — these are printed test materials the patient has to see and read.
+function viewCards() {
+  const cards = window.NIHSS_CARDS || [];
+  const i = Math.max(0, cards.findIndex(k => k.id === S.card));
+  const k = cards[i] || {};
+  const prev = cards[i - 1];
+  const next = cards[i + 1];
+  const item = ORDER[S.idx];
+
+  const tabs = cards.map(x =>
+    '<button class="card-tab" data-act="card" data-arg="' + esc(x.id) + '" aria-pressed="' + (x.id === k.id) + '">' +
+      '<span class="ct-item">' + esc(x.item) + '</span>' + esc(x.tab) +
+    '</button>').join('');
+
+  let sheet;
+  if (k.image) {
+    sheet = '<img class="card-img" src="' + esc(k.image) + '" alt="' + esc(k.alt || '') + '">' +
+      (k.credit ? '<span class="card-credit">' + esc(k.credit) + '</span>' : '');
+  } else if (k.lines) {
+    sheet = '<div class="card-lines">' + k.lines.map(t => '<div class="card-line">' + esc(t) + '</div>').join('') + '</div>';
+  } else {
+    sheet = '<div class="card-words">' + (k.words || []).map(t => '<div class="card-word">' + esc(t) + '</div>').join('') + '</div>';
+  }
+
+  return '' +
+    '<div class="sc-bar">' +
+      '<button class="back-btn" data-act="cards-close" aria-label="Back to NIHSS item ' + esc(item) + '">' + ICON_BACK + '</button>' +
+      '<span class="sc-title">SHOW TO PATIENT</span>' +
+      '<button class="rot-btn" data-act="card-rot" aria-pressed="' + S.cardRot + '" aria-label="Rotate card">' + ICON_ROTATE + 'ROTATE</button>' +
+    '</div>' +
+    '<div class="card-tabs">' + tabs + '</div>' +
+    '<div class="card-ask"><span class="card-ask-l">ASK</span>' + esc(k.ask || '') + '</div>' +
+    '<div class="card-stage' + (S.cardRot ? ' card-stage--rot' : '') + '">' +
+      '<div class="card-sheet">' + sheet + '</div>' +
+    '</div>' +
+    '<div class="card-foot">' +
+      '<button class="nf-prev" data-act="card-step" data-arg="-1">‹ ' + esc(prev ? prev.tab : 'Item ' + item) + '</button>' +
+      '<button class="nf-next" data-act="card-step" data-arg="1">' +
+        esc(next ? 'Next — ' + next.tab : 'Score item ' + item) + arrowRight(18, 'currentColor') +
       '</button>' +
     '</div>';
 }
@@ -867,6 +923,7 @@ const VIEWS = {
   timing: viewTiming,
   contra: viewContra,
   nihss: viewNihss,
+  cards: viewCards,
   indications: viewIndications,
   syndrome: viewSyndrome,
   ct: viewCt,
@@ -1018,6 +1075,33 @@ root.addEventListener('click', e => {
       if (S.idx < 14) { S.idx += 1; } else { S.screen = 'syndrome'; }
       resetScroll = true;
       window.scrollTo(0, 0);
+      break;
+
+    case 'cards':
+      S.card = arg;
+      S.cardRot = false;
+      navigate('cards');
+      return;
+
+    case 'cards-close':
+      navigate('nihss');
+      return;
+
+    case 'card':
+      S.card = arg;
+      break;
+
+    case 'card-step': {
+      // Stepping off either end of the deck returns to the NIHSS item.
+      const cards = window.NIHSS_CARDS || [];
+      const j = cards.findIndex(k => k.id === S.card) + Number(arg);
+      if (j < 0 || j >= cards.length) { navigate('nihss'); return; }
+      S.card = cards[j].id;
+      break;
+    }
+
+    case 'card-rot':
+      S.cardRot = !S.cardRot;
       break;
 
     // Segmented controls select, they don't toggle off — matching the prototype.

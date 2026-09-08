@@ -498,6 +498,106 @@ button { all: unset; }
   padding: 8px 12px;
   font: 600 11.5px/1.5 Archivo, sans-serif;
 }
+
+/* Patient cards (items 9 + 10): entry button on the item page… */
+.card-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  padding: 11px 14px;
+  min-height: 56px;
+  text-align: left;
+}
+.card-btn-l { display: block; font: 700 10px/1 Archivo, sans-serif; letter-spacing: .14em; color: var(--accT); }
+.card-btn-t { display: block; font: 700 14px/1.3 Archivo, sans-serif; margin-top: 4px; }
+@media (hover: hover) { .card-btn:hover { background: var(--line2); } }
+
+/* …and the full-screen viewer. Chrome follows the theme; the sheet is
+   always white paper with black ink, like the printed NIHSS stimuli. */
+.rot-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  font: 600 10px/1 Archivo, sans-serif;
+  letter-spacing: .08em;
+  color: var(--dim);
+}
+.rot-btn[aria-pressed="true"] { background: var(--ink); color: var(--pp); border-color: var(--ink); }
+@media (hover: hover) { .rot-btn:hover { background: var(--line2); } }
+.card-tabs { display: flex; gap: 3px; padding: 10px 20px; border-bottom: 1px solid var(--line); }
+.card-tab {
+  flex: 1;
+  min-width: 0;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: var(--line2);
+  font: 700 11px/1 Archivo, sans-serif;
+  color: var(--dim);
+}
+.card-tab .ct-item { font: 700 9px/1 ui-monospace, Menlo, monospace; opacity: .75; }
+.card-tab[aria-pressed="true"] { background: var(--ink); color: var(--pp); }
+.card-ask {
+  padding: 9px 20px;
+  border-bottom: 1px solid var(--line2);
+  font: 500 12px/1.4 Archivo, sans-serif;
+  color: var(--dim);
+}
+.card-ask-l { font: 700 9px/1 Archivo, sans-serif; letter-spacing: .12em; color: var(--accT); margin-right: 8px; }
+.card-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: #fff;
+  color: #141414;
+  container-type: size;
+}
+.card-sheet {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+/* Rotate: swap the sheet's axes so the clinician can turn the phone
+   sideways and give the patient a bigger picture. */
+.card-stage--rot .card-sheet {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: 80vh;   /* fallback for browsers without container units */
+  height: 100vw;
+  width: 100cqh;
+  height: 100cqw;
+  transform: translate(-50%, -50%) rotate(90deg);
+}
+.card-img { display: block; max-width: 100%; max-height: 100%; object-fit: contain; }
+.card-credit { position: absolute; right: 12px; bottom: 8px; font: 400 10px/1 Archivo, sans-serif; color: #8a8a8a; }
+.card-lines { width: 100%; display: flex; flex-direction: column; gap: 20px; }
+.card-line { font: 600 26px/1.3 Archivo, sans-serif; }
+.card-words { width: 100%; display: flex; flex-direction: column; gap: 18px; }
+.card-word { font: 800 32px/1.15 Archivo, sans-serif; letter-spacing: .02em; }
+.card-foot {
+  display: flex;
+  align-items: center;
+  border-top: 2px solid var(--ink);
+  padding-bottom: env(safe-area-inset-bottom);
+}
 .scores { display: flex; flex-direction: column; margin-top: 10px; }
 .score-btn {
   display: grid;

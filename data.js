@@ -726,19 +726,14 @@ window.NIHSS_ITEMS = [
     name: 'Best Language',
     shortName: '9 — Language / Aphasia',
     examInstructions: [
-      '1. FLUENCY — Show the cookie jar picture. "Tell me everything you see happening in this picture."',
-      '2. NAMING — Show common objects (pen, watch, glasses, key). "What is this called?"',
-      '3. READING — Show printed sentences: "The sky is blue." "He lived nearby." Ask to read aloud.',
+      '1. FLUENCY — Show the Picture card. "Tell me what is happening in this picture."',
+      '2. NAMING — Show the Naming card. Point to each object: "What is this called?"',
+      '3. READING — Show the Reading card. "Read these sentences out loud."',
       'If visually impaired: (1) assess fluency in conversation, (2) place objects in hand for naming, (3) ask to write a sentence.',
       'Observations from earlier NIHSS items (alertness, commands) also count toward this score.',
     ],
     lookFor: 'Is speech fluent or halting? Can they name objects? Can they understand your commands? Can they read? Compare output to comprehension.',
-    svg: `<div style="text-align:center">
-  <div class="show-picture-link" id="open-cookie-picture" style="margin-bottom:12px; display:inline-flex">
-    🖼️ Tap to Show Picture to Patient
-  </div>
-</div>
-<div style="background:#0d1f2d; border-radius:10px; border:1px solid #333; padding:14px 12px; margin-top:8px;">
+    svg: `<div style="background:#0d1f2d; border-radius:10px; border:1px solid #333; padding:14px 12px; margin-top:8px;">
   <div style="text-align:center; color:#aaa; font-size:12px; font-weight:bold; margin-bottom:10px;">Aphasia Scoring Guide</div>
   <div style="display:flex; align-items:flex-start; gap:8px; margin-bottom:8px;">
     <span style="min-width:18px; height:18px; border-radius:50%; background:#4fc3f7; display:inline-block; margin-top:2px;"></span>
@@ -790,8 +785,8 @@ window.NIHSS_ITEMS = [
     name: 'Dysarthria',
     shortName: '10 — Dysarthria',
     examInstructions: [
-      'Ask patient to repeat these words after you:',
-      '"Mama" — "Tip-top" — "Fifty-fifty" — "Huckleberry" — "Baseball player"',
+      'Show the Words card, or ask the patient to repeat after you:',
+      '"Mama" — "Tip-top" — "Fifty-fifty" — "Thanks" — "Huckleberry" — "Baseball player"',
       'Listen for slurring, distortion, or loss of intelligibility.',
       'This tests MOTOR speech — NOT word finding (that is aphasia, item 9).',
       'If patient is intubated → mark as UN (untestable).',
@@ -801,7 +796,7 @@ window.NIHSS_ITEMS = [
   <rect x="10" y="10" width="300" height="110" rx="12" fill="#0d1f2d" stroke="#4fc3f7" stroke-width="1.5"/>
   <text x="160" y="35" text-anchor="middle" fill="#4fc3f7" font-size="13" font-weight="bold">Words to repeat:</text>
   <text x="160" y="58" text-anchor="middle" fill="#fff" font-size="12">"Mama" · "Tip-top" · "Fifty-fifty"</text>
-  <text x="160" y="78" text-anchor="middle" fill="#fff" font-size="12">"Huckleberry" · "Baseball player"</text>
+  <text x="160" y="78" text-anchor="middle" fill="#fff" font-size="12">"Thanks" · "Huckleberry" · "Baseball player"</text>
   <text x="80" y="105" text-anchor="middle" fill="#ffd54f" font-size="10">Score 1: "tipsh, topf"</text>
   <text x="240" y="105" text-anchor="middle" fill="#ef5350" font-size="10">Score 2: Unintelligible</text>
 </svg>`,
@@ -895,6 +890,41 @@ window.NIHSS_ITEMS = [
       'True extinction is robust on retesting; inconsistent extinction that disappears when the patient is distracted suggests a non-organic process.',
       'Patients with true neglect are typically UNAWARE of the deficit (anosognosia); functional patients usually complain of the symptom.',
     ],
+  },
+];
+
+// ── NIHSS PATIENT CARDS (items 9 + 10) ───────────────────────
+// The standard NIHSS language and speech stimuli, shown full-screen to
+// the patient from Best Language (9) and Dysarthria (10).
+window.NIHSS_CARDS = [
+  {
+    id: 'picture', item: '9', tab: 'Picture',
+    ask: '“Tell me what is happening in this picture.”',
+    image: 'nihss-picture.png',
+    alt: 'A boy on a ladder painting a wall with a roller, a dog running across a tiled floor, a spilled paint can, and a mouse.',
+    credit: '© Apex Innovations',
+  },
+  {
+    id: 'naming', item: '9', tab: 'Naming',
+    ask: 'Point to each object — “What is this called?”',
+    image: 'nihss-naming.png',
+    alt: 'Six line drawings to name: bucket, bicycle, cloud, traffic light, leaf, mouse.',
+  },
+  {
+    id: 'reading', item: '9', tab: 'Reading',
+    ask: '“Read these sentences out loud.”',
+    lines: [
+      'You know how.',
+      'Down to earth.',
+      'I got home from work.',
+      'Near the table in the dining room.',
+      'They heard him speak on the radio last night.',
+    ],
+  },
+  {
+    id: 'words', item: '10', tab: 'Words',
+    ask: '“Read these words out loud” — or repeat them after you.',
+    words: ['MAMA', 'TIP – TOP', 'FIFTY – FIFTY', 'THANKS', 'HUCKLEBERRY', 'BASEBALL PLAYER'],
   },
 ];
 
