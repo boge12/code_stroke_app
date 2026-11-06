@@ -13,6 +13,7 @@ const ORDER = ['1a', '1b', '1c', '2', '3', '4', '5a', '5b', '6a', '6b', '7', '8'
 
 const STEP_TITLES = {
   timing: 'TIMING',
+  history: 'HISTORY',
   indications: 'TNK INDICATIONS',
   contra: 'CONTRAINDICATIONS',
   nihss: 'NIHSS',
@@ -20,6 +21,7 @@ const STEP_TITLES = {
   ct: 'CT / CTA',
   decision: 'DECISION',
   consent: 'CONSENT & TNK',
+  management: 'MANAGEMENT',
 };
 
 // Reconciled CSBPR Box 5B + local protocol wording (see chats/chat1.md).
@@ -78,9 +80,24 @@ function blankCase() {
     label: '',
     lkw: defaultLkw(),
     onset: 'yes',
+    history: {
+      deficit: '',
+      baselineMrs: '',
+      glucose: '',
+      sbp: '',
+      dbp: '',
+      anticoag: '',
+      anticoagName: '',
+      anticoagLastDose: '',
+      seizure: '',
+      notes: '',
+    },
     contra: {},
     contraOpen: {},
     nihss: {},
+    nihssExternal: '',
+    nihssTeaching: false,
+    syndromeReviewed: false,
     idx: 0,
     ct: null,
     aspects: '',
@@ -91,6 +108,15 @@ function blankCase() {
     consentWith: null,
     tnk: null,
     tnkTime: '',
+    management: {
+      npo: false,
+      strokeUnit: false,
+      rhythm: false,
+      postTnkImaging: false,
+      antithrombotic: false,
+      rehab: false,
+    },
+    managementDone: false,
   };
 }
 
@@ -203,6 +229,16 @@ function esc(v) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+function setPath(path, value) {
+  const parts = String(path || '').split('.');
+  let obj = S;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!obj[parts[i]] || typeof obj[parts[i]] !== 'object') obj[parts[i]] = {};
+    obj = obj[parts[i]];
+  }
+  obj[parts[parts.length - 1]] = value;
+}
+
 function elapsedMinFor(lkwStr) {
   const parts = String(lkwStr || '').split(':');
   const h = Number(parts[0]);
@@ -240,8 +276,19 @@ function fmt(min) {
   return Math.floor(min / 60) + ':' + String(min % 60).padStart(2, '0');
 }
 
-function total() {
+function builtInTotal() {
   return ORDER.reduce((t, id) => t + (typeof S.nihss[id] === 'number' ? S.nihss[id] : 0), 0);
+}
+
+function externalNihss() {
+  if (S.nihssExternal === '' || S.nihssExternal === null || S.nihssExternal === undefined) return null;
+  const n = Number(S.nihssExternal);
+  return Number.isFinite(n) && n >= 0 && n <= 42 ? n : null;
+}
+
+function total() {
+  const external = externalNihss();
+  return external !== null ? external : builtInTotal();
 }
 
 function scoredCount() {
@@ -288,17 +335,21 @@ const ICON_ROTATE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
 // ── Derived case values ──────────────────────────────────────
 function compute() {
   const min = elapsedMin() ?? 0;
-  const tot = total();
+  const builtInTot = builtInTotal();
+  const external = externalNihss();
+  const tot = external !== null ? external : builtInTot;
   const scored = scoredCount();
+  const nihssReady = external !== null || scored === 15;
 
   const relYes = CONTRA.slice(1).flatMap(g => g.items).filter(it => S.contra[it.id] === 'yes');
   const absYes = CONTRA[0].items.some(it => S.contra[it.id] === 'yes');
   const aspects = S.aspects === '' ? null : Number(S.aspects);
 
-  const sev = window.getNIHSSSeverity ? window.getNIHSSSeverity(tot) : { label: '—' };
+  const sev = nihssReady && window.getNIHSSSeverity ? window.getNIHSSSeverity(tot) : { label: '—' };
   const dose = window.getTNKDose ? window.getTNKDose(parseFloat(S.weight)) : null;
 
-  // AHA/ASA disabling criteria — auto-scored from the exam already entered
+  // AHA/ASA disabling criteria — item-level criteria come from the built-in
+  // NIHSS if used; total NIHSS can also come from MDCalc.
   const g = id => (typeof S.nihss[id] === 'number' ? S.nihss[id] : 0);
   const motor = Math.max(g('5a'), g('5b'), g('6a'), g('6b'));
   const dis = [
@@ -306,7 +357,7 @@ function compute() {
     { met: g('9') >= 2, t: 'severe aphasia' },
     { met: g('11') >= 1, t: 'extinction' },
     { met: motor >= 2, t: 'anti-gravity weakness' },
-    { met: tot > 5, t: 'NIHSS >5' },
+    { met: nihssReady && tot > 5, t: 'NIHSS >5' },
   ].filter(d => d.met);
 
   const withinWindow = min <= 270;
@@ -344,7 +395,7 @@ function compute() {
       t: relYes.length ? relYes.length + ' relative — clinical judgment' : 'No relative contraindications',
       sub: relYes.length ? relYes.map(r => r.label.split(' — ')[0]).join(' · ') : '' },
     { k: dis.length ? 'MET' : '—', kColor: dis.length ? 'var(--ok)' : 'var(--dim2)',
-      t: 'Disabling deficit — ' + (dis.length ? dis.length + ' of 5 AHA/ASA criteria' : 'no criterion auto-met; judgment'),
+      t: 'Disabling deficit — ' + (dis.length ? dis.length + ' criterion' + (dis.length > 1 ? 's' : '') + ' met' : 'not auto-determined; use clinical judgment'),
       sub: dis.length ? dis.map(d => d.t).join(' · ') : '' },
   ];
 
@@ -355,15 +406,27 @@ function compute() {
     ? 'ABSOLUTE contraindication'
     : (relYes.length ? relYes.length + ' relative flag' + (relYes.length > 1 ? 's' : '') : 'none flagged');
 
+  const h = S.history || {};
+  const historyDone = !!(h.deficit || h.baselineMrs !== '' || h.glucose || h.sbp || h.anticoag);
+  const historySub = [
+    h.baselineMrs !== '' ? 'mRS ' + h.baselineMrs : null,
+    h.glucose ? 'glucose ' + h.glucose : null,
+    h.sbp ? 'BP ' + h.sbp + '/' + (h.dbp || '?') : null,
+    h.anticoag ? h.anticoag : null,
+  ].filter(Boolean).join(' · ') || 'focused stroke history';
+
   const steps = [
     { id: 'timing', name: 'Timing',
       sub: (S.onset === 'yes' ? 'Known onset' : S.onset === 'wakeup' ? 'Wake-up stroke' : 'Unknown onset') + ' · LKW ' + S.lkw,
       done: true },
+    { id: 'history', name: 'History + baseline', sub: historySub, done: historyDone },
     { id: 'contra', name: 'Contraindications', sub: relSub, done: Object.keys(S.contra).length > 0 },
     { id: 'nihss', name: 'NIHSS',
-      sub: scored === 0 ? 'not started' : scored < 15 ? tot + ' pts · item ' + (S.idx + 1) + ' of 15' : tot + ' pts · ' + sev.label,
-      done: scored === 15 },
-    { id: 'syndrome', name: 'Syndrome', sub: matches.length ? matches[0].name : 'after NIHSS', done: scored === 15 },
+      sub: external !== null ? 'MDCalc ' + external + ' pts' :
+        scored === 0 ? 'MDCalc or teaching mode' :
+        scored < 15 ? builtInTot + ' pts · item ' + (S.idx + 1) + ' of 15' : builtInTot + ' pts · ' + sev.label,
+      done: nihssReady },
+    { id: 'syndrome', name: 'Localization / syndrome', sub: matches.length ? matches[0].name : 'clinical pattern + reference', done: !!S.syndromeReviewed },
     { id: 'ct', name: 'CT / CTA',
       sub: S.ct
         ? ('CT ' + S.ct + (aspects !== null ? ' · ASPECTS ' + aspects : '') +
@@ -374,10 +437,13 @@ function compute() {
     { id: 'consent', name: 'Consent & TNK',
       sub: S.tnk === 'yes' ? 'TNK given ' + (S.tnkTime || '') : S.tnk === 'no' ? 'not given' : '',
       done: S.tnk !== null },
+    { id: 'management', name: 'Acute management',
+      sub: S.managementDone ? 'acute plan complete' : 'post-reperfusion / stroke unit care',
+      done: !!S.managementDone },
   ];
 
   return {
-    min, tot, scored, sev, dose, aspects, relYes, absYes, dis,
+    min, tot, builtInTot, externalNihss: external, nihssReady, scored, sev, dose, aspects, relYes, absYes, dis,
     withinWindow, ctClear, verdict, vBadge, vBadgeBg, vColor,
     evtCandidate, decisionRows, matches, steps,
   };
@@ -387,7 +453,8 @@ function compute() {
 function foldOpen(id) { return S.folds[id] ? ' open' : ''; }
 
 function screenHeader(c) {
-  const showBadge = c.scored > 0 && ['nihss', 'syndrome', 'ct', 'decision', 'consent'].includes(S.screen);
+  const showBadge = c.nihssReady && ['nihss', 'syndrome', 'ct', 'decision', 'consent', 'management'].includes(S.screen);
+  const badgeTotal = (S.screen === 'nihss' && S.nihssTeaching) ? c.builtInTot : c.tot;
   // Browsing the indications reference from the welcome screen goes back
   // there; everywhere else, back means the timeline hub.
   const backTo = (S.screen === 'indications' && S.prev === 'home') ? 'home' : 'hub';
@@ -395,7 +462,7 @@ function screenHeader(c) {
     '<div class="sc-bar">' +
       '<button class="back-btn" data-act="go" data-arg="' + backTo + '" aria-label="Back">' + ICON_BACK + '</button>' +
       '<span class="sc-title">' + esc(STEP_TITLES[S.screen] || '') + '</span>' +
-      (showBadge ? '<span class="nihss-badge">NIHSS ' + c.tot + '</span>' : '') +
+      (showBadge ? '<span class="nihss-badge">NIHSS ' + badgeTotal + '</span>' : '') +
       '<span class="clk-chip">' + esc(fmt(c.min)) + '</span>' +
     '</div>';
 }
@@ -427,12 +494,15 @@ function viewHome() {
   const rows = CASES.map(cs => {
     const min = elapsedMinFor(cs.lkw) ?? 0;
     const scored = ORDER.filter(id => cs.nihss[id] !== undefined).length;
-    const tot = ORDER.reduce((t, id) => t + (typeof cs.nihss[id] === 'number' ? cs.nihss[id] : 0), 0);
+    const ext = cs.nihssExternal === '' ? null : Number(cs.nihssExternal);
+    const hasExternal = Number.isFinite(ext) && ext >= 0 && ext <= 42;
+    const tot = hasExternal ? ext : ORDER.reduce((t, id) => t + (typeof cs.nihss[id] === 'number' ? cs.nihss[id] : 0), 0);
+    const hasNihss = hasExternal || scored > 0;
     const st = caseStatus(cs);
     const meta = [
       'LKW ' + cs.lkw,
       fmt(min) + ' elapsed',
-      scored > 0 ? 'NIHSS ' + tot : null,
+      hasNihss ? 'NIHSS ' + tot : null,
       cs.tnk === 'yes' && cs.tnkTime ? 'TNK ' + cs.tnkTime : null,
     ].filter(Boolean).join(' · ');
     return '' +
@@ -481,7 +551,7 @@ function viewHome() {
 function viewHub(c) {
   const currentIdx = c.steps.findIndex(st => !st.done);
   const activeIdx = currentIdx === -1 ? c.steps.length - 1 : currentIdx;
-  const resumeIdx = currentIdx === -1 ? 5 : currentIdx;
+  const resumeIdx = currentIdx === -1 ? c.steps.length - 1 : currentIdx;
   const barPct = Math.min(100, (c.min / 1440) * 100).toFixed(1) + '%';
 
   const rows = c.steps.map((st, i) => {
@@ -599,6 +669,69 @@ function viewTiming(c) {
         '</div>' +
       '</details>' +
     '</div>' +
+    footerPrimary('history', 'Focused history');
+}
+
+function viewHistory(c) {
+  const h = S.history || {};
+  const anticoagOpts = [
+    { v: 'none', label: 'None' },
+    { v: 'warfarin', label: 'Warfarin' },
+    { v: 'doac', label: 'DOAC' },
+    { v: 'other', label: 'Other' },
+  ];
+
+  return screenHeader(c) +
+    '<div class="body body--history">' +
+      '<div class="eyebrow">PRESENTING DEFICIT</div>' +
+      '<textarea class="input-textarea" rows="3" placeholder="Sudden aphasia + right face/arm weakness..." data-field="history.deficit" data-focus="history-deficit">' + esc(h.deficit) + '</textarea>' +
+
+      '<div class="history-grid">' +
+        '<div class="field">' +
+          '<label class="field-label">PRE-STROKE mRS</label>' +
+          '<select class="input-select" data-field="history.baselineMrs" data-focus="history-mrs">' +
+            '<option value="">Select</option>' +
+            [0,1,2,3,4,5].map(v => '<option value="' + v + '"' + (String(h.baselineMrs) === String(v) ? ' selected' : '') + '>' + v + '</option>').join('') +
+          '</select>' +
+        '</div>' +
+        '<div class="field">' +
+          '<label class="field-label">GLUCOSE (mmol/L)</label>' +
+          '<input class="input-compact" inputmode="decimal" type="number" step="0.1" min="0" value="' + esc(h.glucose) + '" data-field="history.glucose" data-focus="history-glucose">' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="eyebrow eyebrow--section">BLOOD PRESSURE</div>' +
+      '<div class="bp-entry">' +
+        '<input class="input-compact" inputmode="numeric" type="number" min="0" placeholder="SBP" value="' + esc(h.sbp) + '" data-field="history.sbp" data-focus="history-sbp">' +
+        '<span class="bp-slash">/</span>' +
+        '<input class="input-compact" inputmode="numeric" type="number" min="0" placeholder="DBP" value="' + esc(h.dbp) + '" data-field="history.dbp" data-focus="history-dbp">' +
+        '<span class="bp-unit">mmHg</span>' +
+      '</div>' +
+      ((Number(h.sbp) >= 185 || Number(h.dbp) >= 110) && h.sbp
+        ? '<div class="history-alert">Above thrombolysis BP threshold — lower BP and reassess before IV thrombolysis.</div>'
+        : '') +
+
+      '<div class="eyebrow eyebrow--section">ANTICOAGULATION</div>' +
+      '<div class="seg seg--wrap">' +
+        anticoagOpts.map(o => '<button class="seg-btn" data-act="history-anticoag" data-arg="' + o.v + '" aria-pressed="' + (h.anticoag === o.v) + '">' + o.label + '</button>').join('') +
+      '</div>' +
+      (h.anticoag && h.anticoag !== 'none'
+        ? '<div class="history-grid history-grid--spaced">' +
+            '<div class="field"><label class="field-label">DRUG / DOSE</label><input class="input-compact input-compact--full" type="text" placeholder="e.g. apixaban 5 mg BID" value="' + esc(h.anticoagName) + '" data-field="history.anticoagName" data-focus="history-drug"></div>' +
+            '<div class="field"><label class="field-label">LAST DOSE</label><input class="input-compact input-compact--full" type="text" placeholder="e.g. 08:00 today" value="' + esc(h.anticoagLastDose) + '" data-field="history.anticoagLastDose" data-focus="history-dose"></div>' +
+          '</div>'
+        : '') +
+
+      '<div class="eyebrow eyebrow--section">SEIZURE AT ONSET?</div>' +
+      segRow([{ v: 'no', label: 'No' }, { v: 'yes', label: 'Yes' }, { v: 'unknown', label: 'Unknown' }], h.seizure, 'history-seizure') +
+      (h.seizure === 'yes'
+        ? '<div class="note-card"><div class="note-title">Seizure is not itself an exclusion</div><div class="note-text">The key question is whether the persistent deficit is from ischemic stroke versus a post-ictal mimic. Continue imaging and stroke assessment.</div></div>'
+        : '') +
+
+      '<div class="eyebrow eyebrow--section">OTHER TIME-SENSITIVE HISTORY</div>' +
+      '<textarea class="input-textarea" rows="3" placeholder="Recent surgery/bleeding/trauma/stroke, pregnancy, endocarditis concern, baseline deficits..." data-field="history.notes" data-focus="history-notes">' + esc(h.notes) + '</textarea>' +
+      '<div class="history-hint">The next screen is the formal thrombolysis contraindication checklist. Do not delay CT/CTA to complete non-essential history.</div>' +
+    '</div>' +
     footerPrimary('contra', 'Contraindications');
 }
 
@@ -649,6 +782,35 @@ function viewContra(c) {
 }
 
 function viewNihss(c) {
+  if (!S.nihssTeaching) {
+    return screenHeader(c) +
+      '<div class="body body--nihss-choice">' +
+        '<div class="mdcalc-card">' +
+          '<div class="mdcalc-eyebrow">BEDSIDE MODE</div>' +
+          '<div class="mdcalc-title">NIHSS in MDCalc</div>' +
+          '<div class="mdcalc-sub">Use the calculator you already know, then enter the total here so the rest of this case carries the score forward.</div>' +
+          '<a class="mdcalc-open" href="https://www.mdcalc.com/calc/715/nih-stroke-scale-score-nihss" target="_blank" rel="noopener">Open MDCalc NIHSS' + arrowRight(18, 'currentColor') + '</a>' +
+        '</div>' +
+        '<div class="field nihss-total-field">' +
+          '<label class="field-label">NIHSS TOTAL FROM MDCALC</label>' +
+          '<input class="input-num" type="number" inputmode="numeric" min="0" max="42" placeholder="0–42" value="' + esc(S.nihssExternal) + '" data-field="nihssExternal" data-focus="nihss-external" aria-label="NIHSS total from MDCalc">' +
+        '</div>' +
+        (c.externalNihss !== null
+          ? '<div class="nihss-imported"><span>NIHSS ' + c.externalNihss + '</span><span>' + esc(c.sev.label) + '</span></div>'
+          : '') +
+        '<div class="nihss-mode-divider"><span>OR</span></div>' +
+        '<button class="teaching-mode-btn" data-act="nihss-teaching">' +
+          '<span><strong>Built-in NIHSS teaching mode</strong><small>Item-by-item examination instructions, scoring caveats and patient cards.</small></span>' +
+          chevRightThin(18, 'chev') +
+        '</button>' +
+        (c.scored > 0
+          ? '<div class="teaching-progress">Teaching mode progress: ' + c.scored + '/15 items · built-in total ' + c.builtInTot + '</div>'
+          : '') +
+        '<div class="nihss-note">A total score alone cannot localize the lesion. The next screen provides syndrome/localization reference; automatic pattern matching is available when the built-in item-level NIHSS is completed.</div>' +
+      '</div>' +
+      footerPrimary('syndrome', 'Localization & syndrome');
+  }
+
   const tabs = ORDER.map((id, i) => {
     const cls = i === S.idx ? ' tab--current' : S.nihss[id] !== undefined ? ' tab--done' : '';
     return '<button class="tab' + cls + '" data-act="tab" data-arg="' + i + '" aria-label="NIHSS item ' + id + '"><span>' + id + '</span></button>';
@@ -672,7 +834,6 @@ function viewNihss(c) {
       '</div>' +
     '</details>';
 
-  // Items 9 + 10 carry printed stimuli — open them full-screen for the patient.
   const cards = (window.NIHSS_CARDS || []).filter(k => k.item === id);
   const cardBtn = cards.length
     ? '<button class="card-btn" data-act="cards" data-arg="' + esc(cards[0].id) + '">' +
@@ -690,6 +851,7 @@ function viewNihss(c) {
     '</button>').join('');
 
   return screenHeader(c) +
+    '<div class="teaching-topbar"><button data-act="nihss-teaching">‹ Use MDCalc instead</button><span>' + c.scored + '/15 scored</span></div>' +
     '<div class="tabs">' + tabs + '</div>' +
     '<div class="body body--nihss">' +
       '<div class="item">' +
@@ -705,7 +867,7 @@ function viewNihss(c) {
       '</div>' +
     '</div>' +
     '<div class="nihss-foot">' +
-      '<div class="nf-total"><div class="nf-total-l">NIHSS</div><div class="nf-total-v">' + c.tot + '</div></div>' +
+      '<div class="nf-total"><div class="nf-total-l">NIHSS</div><div class="nf-total-v">' + c.builtInTot + '</div></div>' +
       '<button class="nf-prev" data-act="nihss-prev">‹ ' + esc(S.idx === 0 ? 'Back' : ORDER[S.idx - 1]) + '</button>' +
       '<button class="nf-next" data-act="nihss-next">' +
         esc(S.idx < 14 ? 'Next — ' + ORDER[S.idx + 1] : 'Syndrome') + arrowRight(18, 'currentColor') +
@@ -791,24 +953,38 @@ function viewSyndrome(c) {
       '<div class="syn-img">Imaging: ' + esc(m.ctaExpect) + '</div>' +
     '</div>').join('');
 
+  const quickIds = ['left_mca_m1','right_mca_m1','left_aca','right_aca','pca','bao','wallenberg','lacunar_pure_motor','lacunar_pure_sensory'];
+  const quick = (window.STROKE_SYNDROMES || []).filter(x => quickIds.includes(x.id));
+  const quickRows = quick.map(m =>
+    '<details class="syndrome-ref">' +
+      '<summary><span><strong>' + esc(m.name) + '</strong><small>' + esc(m.subtitle) + '</small></span>' + chevDown(16) + '</summary>' +
+      '<div class="syndrome-ref-body">' +
+        (m.features || []).map(f => '<div class="feat"><span class="mark">·</span><span>' + esc(f) + '</span></div>').join('') +
+        '<div class="syn-img">Imaging: ' + esc(m.ctaExpect) + '</div>' +
+      '</div>' +
+    '</details>').join('');
+
   return screenHeader(c) +
     '<div class="body body--syndrome">' +
       '<div class="tot-card">' +
-        '<div><div class="tot-eyebrow">NIHSS TOTAL</div><div class="tot-v">' + c.tot + '</div></div>' +
+        '<div><div class="tot-eyebrow">NIHSS TOTAL</div><div class="tot-v">' + (c.nihssReady ? c.tot : '—') + '</div></div>' +
         '<div class="tot-r"><div class="tot-eyebrow">SEVERITY</div><div class="sev-v">' + esc(c.sev.label) + '</div></div>' +
       '</div>' +
       (c.dis.length
         ? '<div class="dis-card">' +
-            '<div class="dis-title">Disabling deficit — ' + c.dis.length + ' of 5 AHA/ASA criteria</div>' +
+            '<div class="dis-title">Potentially disabling deficit</div>' +
             '<div class="dis-list">' + esc(c.dis.map(d => d.t).join(' · ')) + '</div>' +
           '</div>'
         : '') +
-      '<div class="eyebrow eyebrow--section">SUGGESTED SYNDROME — FROM NIHSS PATTERN</div>' +
+      '<div class="eyebrow eyebrow--section">LOCALIZATION</div>' +
       (c.matches.length
-        ? cards
-        : '<div class="no-match">Pattern doesn’t clearly fit one territory — may be atypical, mixed, or scores incomplete. Use clinical judgment and review mimics.</div>') +
+        ? '<div class="pattern-note">Automatic suggestions from the item-level NIHSS pattern:</div>' + cards
+        : '<div class="no-match">MDCalc provides the total score but not the item pattern to this app. Localize from the examination: cortical signs (aphasia/neglect/gaze/field cut) → anterior circulation; crossed cranial nerve/body findings, severe vertigo/ataxia or disproportionate LOC → posterior circulation; pure motor/sensory patterns without cortical signs → lacunar until proven otherwise.</div>') +
+      '<div class="eyebrow eyebrow--section">QUICK SYNDROME REFERENCE</div>' +
+      '<div class="syndrome-ref-list">' + quickRows + '</div>' +
+      '<div class="posterior-warning"><strong>Posterior circulation warning:</strong> a low NIHSS does not exclude a clinically important basilar/cerebellar stroke. CTA decisions should follow the syndrome and clinical deficit, not NIHSS alone.</div>' +
     '</div>' +
-    footerPrimary('ct', 'CT / CTA results');
+    '<div class="footer"><button class="btn-primary" data-act="syndrome-next">CT / CTA results' + arrowRight(18, '#fff') + '</button></div>';
 }
 
 function viewCt(c) {
@@ -897,18 +1073,65 @@ function viewConsent(c) {
       segRow([{ v: 'patient', label: 'Patient' }, { v: 'sdm', label: 'SDM' }], S.consentWith, 'consentWith') +
       '<details class="fold-rule fold-rule--tap" data-fold="script"' + foldOpen('script') + '>' +
         '<summary>Consent discussion script' + chevDown(16) + '</summary>' +
-        '<div class="fold-body fold-body--consent">Benefits: ~10–15 more of every 100 treated recover to independence (NNT ~7–10); earlier is better. Risks: symptomatic ICH ~2–6%, fatal in up to half of those; other bleeding usually manageable. Untreated moderate–severe stroke: 50–60% significant long-term disability.</div>' +
+        '<div class="fold-body fold-body--consent">Benefits: earlier reperfusion improves the chance of functional recovery. Major risk: symptomatic intracranial hemorrhage. Explain the individualized expected benefit/risk and proceed using emergency consent processes and local stroke protocol.</div>' +
       '</details>' +
       '<div class="eyebrow eyebrow--form">TNK GIVEN?</div>' +
       segRow([{ v: 'yes', label: 'YES — given' }, { v: 'no', label: 'NO — not given' }], S.tnk, 'tnk') +
       (S.tnk === 'yes'
         ? '<div class="eyebrow eyebrow--form-tight">TIME GIVEN</div>' +
           '<input class="input-lg" type="time" value="' + esc(S.tnkTime) + '" data-field="tnkTime" data-focus="tnkTime" aria-label="Time TNK given" style="margin-top:0">' +
-          '<div class="consent-note">Monitor 24 h. Suspect ICH with ↓LOC, BP spike, or new/worse headache → stop infusion if running, STAT CT, CBC/INR/type &amp; cross. No antiplatelets ×24 h.</div>'
+          '<div class="consent-note">Closely monitor for 24 h. Sudden neurologic deterioration → emergent CT. Avoid antiplatelet therapy for the first 24 h; start only after follow-up brain imaging excludes hemorrhage.</div>'
         : '') +
     '</div>' +
+    footerPrimary('management', 'Acute management');
+}
+
+function viewManagement(c) {
+  const m = S.management || {};
+  const items = [
+    { id: 'npo', title: 'NPO until swallow screen', sub: 'Validated swallowing screen before oral food, fluids or medications; do not delay reperfusion decisions.' },
+    { id: 'strokeUnit', title: 'Stroke unit / monitored stroke care', sub: 'Admit to an acute stroke unit as soon as possible; specialized stroke-unit care is the standard.' },
+    { id: 'rhythm', title: '12-lead ECG + rhythm monitoring', sub: 'Assess for AF/flutter and other cardiac causes after reperfusion decisions are secured.' },
+    ...(S.tnk === 'yes' ? [
+      { id: 'postTnkImaging', title: 'Post-thrombolysis monitoring + brain imaging', sub: 'Monitor closely for 24 h. Any acute deterioration → emergent CT. Obtain follow-up brain imaging before starting antiplatelet therapy.' },
+      { id: 'antithrombotic', title: 'Hold antiplatelets for first 24 h', sub: 'After IV thrombolysis, avoid antiplatelet therapy in the first 24 h; initiate only after imaging excludes secondary hemorrhage.' },
+    ] : [
+      { id: 'antithrombotic', title: 'Start antithrombotic plan when safe', sub: 'If no IV thrombolysis and hemorrhage is excluded, start guideline-directed antiplatelet therapy unless anticoagulation is indicated instead.' },
+    ]),
+    { id: 'rehab', title: 'Early rehab / secondary-prevention workup', sub: 'PT/OT/SLP assessment, medication reconciliation and etiologic workup once medically stable.' },
+  ];
+
+  const checks = items.map(it =>
+    '<button class="mgmt-item" data-act="mgmt-check" data-arg="' + it.id + '" aria-pressed="' + !!m[it.id] + '">' +
+      '<span class="mgmt-box">' + (m[it.id] ? '✓' : '') + '</span>' +
+      '<span><strong>' + esc(it.title) + '</strong><small>' + esc(it.sub) + '</small></span>' +
+    '</button>').join('');
+
+  return screenHeader(c) +
+    '<div class="body body--management">' +
+      (S.managementDone ? '<div class="management-done">Acute management checklist marked complete.</div>' : '') +
+      (S.tnk === 'yes'
+        ? '<div class="management-banner"><strong>Post-TNK</strong><span>Maintain BP per local post-thrombolysis protocol; CSBPR requires BP below 185/110 during treatment and for the next 24 h.</span></div>'
+        : '<div class="management-banner management-banner--neutral"><strong>No TNK recorded</strong><span>Continue stroke-unit care, antithrombotic planning and EVT pathway if applicable.</span></div>') +
+      (c.evtCandidate
+        ? '<div class="evt evt--management"><div class="evt-eyebrow">EVT PATHWAY ACTIVE</div><div class="evt-head">' + esc(S.vessel || 'LVO') + '</div><div class="evt-sub">Do not delay EVT to assess clinical response to thrombolysis. Continue transfer / angio coordination.</div></div>'
+        : '') +
+      '<div class="eyebrow eyebrow--section">ACUTE CHECKLIST</div>' +
+      '<div class="mgmt-list">' + checks + '</div>' +
+      '<details class="fold-rule fold-rule--tap" data-fold="deterioration"' + foldOpen('deterioration') + '>' +
+        '<summary>Neurologic deterioration after thrombolysis' + chevDown(16) + '</summary>' +
+        '<div class="fold-body fold-body--sm">Emergent CT. If hemorrhage is identified and thrombolytic is still infusing, stop it. Send CBC, INR/PT and type &amp; cross; activate local thrombolysis-associated hemorrhage protocol and specialist support.</div>' +
+      '</details>' +
+      '<div class="source-links">' +
+        '<a href="https://www.strokebestpractices.ca/recommendations/acute-stroke-management/acute-ischemic-stroke-treatment" target="_blank" rel="noopener">CSBPR — acute ischemic stroke treatment</a>' +
+        '<a href="https://www.strokebestpractices.ca/recommendations/acute-stroke-management/emergency-department-evaluation-and-management" target="_blank" rel="noopener">CSBPR — ED management</a>' +
+        '<a href="https://www.strokebestpractices.ca/recommendations/acute-stroke-management/acute-antithrombotic-therapy" target="_blank" rel="noopener">CSBPR — antithrombotic therapy</a>' +
+      '</div>' +
+    '</div>' +
     '<div class="footer">' +
-      '<button class="btn-dark btn-dark--lg" data-act="go" data-arg="hub">Back to timeline' + arrowRight(18, 'currentColor') + '</button>' +
+      (S.managementDone
+        ? '<button class="btn-dark btn-dark--lg" data-act="go" data-arg="hub">Back to timeline' + arrowRight(18, 'currentColor') + '</button>'
+        : '<button class="btn-primary btn-primary--lg" data-act="management-done">Mark acute plan complete' + arrowRight(18, '#fff') + '</button>') +
     '</div>';
 }
 
@@ -921,6 +1144,7 @@ const VIEWS = {
   home: viewHome,
   hub: viewHub,
   timing: viewTiming,
+  history: viewHistory,
   contra: viewContra,
   nihss: viewNihss,
   cards: viewCards,
@@ -929,6 +1153,7 @@ const VIEWS = {
   ct: viewCt,
   decision: viewDecision,
   consent: viewConsent,
+  management: viewManagement,
 };
 
 function render() {
@@ -1017,6 +1242,35 @@ root.addEventListener('click', e => {
       S.onset = arg;
       break;
 
+    case 'history-anticoag':
+      S.history.anticoag = arg;
+      break;
+
+    case 'history-seizure':
+      S.history.seizure = arg;
+      break;
+
+    case 'nihss-teaching':
+      S.nihssTeaching = !S.nihssTeaching;
+      resetScroll = true;
+      break;
+
+    case 'syndrome-next':
+      S.syndromeReviewed = true;
+      save();
+      navigate('ct');
+      return;
+
+    case 'mgmt-check':
+      S.management[arg] = !S.management[arg];
+      break;
+
+    case 'management-done':
+      S.managementDone = true;
+      save();
+      navigate('hub');
+      return;
+
     case 'ci-detail':
       S.contraOpen[arg] = !S.contraOpen[arg];
       break;
@@ -1050,6 +1304,9 @@ root.addEventListener('click', e => {
         delete S.nihss[id];
       } else {
         S.nihss[id] = value;
+      }
+      S.syndromeReviewed = false;
+      if (S.nihss[id] !== undefined) {
         advTimer = setTimeout(() => {
           if (S.idx < 14) {
             S.idx += 1;
@@ -1124,12 +1381,18 @@ root.addEventListener('input', e => {
   const el = e.target.closest('[data-field]');
   if (!el) return;
   const field = el.dataset.field;
-  if (field === 'lkw') S.lkw = el.value || S.lkw;
-  else if (field === 'label') S.label = el.value;
-  else if (field === 'aspects') S.aspects = el.value;
-  else if (field === 'weight') S.weight = el.value;
-  else if (field === 'tnkTime') S.tnkTime = el.value;
-  else return;
+  const value = el.value;
+
+  if (field === 'lkw') S.lkw = value || S.lkw;
+  else if (field === 'nihssExternal') {
+    S.nihssExternal = value;
+    S.syndromeReviewed = false;
+  } else if (field && (field.includes('.') || CASE_FIELDS.includes(field))) {
+    setPath(field, value);
+  } else {
+    return;
+  }
+
   save();
   render();
 });
