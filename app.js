@@ -82,7 +82,9 @@ function blankCase() {
     onset: 'yes',
     history: {
       deficit: '',
+      age: '',
       baselineMrs: '',
+      disabling: '',
       glucose: '',
       sbp: '',
       dbp: '',
@@ -340,6 +342,12 @@ function compute() {
   const tot = external !== null ? external : builtInTot;
   const scored = scoredCount();
   const nihssReady = external !== null || scored === 15;
+  const h = S.history || {};
+
+  const age = h.age === '' ? null : Number(h.age);
+  const adultProtocol = age === null ? null : age >= 18;
+  const baselineMrs = h.baselineMrs === '' ? null : Number(h.baselineMrs);
+  const baselineIndependent = baselineMrs === null ? null : baselineMrs <= 2;
 
   const relYes = CONTRA.slice(1).flatMap(g => g.items).filter(it => S.contra[it.id] === 'yes');
   const absYes = CONTRA[0].items.some(it => S.contra[it.id] === 'yes');
@@ -348,17 +356,25 @@ function compute() {
   const sev = nihssReady && window.getNIHSSSeverity ? window.getNIHSSSeverity(tot) : { label: '—' };
   const dose = window.getTNKDose ? window.getTNKDose(parseFloat(S.weight)) : null;
 
-  // AHA/ASA disabling criteria — item-level criteria come from the built-in
-  // NIHSS if used; total NIHSS can also come from MDCalc.
+  // AHA/ASA-style disabling clues can be inferred from the built-in item-level
+  // NIHSS. The explicit clinician/patient judgment entered in History always
+  // takes precedence because a low NIHSS can still be disabling.
   const g = id => (typeof S.nihss[id] === 'number' ? S.nihss[id] : 0);
   const motor = Math.max(g('5a'), g('5b'), g('6a'), g('6b'));
-  const dis = [
+  const autoDis = [
     { met: g('3') >= 2, t: 'complete hemianopsia' },
     { met: g('9') >= 2, t: 'severe aphasia' },
     { met: g('11') >= 1, t: 'extinction' },
     { met: motor >= 2, t: 'anti-gravity weakness' },
     { met: nihssReady && tot > 5, t: 'NIHSS >5' },
   ].filter(d => d.met);
+  const disablingMet = h.disabling === 'yes' || autoDis.length > 0;
+  const disablingDenied = h.disabling === 'no';
+
+  const dis = [
+    ...(h.disabling === 'yes' ? [{ met: true, t: 'clinician/patient judges deficit disabling' }] : []),
+    ...autoDis,
+  ];
 
   const withinWindow = min <= 270;
   const ctClear = S.ct === 'clear';
@@ -367,6 +383,12 @@ function compute() {
   let verdict, vBadge, vBadgeBg, vColor;
   if (absYes || S.ct === 'hem') {
     verdict = 'No TNK'; vBadge = 'CONTRAINDICATED'; vBadgeBg = 'var(--acc)'; vColor = 'var(--ink)';
+  } else if (adultProtocol === false) {
+    verdict = 'Pediatric stroke consult'; vBadge = 'AGE <18'; vBadgeBg = 'var(--warn)'; vColor = 'var(--ink)';
+  } else if (disablingDenied) {
+    verdict = 'No routine TNK'; vBadge = 'NON-DISABLING'; vBadgeBg = '#7d7979'; vColor = 'var(--ink)';
+  } else if (!disablingMet) {
+    verdict = 'Confirm disabling deficit'; vBadge = 'INCLUSION PENDING'; vBadgeBg = 'var(--warn)'; vColor = 'var(--ink)';
   } else if (!withinWindow) {
     verdict = 'Imaging selection'; vBadge = 'OUTSIDE 4.5 H'; vBadgeBg = '#7d7979'; vColor = 'var(--ink)';
   } else if (S.ct !== 'clear') {
@@ -374,18 +396,34 @@ function compute() {
   } else if (!aspectsOk) {
     verdict = 'Consult — large core'; vBadge = 'ASPECTS <6'; vBadgeBg = 'var(--warn)'; vColor = 'var(--ink)';
   } else if (relYes.length) {
-    verdict = 'Give TNK — judgment';
+    verdict = 'TNK — expert judgment';
     vBadge = relYes.length + ' RELATIVE FLAG' + (relYes.length > 1 ? 'S' : '');
     vBadgeBg = 'var(--warn)'; vColor = 'var(--acc)';
   } else {
     verdict = 'Give TNK'; vBadge = 'ELIGIBLE'; vBadgeBg = 'var(--ok)'; vColor = 'var(--acc)';
   }
 
-  const evtCandidate = S.lvo === 'yes' && min <= 1440 && (aspects === null || aspects >= 3);
+  // 2025 CSBPR EVT update: standard evidence-backed occlusions are intracranial
+  // ICA/M1 or basilar. M2/A2/P2 are MeVOs and should trigger expert review, not
+  // an automatic "candidate" label. ASPECTS 3–5 can still benefit.
+  const majorLvo = ['ICA-T', 'M1', 'Basilar'].includes(S.vessel);
+  const mevo = ['M2', 'A2', 'P2'].includes(S.vessel);
+  const evtWindow = S.lvo === 'yes' && min <= 1440;
+  const evtCoreSupported = aspects === null || aspects >= 3;
+  const evtStandard = evtWindow && majorLvo && evtCoreSupported && baselineIndependent !== false && adultProtocol !== false;
+  const evtConsult = evtWindow && !evtStandard;
+  const evtCandidate = evtStandard || evtConsult;
+  const evtStatus = evtStandard ? 'standard' : evtConsult ? 'consult' : null;
 
   const decisionRows = [
+    { k: disablingMet ? 'PASS' : disablingDenied ? 'FAIL' : '—',
+      kColor: disablingMet ? 'var(--ok)' : disablingDenied ? 'var(--accT)' : 'var(--warn)',
+      t: disablingMet ? 'Disabling ischemic deficit confirmed' : disablingDenied ? 'Deficit documented as non-disabling' : 'Confirm whether the residual deficit is disabling',
+      sub: dis.length ? dis.map(d => d.t).join(' · ') : 'A low NIHSS does not automatically mean non-disabling.' },
+    { k: adultProtocol === false ? 'FLAG' : 'PASS', kColor: adultProtocol === false ? 'var(--warn)' : 'var(--ok)',
+      t: age === null ? 'Adult protocol — age not entered' : 'Age ' + age + (adultProtocol ? ' — adult protocol' : ' — pediatric stroke specialist pathway') },
     { k: withinWindow ? 'PASS' : 'FAIL', kColor: withinWindow ? 'var(--ok)' : 'var(--accT)',
-      t: 'Window — ' + fmt(min) + ' since LKW' + (withinWindow ? ', <4:30' : ' — 4.5–9 h needs CTP/MRI selection') },
+      t: 'Window — ' + fmt(min) + ' since LKW' + (withinWindow ? ', <4:30' : ' — advanced-imaging selection may apply') },
     { k: ctClear ? 'PASS' : (S.ct === 'hem' ? 'FAIL' : '—'),
       kColor: ctClear ? 'var(--ok)' : (S.ct === 'hem' ? 'var(--accT)' : 'var(--dim2)'),
       t: 'CT ' + (ctClear ? 'clear' : S.ct === 'hem' ? 'hemorrhage' : 'pending') + (aspects !== null ? ' · ASPECTS ' + aspects : '') },
@@ -394,9 +432,9 @@ function compute() {
     { k: relYes.length ? 'FLAG' : 'PASS', kColor: relYes.length ? 'var(--warn)' : 'var(--ok)',
       t: relYes.length ? relYes.length + ' relative — clinical judgment' : 'No relative contraindications',
       sub: relYes.length ? relYes.map(r => r.label.split(' — ')[0]).join(' · ') : '' },
-    { k: dis.length ? 'MET' : '—', kColor: dis.length ? 'var(--ok)' : 'var(--dim2)',
-      t: 'Disabling deficit — ' + (dis.length ? dis.length + ' criterion' + (dis.length > 1 ? 's' : '') + ' met' : 'not auto-determined; use clinical judgment'),
-      sub: dis.length ? dis.map(d => d.t).join(' · ') : '' },
+    { k: baselineIndependent === false ? 'FLAG' : '—', kColor: baselineIndependent === false ? 'var(--warn)' : 'var(--dim2)',
+      t: baselineMrs === null ? 'Pre-stroke function not entered' : 'Pre-stroke mRS ' + baselineMrs,
+      sub: baselineIndependent === false ? 'Reperfusion may still be considered, but benefit/risk should be individualized with stroke expertise.' : '' },
   ];
 
   const matches = (scored > 3 && window.getSyndromeSuggestions ? window.getSyndromeSuggestions(S.nihss) : [])
@@ -406,10 +444,11 @@ function compute() {
     ? 'ABSOLUTE contraindication'
     : (relYes.length ? relYes.length + ' relative flag' + (relYes.length > 1 ? 's' : '') : 'none flagged');
 
-  const h = S.history || {};
-  const historyDone = !!(h.deficit || h.baselineMrs !== '' || h.glucose || h.sbp || h.anticoag);
+  const historyDone = !!(h.deficit || h.age || h.baselineMrs !== '' || h.disabling || h.glucose || h.sbp || h.anticoag);
   const historySub = [
+    h.age ? 'age ' + h.age : null,
     h.baselineMrs !== '' ? 'mRS ' + h.baselineMrs : null,
+    h.disabling ? (h.disabling === 'yes' ? 'disabling' : h.disabling === 'no' ? 'non-disabling' : 'disability ?') : null,
     h.glucose ? 'glucose ' + h.glucose : null,
     h.sbp ? 'BP ' + h.sbp + '/' + (h.dbp || '?') : null,
     h.anticoag ? h.anticoag : null,
@@ -445,7 +484,7 @@ function compute() {
   return {
     min, tot, builtInTot, externalNihss: external, nihssReady, scored, sev, dose, aspects, relYes, absYes, dis,
     withinWindow, ctClear, verdict, vBadge, vBadgeBg, vColor,
-    evtCandidate, decisionRows, matches, steps,
+    evtCandidate, evtStatus, evtStandard, evtConsult, decisionRows, matches, steps,
   };
 }
 
@@ -688,27 +727,42 @@ function viewHistory(c) {
 
       '<div class="history-grid">' +
         '<div class="field">' +
+          '<label class="field-label">AGE</label>' +
+          '<input class="input-compact" inputmode="numeric" type="number" min="0" max="120" placeholder="Years" value="' + esc(h.age) + '" data-field="history.age" data-focus="history-age">' +
+        '</div>' +
+        '<div class="field">' +
           '<label class="field-label">PRE-STROKE mRS</label>' +
           '<select class="input-select" data-field="history.baselineMrs" data-focus="history-mrs">' +
             '<option value="">Select</option>' +
             [0,1,2,3,4,5].map(v => '<option value="' + v + '"' + (String(h.baselineMrs) === String(v) ? ' selected' : '') + '>' + v + '</option>').join('') +
           '</select>' +
         '</div>' +
+      '</div>' +
+
+      '<div class="eyebrow eyebrow--section">IS THE RESIDUAL DEFICIT DISABLING?</div>' +
+      segRow([
+        { v: 'yes', label: 'Yes' },
+        { v: 'no', label: 'No' },
+        { v: 'uncertain', label: 'Uncertain' },
+      ], h.disabling, 'history-disabling') +
+      '<div class="history-hint history-hint--tight">Judge function, not NIHSS alone: language, vision, dominant-hand function, gait and the patient’s usual work/ADLs can make a low NIHSS disabling.</div>' +
+
+      '<div class="history-grid">' +
         '<div class="field">' +
           '<label class="field-label">GLUCOSE (mmol/L)</label>' +
           '<input class="input-compact" inputmode="decimal" type="number" step="0.1" min="0" value="' + esc(h.glucose) + '" data-field="history.glucose" data-focus="history-glucose">' +
         '</div>' +
-      '</div>' +
-
-      '<div class="eyebrow eyebrow--section">BLOOD PRESSURE</div>' +
-      '<div class="bp-entry">' +
-        '<input class="input-compact" inputmode="numeric" type="number" min="0" placeholder="SBP" value="' + esc(h.sbp) + '" data-field="history.sbp" data-focus="history-sbp">' +
-        '<span class="bp-slash">/</span>' +
-        '<input class="input-compact" inputmode="numeric" type="number" min="0" placeholder="DBP" value="' + esc(h.dbp) + '" data-field="history.dbp" data-focus="history-dbp">' +
-        '<span class="bp-unit">mmHg</span>' +
+        '<div class="field">' +
+          '<label class="field-label">BLOOD PRESSURE</label>' +
+          '<div class="bp-entry bp-entry--compact">' +
+            '<input class="input-compact" inputmode="numeric" type="number" min="0" placeholder="SBP" value="' + esc(h.sbp) + '" data-field="history.sbp" data-focus="history-sbp">' +
+            '<span class="bp-slash">/</span>' +
+            '<input class="input-compact" inputmode="numeric" type="number" min="0" placeholder="DBP" value="' + esc(h.dbp) + '" data-field="history.dbp" data-focus="history-dbp">' +
+          '</div>' +
+        '</div>' +
       '</div>' +
       ((Number(h.sbp) >= 185 || Number(h.dbp) >= 110) && h.sbp
-        ? '<div class="history-alert">Above thrombolysis BP threshold — lower BP and reassess before IV thrombolysis.</div>'
+        ? '<div class="history-alert">Above the usual pre-thrombolysis treatment threshold — lower BP per local protocol and reassess.</div>'
         : '') +
 
       '<div class="eyebrow eyebrow--section">ANTICOAGULATION</div>' +
@@ -725,7 +779,7 @@ function viewHistory(c) {
       '<div class="eyebrow eyebrow--section">SEIZURE AT ONSET?</div>' +
       segRow([{ v: 'no', label: 'No' }, { v: 'yes', label: 'Yes' }, { v: 'unknown', label: 'Unknown' }], h.seizure, 'history-seizure') +
       (h.seizure === 'yes'
-        ? '<div class="note-card"><div class="note-title">Seizure is not itself an exclusion</div><div class="note-text">The key question is whether the persistent deficit is from ischemic stroke versus a post-ictal mimic. Continue imaging and stroke assessment.</div></div>'
+        ? '<div class="note-card"><div class="note-title">Seizure is not itself an exclusion</div><div class="note-text">The key question is whether the persistent deficit is ischemic stroke versus a post-ictal mimic. Continue imaging and stroke assessment.</div></div>'
         : '') +
 
       '<div class="eyebrow eyebrow--section">OTHER TIME-SENSITIVE HISTORY</div>' +
@@ -1030,15 +1084,31 @@ function viewDecision(c) {
       '<div class="d-t">' + esc(r.t) + (r.sub ? '<span class="d-sub">' + esc(r.sub) + '</span>' : '') + '</div>' +
     '</div>').join('');
 
+  const evtBox = c.evtCandidate
+    ? '<div class="evt' + (c.evtStatus === 'consult' ? ' evt--consult' : '') + '">' +
+        '<div class="evt-eyebrow">' + (c.evtStatus === 'standard' ? 'POTENTIAL EVT — STANDARD 2025 CRITERIA' : 'EVT — EXPERT REVIEW') + '</div>' +
+        '<div class="evt-head">' + esc((S.vessel || 'LVO') + ' occlusion') + '</div>' +
+        '<div class="evt-sub">' +
+          (c.evtStatus === 'standard'
+            ? esc('Within 24 h · ' + (c.aspects !== null ? 'ASPECTS ' + c.aspects + ' · ' : '') + 'intracranial ICA/M1 or basilar pattern. Confirm disabling symptoms, technical accessibility and stroke/neurointerventional agreement.')
+            : esc('LVO is present but one or more standard criteria are not established. MeVO (M2/A2/P2), baseline dependence, uncertain vessel/core, or other non-standard features require stroke + neurointerventional review.')) +
+          (S.tnk === 'yes' || c.verdict === 'Give TNK' || c.verdict === 'TNK — expert judgment'
+            ? ' Do not delay EVT to assess thrombolysis response.'
+            : '') +
+        '</div>' +
+        '<button class="evt-btn" data-act="noop">Call EVT centre + critical care transport' + arrowRight(18, 'currentColor') + '</button>' +
+      '</div>'
+    : '';
+
   return screenHeader(c) +
     '<div class="body body--decision">' +
       '<div class="verdict">' +
         '<span class="v-badge" style="background:' + c.vBadgeBg + '">' + esc(c.vBadge) + '</span>' +
         '<div class="v-text" style="color:' + c.vColor + '">' + esc(c.verdict) + '</div>' +
-        (c.dose
+        (c.dose && (c.verdict === 'Give TNK' || c.verdict === 'TNK — expert judgment')
           ? '<div class="dose">TNK ' + c.dose + ' mg IV bolus · 0.25 mg/kg × ' + esc(S.weight) + ' kg · max 25 mg</div>'
           : '') +
-        '<div class="bp-line">BP &lt;185/110 before, during, and for 24 h after TNK (CSBPR 4.3)</div>' +
+        '<div class="bp-line">If giving IV thrombolysis: achieve and maintain BP below the local thrombolysis threshold before treatment; continue protocolized BP monitoring afterward.</div>' +
         '<div class="weight-row">' +
           '<label class="weight-l" for="weight-input">WEIGHT</label>' +
           '<input id="weight-input" class="weight-in" type="number" min="30" max="200" value="' + esc(S.weight) + '" data-field="weight" data-focus="weight">' +
@@ -1046,20 +1116,10 @@ function viewDecision(c) {
         '</div>' +
       '</div>' +
       rows +
-      (c.evtCandidate
-        ? '<div class="evt">' +
-            '<div class="evt-eyebrow">EVT CANDIDATE</div>' +
-            '<div class="evt-head">' + esc((S.vessel || 'LVO') + ' occlusion') + '</div>' +
-            '<div class="evt-sub">' +
-              esc('Within 24 h · ASPECTS ' + (c.aspects !== null ? c.aspects : '?') + (S.collat ? ' · collaterals ' + S.collat : '') + '.') +
-              ' Start TNK while the angio suite is prepared — do not wait to judge response.' +
-            '</div>' +
-            '<button class="evt-btn" data-act="noop">Call EVT centre + critical care transport' + arrowRight(18, 'currentColor') + '</button>' +
-          '</div>'
-        : '') +
+      evtBox +
       '<details class="fold-rule fold-rule--tap" data-fold="bp"' + foldOpen('bp') + '>' +
         '<summary>BP targets &amp; drug dosing' + chevDown(16) + '</summary>' +
-        '<div class="fold-body fold-body--sm">Labetalol 10 mg IV over 1–2 min (repeat once, max 20 mg pre-TNK) · Hydralazine 10 mg IV (onset 5–15 min) · Nicardipine 5 mg/h IV, titrate, max 15 mg/h. Not eligible for TNK: permissive ≤220/120.</div>' +
+        '<div class="fold-body fold-body--sm">Follow the institution\'s current thrombolysis BP protocol. Canadian Stroke Best Practices require BP below 185/110 while initiating/during IV thrombolysis and during the following 24 h. Avoid rapid or excessive BP reduction.</div>' +
       '</details>' +
     '</div>' +
     footerPrimary('consent', 'Consent & give TNK');
@@ -1114,7 +1174,7 @@ function viewManagement(c) {
         ? '<div class="management-banner"><strong>Post-TNK</strong><span>Maintain BP per local post-thrombolysis protocol; CSBPR requires BP below 185/110 during treatment and for the next 24 h.</span></div>'
         : '<div class="management-banner management-banner--neutral"><strong>No TNK recorded</strong><span>Continue stroke-unit care, antithrombotic planning and EVT pathway if applicable.</span></div>') +
       (c.evtCandidate
-        ? '<div class="evt evt--management"><div class="evt-eyebrow">EVT PATHWAY ACTIVE</div><div class="evt-head">' + esc(S.vessel || 'LVO') + '</div><div class="evt-sub">Do not delay EVT to assess clinical response to thrombolysis. Continue transfer / angio coordination.</div></div>'
+        ? '<div class="evt evt--management' + (c.evtStatus === 'consult' ? ' evt--consult' : '') + '"><div class="evt-eyebrow">' + (c.evtStatus === 'standard' ? 'EVT PATHWAY ACTIVE' : 'EVT EXPERT REVIEW') + '</div><div class="evt-head">' + esc(S.vessel || 'LVO') + '</div><div class="evt-sub">Coordinate with stroke/neurointerventional teams. If thrombolysis was given, do not delay EVT to assess clinical response.</div></div>'
         : '') +
       '<div class="eyebrow eyebrow--section">ACUTE CHECKLIST</div>' +
       '<div class="mgmt-list">' + checks + '</div>' +
@@ -1248,6 +1308,10 @@ root.addEventListener('click', e => {
 
     case 'history-seizure':
       S.history.seizure = arg;
+      break;
+
+    case 'history-disabling':
+      S.history.disabling = arg;
       break;
 
     case 'nihss-teaching':
