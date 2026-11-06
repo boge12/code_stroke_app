@@ -1,1 +1,19 @@
-This tool should not replace clincial judgement.
+# Code Stroke
+
+Mobile-first progressive web app for bedside acute stroke assessment.
+
+Current workflow:
+
+1. Last known well / onset timing
+2. Focused stroke history and baseline function
+3. Thrombolysis contraindications
+4. NIHSS — MDCalc-first, with optional built-in teaching mode
+5. Stroke localization and syndrome reference
+6. CT / CTA and LVO assessment
+7. TNK / EVT decision support
+8. Consent / treatment documentation
+9. Early post-reperfusion and stroke-unit management checklist
+
+Clinical content is based primarily on Canadian Stroke Best Practice Recommendations and should be reconciled with the treating institution's current stroke protocol.
+
+**This tool does not replace clinical judgment, stroke-expert consultation, or local policy.**
