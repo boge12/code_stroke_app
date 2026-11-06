@@ -150,7 +150,7 @@ function sanitizeCase(raw) {
     const wantsObject = shape[k] !== null && typeof shape[k] === 'object';
     const isObject = v !== null && typeof v === 'object' && !Array.isArray(v);
     if (wantsObject !== isObject) continue; // shape drifted — keep the default
-    out[k] = v;
+    out[k] = wantsObject ? Object.assign({}, shape[k], v) : v;
   }
   out.id = typeof raw.id === 'string' ? raw.id : 'c' + Date.now() + Math.random().toString(36).slice(2, 7);
   out.createdAt = typeof raw.createdAt === 'number' ? raw.createdAt : Date.now();
@@ -344,9 +344,9 @@ function compute() {
   const nihssReady = external !== null || scored === 15;
   const h = S.history || {};
 
-  const age = h.age === '' ? null : Number(h.age);
-  const adultProtocol = age === null ? null : age >= 18;
-  const baselineMrs = h.baselineMrs === '' ? null : Number(h.baselineMrs);
+  const age = (h.age === '' || h.age == null) ? null : Number(h.age);
+  const adultProtocol = age === null || !Number.isFinite(age) ? null : age >= 18;
+  const baselineMrs = (h.baselineMrs === '' || h.baselineMrs == null) ? null : Number(h.baselineMrs);
   const baselineIndependent = baselineMrs === null ? null : baselineMrs <= 2;
 
   const relYes = CONTRA.slice(1).flatMap(g => g.items).filter(it => S.contra[it.id] === 'yes');
