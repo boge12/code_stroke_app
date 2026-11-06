@@ -1,1 +1,42 @@
-This tool should not replace clincial judgement.
+# Code Stroke
+
+Mobile-first progressive web app for bedside acute stroke assessment.
+
+Current workflow:
+
+1. Last known well / onset timing
+2. Focused stroke history and baseline function
+3. Thrombolysis contraindications
+4. NIHSS — MDCalc-first, with optional built-in teaching mode
+5. Stroke localization and syndrome reference
+6. CT / CTA and LVO assessment
+7. TNK / EVT decision support
+8. Consent / treatment documentation
+9. Early post-reperfusion and stroke-unit management checklist
+
+Clinical content is based primarily on Canadian Stroke Best Practice Recommendations and should be reconciled with the treating institution's current stroke protocol.
+
+**This tool does not replace clinical judgment, stroke-expert consultation, or local policy.**
+
+
+## IV thrombolysis criteria source
+
+The contraindication checklist is intentionally limited to the **Canadian Stroke Best Practice Recommendations (CSBPR) Box 5B core criteria** in the combined Acute Stroke Management 7th Edition (2022) + EVT Interim Update 2025.
+
+The core checklist includes:
+- 2 absolute exclusions
+- 4 historical relative exclusions
+- 3 clinical relative exclusions
+- 1 imaging relative exclusion
+- 4 laboratory relative exclusions
+
+Items that appeared in an earlier app version but are **not in current CSBPR Box 5B** were removed from the core checklist: brain parenchymal neoplasm, STEMI in the 3-month historical item, recent GI/GU bleeding as a standalone 21-day item, symptoms suggestive of SAH as a standalone item, and a combined arterial-dissection/infective-endocarditis item.
+
+Important clarifications are surfaced separately in-app:
+- seizure at onset is not itself a contraindication to reperfusion;
+- DOAC use generally precludes routine IV thrombolysis but selected expert pathways may use drug-level/reversal strategies;
+- anticoagulation does not itself exclude EVT;
+- routine blood work should not unnecessarily delay imaging or reperfusion decisions;
+- CSBPR Section 4.3 and Box 5B use slightly different BP wording/thresholds, so the app explicitly directs users to the current local stroke BP protocol when this matters.
+
+This separation is deliberate: local hospital policy can be stricter than national guidance, but local or older criteria should not be silently presented as if they are current CSBPR Box 5B.

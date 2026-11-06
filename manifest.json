@@ -1,7 +1,7 @@
 {
   "name": "Code Stroke Triage",
   "short_name": "Code Stroke",
-  "description": "Guided code stroke triage for Lakeridge Health — NIHSS, TNK eligibility, EVT, EMR note",
+  "description": "Guided acute stroke assessment — timing, focused history, MDCalc NIHSS, localization, TNK/EVT eligibility and acute management",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0a1520",
