@@ -25,29 +25,94 @@ const STEP_TITLES = {
 };
 
 // Reconciled CSBPR Box 5B + local protocol wording (see chats/chat1.md).
+const CSBPR_BOX5B_URL = 'https://www.strokebestpractices.ca/-/media/1-stroke-best-practices/acute-stroke-management/csbpr7-asm-box5b.pdf';
+const CSBPR_ACUTE_URL = 'https://www.strokebestpractices.ca/recommendations/acute-stroke-management/acute-ischemic-stroke-treatment';
+const CSBPR_ED_URL = 'https://www.strokebestpractices.ca/recommendations/acute-stroke-management/emergency-department-evaluation-and-management';
+
+// Core IV-thrombolysis exclusions from CSBPR Box 5B, as carried forward in
+// the combined 2022 Acute Stroke Management module + 2025 EVT interim update.
+// Do not silently add older AHA/ASA or local-protocol exclusions to this list:
+// supplemental/local rules belong in a clearly labelled separate layer.
 const CONTRA = [
-  { header: 'ABSOLUTE — EITHER ONE EXCLUDES TNK', tag: 'CSBPR BOX 5B', color: 'acc', items: [
-    { id: 'a1', label: 'Active hemorrhage at a non-compressible site — or any condition increasing risk of major hemorrhage', detail: 'Not including menses or minor superficial bleeding. If in doubt, weigh risk vs benefit.' },
-    { id: 'a2', label: 'Any intracranial hemorrhage — or brain parenchyma neoplasm — on imaging', detail: 'Any hemorrhage on CT or MRI is an absolute contraindication to TNK.' },
+  { header: 'ABSOLUTE — EITHER ONE EXCLUDES IV THROMBOLYSIS', tag: 'CSBPR BOX 5B', color: 'acc', items: [
+    {
+      id: 'a1',
+      label: 'Any active hemorrhage — or any condition that could increase the risk of major hemorrhage after IV thrombolysis',
+      detail: 'CSBPR Box 5B absolute exclusion. The wording is intentionally broad; if the bleeding risk is uncertain, discuss the individualized risk/benefit urgently with a stroke expert.'
+    },
+    {
+      id: 'a2',
+      label: 'Any hemorrhage on brain imaging',
+      detail: 'Any hemorrhage on the acute brain imaging excludes IV thrombolysis. This does not automatically exclude EVT; assess the vascular/imaging context separately.'
+    },
   ] },
   { header: 'RELATIVE · HISTORICAL', tag: 'CLINICAL JUDGMENT', items: [
-    { id: 'hich', label: 'History of intracranial hemorrhage', detail: 'Prior ICH significantly increases re-bleeding risk. Discuss risk:benefit with telestroke.' },
-    { id: 'trauma', label: 'Ischemic stroke, STEMI, serious head or spinal trauma — past 3 months', detail: 'Risk varies with severity. Discuss with telestroke.' },
-    { id: 'surg', label: 'Major surgery (cardiac, thoracic, abdominal, orthopedic) — past 14 days', detail: 'Risk varies according to the procedure.' },
-    { id: 'gigu', label: 'GI or urinary tract hemorrhage — past 21 days', detail: 'Recent GI/GU bleeding increases re-bleeding risk.' },
-    { id: 'art', label: 'Arterial puncture, non-compressible site — past 7 days', detail: 'E.g. subclavian or femoral arterial line — hematoma risk.' },
+    {
+      id: 'hich',
+      label: 'History of intracranial hemorrhage',
+      detail: 'Relative exclusion in CSBPR Box 5B. Individualize with stroke expertise rather than treating this as an automatic absolute exclusion.'
+    },
+    {
+      id: 'trauma',
+      label: 'Stroke or serious head or spinal trauma — preceding 3 months',
+      detail: 'CSBPR Box 5B. The current Canadian wording does not add STEMI to this 3-month item.'
+    },
+    {
+      id: 'surg',
+      label: 'Major surgery — preceding 14 days',
+      detail: 'Examples in CSBPR: cardiac, thoracic, abdominal, or orthopedic surgery. Risk varies according to the procedure.'
+    },
+    {
+      id: 'art',
+      label: 'Arterial puncture at a non-compressible site — previous 7 days',
+      detail: 'Relative exclusion in CSBPR Box 5B.'
+    },
   ] },
-  { header: 'RELATIVE · CLINICAL', items: [
-    { id: 'sah', label: 'Symptoms suggestive of subarachnoid hemorrhage', detail: 'Thunderclap headache, meningism — image and reconsider diagnosis.' },
-    { id: 'mimic', label: 'Symptoms from a non-ischemic condition — seizure with Todd’s paralysis, severe hypo/hyperglycemia', detail: 'Seizure itself is NOT a contraindication to reperfusion (CSBPR 5.5) — the concern is a mimic. If strong evidence of ischemic stroke, proceed.' },
-    { id: 'htn', label: 'Refractory hypertension — <185/110 cannot be achieved to initiate thrombolysis', detail: 'Labetalol 10 mg IV, hydralazine 10 mg IV, or nicardipine 5 mg/h. If target cannot be achieved and maintained, TNK is not safe.' },
-    { id: 'dissect', label: 'Clinical picture suggestive of arterial dissection or infective endocarditis', detail: 'Both raise hemorrhage/embolic concerns — stroke expert consult.' },
-    { id: 'doac', label: 'Currently prescribed and taking a DOAC', detail: 'With DOAC level testing + reversal agents, thrombolysis may be considered with hematology. Otherwise direct EVT if eligible. Record time of last dose.' },
+  { header: 'RELATIVE · CLINICAL', tag: 'STROKE EXPERT IF UNCERTAIN', items: [
+    {
+      id: 'mimic',
+      label: 'Deficit is due to another non-ischemic acute neurologic condition',
+      detail: 'CSBPR examples: post-ictal Todd paralysis or focal deficits from severe hypo-/hyperglycemia. Seizure at stroke onset itself is NOT a contraindication to reperfusion if the persistent deficit is believed to be ischemic.'
+    },
+    {
+      id: 'htn',
+      label: 'Hypertension remains above the thrombolysis target despite hyperacute treatment',
+      detail: 'Operational BP guidance in CSBPR Section 4.3 is <185/110 while initiating/during IV thrombolysis. Box 5B separately lists inability to achieve and maintain <180/105 as a relative exclusion. Because the source documents use different thresholds, follow the current local stroke BP protocol and obtain stroke-expert input when BP remains difficult to control.'
+    },
+    {
+      id: 'doac',
+      label: 'Currently prescribed and taking a DOAC',
+      detail: 'IV thrombolysis should not routinely be given on a DOAC. At comprehensive centres with rapid drug-level testing and reversal capability, treatment may be considered case-by-case with stroke/thrombosis expertise. Anticoagulation is NOT a contraindication to EVT.'
+    },
   ] },
-  { header: 'RELATIVE · LABORATORY', items: [
-    { id: 'gluc', label: 'Glucose <2.7 or >22.2 mmol/L — likely metabolic mimic', detail: 'Correct and reassess; if deficits persist, may proceed.' },
-    { id: 'plt', label: 'Platelets <100,000 /mm³', detail: 'Higher likelihood of serious bleeding.' },
-    { id: 'inr', label: 'INR >1.7', detail: 'Coagulopathy from warfarin or other cause — discuss with telestroke.' },
+  { header: 'RELATIVE · CT / MRI', tag: 'CSBPR BOX 5B', items: [
+    {
+      id: 'extensive',
+      label: 'Early signs of extensive infarction — e.g. >1/3 MCA territory or ASPECTS <6',
+      detail: 'Relative IV-thrombolysis exclusion in Box 5B. Do not use this IVT criterion to automatically exclude EVT: the 2025 Canadian EVT update includes selected patients with moderate/large cores.'
+    },
+  ] },
+  { header: 'RELATIVE · LABORATORY', tag: 'DO NOT DELAY REPERFUSION UNNECESSARILY', items: [
+    {
+      id: 'gluc',
+      label: 'Blood glucose <2.7 or >22.2 mmol/L',
+      detail: 'Relative exclusion in Box 5B. Correct severe glucose abnormalities and reassess the deficit. CSBPR also states that routine blood work should not delay imaging or reperfusion decisions.'
+    },
+    {
+      id: 'aptt',
+      label: 'Elevated aPTT',
+      detail: 'Relative exclusion in CSBPR Box 5B. Interpret in context, especially recent or ongoing heparin exposure.'
+    },
+    {
+      id: 'inr',
+      label: 'INR >1.7',
+      detail: 'Relative exclusion in CSBPR Box 5B. Warfarin-treated patients with INR ≤1.7 may still be considered for IV thrombolysis if otherwise eligible.'
+    },
+    {
+      id: 'plt',
+      label: 'Platelet count <100,000/mm³',
+      detail: 'Relative exclusion in CSBPR Box 5B.'
+    },
   ] },
 ];
 
@@ -151,6 +216,9 @@ function sanitizeCase(raw) {
     const isObject = v !== null && typeof v === 'object' && !Array.isArray(v);
     if (wantsObject !== isObject) continue; // shape drifted — keep the default
     out[k] = wantsObject ? Object.assign({}, shape[k], v) : v;
+  }
+  if (out.contra && typeof out.contra === 'object') {
+    for (const obsolete of ['gigu', 'sah', 'dissect']) delete out.contra[obsolete];
   }
   out.id = typeof raw.id === 'string' ? raw.id : 'c' + Date.now() + Math.random().toString(36).slice(2, 7);
   out.createdAt = typeof raw.createdAt === 'number' ? raw.createdAt : Date.now();
@@ -349,8 +417,11 @@ function compute() {
   const baselineMrs = (h.baselineMrs === '' || h.baselineMrs == null) ? null : Number(h.baselineMrs);
   const baselineIndependent = baselineMrs === null ? null : baselineMrs <= 2;
 
+  const contraItems = CONTRA.flatMap(g => g.items);
   const relYes = CONTRA.slice(1).flatMap(g => g.items).filter(it => S.contra[it.id] === 'yes');
   const absYes = CONTRA[0].items.some(it => S.contra[it.id] === 'yes');
+  const contraUnresolved = contraItems.filter(it => S.contra[it.id] !== 'yes' && S.contra[it.id] !== 'no');
+  const contraReady = contraUnresolved.length === 0;
   const aspects = S.aspects === '' ? null : Number(S.aspects);
 
   const sev = nihssReady && window.getNIHSSSeverity ? window.getNIHSSSeverity(tot) : { label: '—' };
@@ -389,6 +460,8 @@ function compute() {
     verdict = 'No routine TNK'; vBadge = 'NON-DISABLING'; vBadgeBg = '#7d7979'; vColor = 'var(--ink)';
   } else if (!disablingMet) {
     verdict = 'Confirm disabling deficit'; vBadge = 'INCLUSION PENDING'; vBadgeBg = 'var(--warn)'; vColor = 'var(--ink)';
+  } else if (!contraReady) {
+    verdict = 'Verify exclusions'; vBadge = 'CHECKLIST INCOMPLETE'; vBadgeBg = 'var(--warn)'; vColor = 'var(--ink)';
   } else if (!withinWindow) {
     verdict = 'Imaging selection'; vBadge = 'OUTSIDE 4.5 H'; vBadgeBg = '#7d7979'; vColor = 'var(--ink)';
   } else if (S.ct !== 'clear') {
@@ -443,7 +516,11 @@ function compute() {
 
   const relSub = absYes
     ? 'ABSOLUTE contraindication'
-    : (relYes.length ? relYes.length + ' relative flag' + (relYes.length > 1 ? 's' : '') : 'none flagged');
+    : relYes.length
+      ? relYes.length + ' relative flag' + (relYes.length > 1 ? 's' : '') + (contraUnresolved.length ? ' · ' + contraUnresolved.length + ' unresolved' : '')
+      : contraUnresolved.length
+        ? contraUnresolved.length + ' unresolved'
+        : 'complete · none flagged';
 
   const historyDone = !!(h.deficit || h.age || h.baselineMrs !== '' || h.disabling || h.glucose || h.sbp || h.anticoag);
   const historySub = [
@@ -460,7 +537,7 @@ function compute() {
       sub: (S.onset === 'yes' ? 'Known onset' : S.onset === 'wakeup' ? 'Wake-up stroke' : 'Unknown onset') + ' · LKW ' + S.lkw,
       done: true },
     { id: 'history', name: 'History + baseline', sub: historySub, done: historyDone },
-    { id: 'contra', name: 'Contraindications', sub: relSub, done: Object.keys(S.contra).length > 0 },
+    { id: 'contra', name: 'Contraindications', sub: relSub, done: contraReady },
     { id: 'nihss', name: 'NIHSS',
       sub: external !== null ? 'MDCalc ' + external + ' pts' :
         scored === 0 ? 'MDCalc or teaching mode' :
@@ -483,7 +560,7 @@ function compute() {
   ];
 
   return {
-    min, tot, builtInTot, externalNihss: external, nihssReady, scored, sev, dose, aspects, relYes, absYes, dis,
+    min, tot, builtInTot, externalNihss: external, nihssReady, scored, sev, dose, aspects, relYes, absYes, contraReady, contraUnresolved, dis,
     withinWindow, ctClear, verdict, vBadge, vBadgeBg, vColor,
     evtCandidate, evtStatus, evtStandard, evtConsult, decisionRows, matches, steps,
   };
@@ -799,7 +876,7 @@ function viewContra(c) {
     '<div class="grp-list">' +
       gr.items.map(it => {
         const v = S.contra[it.id];
-        const showDetail = !!S.contraOpen[it.id] || v === 'yes';
+        const showDetail = !!S.contraOpen[it.id] || v === 'yes' || v === 'un';
         return '<div class="ci-row">' +
           '<div class="ci-line">' +
             '<button class="ci-label" data-act="ci-detail" data-arg="' + it.id + '" aria-expanded="' + showDetail + '">' + esc(it.label) + '</button>' +
@@ -814,21 +891,38 @@ function viewContra(c) {
       }).join('') +
     '</div>').join('');
 
+  const unresolved = c.contraUnresolved.length;
   const summary = c.absYes
-    ? 'TNK excluded — absolute CI'
+    ? 'IV thrombolysis excluded — absolute criterion'
     : c.relYes.length
-      ? c.relYes.length + ' relative flag' + (c.relYes.length > 1 ? 's' : '') + ' — judgment, not a stop'
-      : 'Nothing flagged';
-  const summaryClass = c.absYes ? ' contra-summary--abs' : c.relYes.length ? ' contra-summary--flag' : '';
+      ? c.relYes.length + ' relative flag' + (c.relYes.length > 1 ? 's' : '') + (unresolved ? ' · ' + unresolved + ' unresolved' : '')
+      : unresolved
+        ? 'No flags selected · ' + unresolved + ' unresolved'
+        : 'Checklist complete · no flags';
+  const summaryClass = c.absYes ? ' contra-summary--abs' : c.relYes.length || unresolved ? ' contra-summary--flag' : '';
 
   return screenHeader(c) +
     '<div class="body body--contra">' +
       '<div class="contra-banner' + (c.absYes ? ' contra-banner--abs' : '') + '">' +
         (c.absYes
-          ? 'ABSOLUTE contraindication — TNK excluded. Continue: EVT may still be an option.'
-          : 'Check glucose FIRST — hypoglycemia is the most common mimic. Tap any item for why it matters.') +
+          ? 'ABSOLUTE exclusion present. Do not give IV thrombolysis. Continue EVT assessment when clinically appropriate.'
+          : '<strong>Canadian core list:</strong> CSBPR Box 5B. Relative items require individualized clinical judgment; local hospital policy may be more restrictive.') +
       '</div>' +
       groups +
+      '<details class="fold-rule fold-rule--tap" data-fold="contra-clarifications"' + foldOpen('contra-clarifications') + '>' +
+        '<summary>Important Canadian clarifications' + chevDown(16) + '</summary>' +
+        '<div class="fold-body fold-body--sm">' +
+          '<div class="note-bullet"><span class="mark">›</span><span><strong>Seizure at onset:</strong> not itself a contraindication to reperfusion; the issue is whether the persistent deficit is ischemic versus post-ictal.</span></div>' +
+          '<div class="note-bullet"><span class="mark">›</span><span><strong>DOAC:</strong> IV thrombolysis is not routine; specialized testing/reversal pathways may permit selected treatment with expert input. Anticoagulation does not exclude EVT.</span></div>' +
+          '<div class="note-bullet"><span class="mark">›</span><span><strong>Routine labs:</strong> obtain CBC, INR/aPTT, glucose and creatinine, but CSBPR states blood work should not unnecessarily delay imaging or reperfusion decisions.</span></div>' +
+          '<div class="note-bullet"><span class="mark">›</span><span><strong>BP:</strong> Section 4.3 uses &lt;185/110 while initiating/during thrombolysis; Box 5B uses inability to achieve/maintain &lt;180/105 as a relative-exclusion statement. Follow the current local protocol when these differ.</span></div>' +
+        '</div>' +
+      '</details>' +
+      '<div class="source-links">' +
+        '<a href="' + CSBPR_ACUTE_URL + '" target="_blank" rel="noopener">CSBPR — acute ischemic stroke treatment</a>' +
+        '<a href="' + CSBPR_BOX5B_URL + '" target="_blank" rel="noopener">CSBPR — Box 5B IV thrombolysis criteria</a>' +
+        '<a href="' + CSBPR_ED_URL + '" target="_blank" rel="noopener">CSBPR — ED evaluation &amp; blood pressure</a>' +
+      '</div>' +
     '</div>' +
     '<div class="footer footer--split">' +
       '<div class="contra-summary' + summaryClass + '">' + esc(summary) + '</div>' +
@@ -1305,6 +1399,7 @@ root.addEventListener('click', e => {
 
     case 'history-anticoag':
       S.history.anticoag = arg;
+      S.contra.doac = arg === 'doac' ? 'yes' : 'no';
       break;
 
     case 'history-seizure':
@@ -1427,7 +1522,10 @@ root.addEventListener('click', e => {
       break;
 
     // Segmented controls select, they don't toggle off — matching the prototype.
-    case 'ct': S.ct = arg; break;
+    case 'ct':
+      S.ct = arg;
+      S.contra.a2 = arg === 'hem' ? 'yes' : arg === 'clear' ? 'no' : 'un';
+      break;
     case 'lvo': S.lvo = arg; break;
     case 'vessel': S.vessel = arg; break;
     case 'collat': S.collat = arg; break;
@@ -1456,6 +1554,17 @@ root.addEventListener('input', e => {
     setPath(field, value);
   } else {
     return;
+  }
+
+  if (field === 'history.glucose') {
+    const n = Number(value);
+    if (value === '' || !Number.isFinite(n)) delete S.contra.gluc;
+    else S.contra.gluc = (n < 2.7 || n > 22.2) ? 'yes' : 'no';
+  }
+  if (field === 'aspects') {
+    const n = Number(value);
+    if (value === '' || !Number.isFinite(n)) delete S.contra.extensive;
+    else S.contra.extensive = n < 6 ? 'yes' : 'no';
   }
 
   save();
