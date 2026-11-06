@@ -410,7 +410,7 @@ function compute() {
   const mevo = ['M2', 'A2', 'P2'].includes(S.vessel);
   const evtWindow = S.lvo === 'yes' && min <= 1440;
   const evtCoreSupported = aspects === null || aspects >= 3;
-  const evtStandard = evtWindow && majorLvo && evtCoreSupported && baselineIndependent !== false && adultProtocol !== false;
+  const evtStandard = evtWindow && majorLvo && evtCoreSupported && baselineIndependent === true && adultProtocol === true;
   const evtConsult = evtWindow && !evtStandard;
   const evtCandidate = evtStandard || evtConsult;
   const evtStatus = evtStandard ? 'standard' : evtConsult ? 'consult' : null;
@@ -420,8 +420,9 @@ function compute() {
       kColor: disablingMet ? 'var(--ok)' : disablingDenied ? 'var(--accT)' : 'var(--warn)',
       t: disablingMet ? 'Disabling ischemic deficit confirmed' : disablingDenied ? 'Deficit documented as non-disabling' : 'Confirm whether the residual deficit is disabling',
       sub: dis.length ? dis.map(d => d.t).join(' · ') : 'A low NIHSS does not automatically mean non-disabling.' },
-    { k: adultProtocol === false ? 'FLAG' : 'PASS', kColor: adultProtocol === false ? 'var(--warn)' : 'var(--ok)',
-      t: age === null ? 'Adult protocol — age not entered' : 'Age ' + age + (adultProtocol ? ' — adult protocol' : ' — pediatric stroke specialist pathway') },
+    { k: adultProtocol === false ? 'FLAG' : adultProtocol === true ? 'PASS' : '—',
+      kColor: adultProtocol === false ? 'var(--warn)' : adultProtocol === true ? 'var(--ok)' : 'var(--dim2)',
+      t: age === null ? 'Age not entered — confirm adult pathway' : 'Age ' + age + (adultProtocol ? ' — adult protocol' : ' — pediatric stroke specialist pathway') },
     { k: withinWindow ? 'PASS' : 'FAIL', kColor: withinWindow ? 'var(--ok)' : 'var(--accT)',
       t: 'Window — ' + fmt(min) + ' since LKW' + (withinWindow ? ', <4:30' : ' — advanced-imaging selection may apply') },
     { k: ctClear ? 'PASS' : (S.ct === 'hem' ? 'FAIL' : '—'),
@@ -1122,7 +1123,7 @@ function viewDecision(c) {
         '<div class="fold-body fold-body--sm">Follow the institution\'s current thrombolysis BP protocol. Canadian Stroke Best Practices require BP below 185/110 while initiating/during IV thrombolysis and during the following 24 h. Avoid rapid or excessive BP reduction.</div>' +
       '</details>' +
     '</div>' +
-    footerPrimary('consent', 'Consent & give TNK');
+    footerPrimary('consent', (c.verdict === 'Give TNK' || c.verdict === 'TNK — expert judgment') ? 'Consent & give TNK' : 'Document treatment');
 }
 
 function viewConsent(c) {
